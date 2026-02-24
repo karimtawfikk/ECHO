@@ -1,0 +1,23 @@
+# Web framework (for later API phase)
+fastapi
+uvicorn[standard]
+
+# Database
+sqlalchemy
+psycopg2-binary
+
+# Migrations
+alembic
+
+# pgvector support in SQLAlchemy
+pgvector
+
+# Environment variables
+python-dotenv
+
+# Jupyter for experimentation
+notebook
+ipykernel
+
+# Optional but very useful
+pydantic
