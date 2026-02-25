@@ -13,11 +13,11 @@ load_dotenv()
 DATABASE_URL = os.getenv("DATABASE_URL")
 
 # Import Base and all models
-from app.db.session import Base
-from app.models.landmarks import Landmark
-from app.models.landmarks_images import LandmarkImage
-from app.models.pharaohs import Pharaoh
-from app.models.pharaohs_images import PharaohImage
+from src.db.session import Base
+from src.models.landmarks import Landmark
+from src.models.landmarks_images import LandmarkImage
+from src.models.pharaohs import Pharaoh
+from src.models.pharaohs_images import PharaohImage
 
 # Alembic config
 config = context.config

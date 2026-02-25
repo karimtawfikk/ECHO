@@ -2,11 +2,11 @@ import json
 from pathlib import Path
 import chromadb
 from sqlalchemy.orm import Session
-from app.db.session import engine, Base
-from app.models.landmarks import Landmark
-from app.models.landmarks_images import LandmarkImage
-from app.models.pharaohs import Pharaoh
-from app.models.pharaohs_images import PharaohImage
+from src.db.session import engine, Base
+from src.models.landmarks import Landmark
+from src.models.landmarks_images import LandmarkImage
+from src.models.pharaohs import Pharaoh
+from src.models.pharaohs_images import PharaohImage
 
 from chromadb import Client
 
