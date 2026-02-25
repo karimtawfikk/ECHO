@@ -131,27 +131,36 @@ Project Structure
 =================
 
 ```
-echo/
-│
-├── app/
-│   ├── main.py
-│   │
-│   ├── db/
-│   │   └── session.py
-│   │
-│   ├── models/
-│   │   ├── landmark.py
-│   │   └── pharaoh.py
-│   │
-│   ├── modules/
-│   │   ├── recognition/
-│   │   ├── chatbot/
-│   │   ├── video_generation/
-│   │   └── hieroglyph_translation/
-│
-├── alembic/
-├── requirements.txt
-└── README.md
+ECHO/
+|-- src/
+|   |-- main.py
+|   |-- db/
+|   |   |-- __init__.py
+|   |   `-- session.py
+|   `-- models/
+|       |-- landmarks.py
+|       |-- landmarks_images.py
+|       |-- pharaohs.py
+|       `-- pharaohs_images.py
+|-- scripts/
+|   |-- create_info_json.py
+|   |-- seed_db.py
+|   |-- r2_data_uploader.py
+|   `-- r2_data_deleter.py
+|-- alembic/
+|   |-- env.py
+|   `-- versions/
+|-- notebooks/
+|   |-- recognition/
+|   `-- video_generation/
+|-- data/
+|-- utils/
+|   `-- data_sync_verfication.py
+|-- DockerFile
+|-- docker-compose.yml
+|-- alembic.ini
+|-- requirements.txt
+`-- README.md
 ```
 
 Installation
@@ -274,3 +283,4 @@ License
 =======
 
 This project is for academic and educational purposes.
+
