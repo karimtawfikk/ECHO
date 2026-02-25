@@ -4,17 +4,18 @@ import pandas as pd
 from pathlib import Path
 
 # Paths
-csv_path = Path("data/video_generation/raw/landmarks_info.csv")
-descriptions_folder = Path("data/video_generation/outputs/landmarks_descriptions")
-output_json_path = Path("data/video_generation/outputs/landmarks.json")
+csv_path = Path("data/video_generation/raw/pharahos_info.csv")
+descriptions_folder = Path("data/video_generation/outputs/pharahos_descriptions")
+output_json_path = Path("data/video_generation/outputs/pharahos.json")
 
 df = pd.read_csv(csv_path, encoding="cp1252")
 
 landmarks_list = []
 
 for idx, row in df.iterrows():
-    name = row["Landmark name"]
-    location = row["Landmark Location"]
+    name = row["name"]
+    period = row["Period"]
+    dynasty = row["Dynasty"]
 
     filename = name + ".txt"
     file_path = descriptions_folder / filename
@@ -29,8 +30,9 @@ for idx, row in df.iterrows():
     landmark_entry = {
         "id": idx,
         "name": name,
+        "period": period,
+        "dynasty": dynasty,
         "description": description,
-        "location": location
     }
 
     landmarks_list.append(landmark_entry)
