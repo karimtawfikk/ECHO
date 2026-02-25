@@ -8,7 +8,7 @@ psycopg2-binary
 
 # Migrations
 alembic
-sqlalchemy
+
 
 # pgvector support in SQLAlchemy
 pgvector
