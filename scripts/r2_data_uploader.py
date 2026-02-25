@@ -30,8 +30,7 @@ print(f"Found {len(files)} files to upload")
 for file_path in tqdm(files, desc="Uploading files"):
     relative = file_path.relative_to(data_folder.parent)
     key = str(relative).replace('\\', '/')
-    # ────────────────────────────────────────────────────────────────
 
     client.upload_file(str(file_path), BUCKET_NAME, key)
 
-print("Upload finished.")
+#response = client.get_object(Bucket=BUCKET_NAME, Key=object_key)
