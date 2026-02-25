@@ -27,7 +27,7 @@ data_folder = Path("data/video_generation/embeddings/chroma_db_pharaohs") #src
 files = [f for f in data_folder.rglob("*") if f.is_file()]
 
 print(f"Found {len(files)} files to upload")
-DEST_PREFIX = "data/video_generation/raw/"
+DEST_PREFIX = "data/video_generation/embeddings/"
 for file_path in tqdm(files, desc="Uploading files"):
     relative = file_path.relative_to(data_folder.parent)
     key = DEST_PREFIX + str(relative).replace('\\', '/') #uncomment DEST_PREFIX for chroma_db upload
