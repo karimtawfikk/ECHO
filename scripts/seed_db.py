@@ -36,11 +36,7 @@ with Session(engine) as session:
     for metadata, emb in zip(all_items["metadatas"], all_items["embeddings"]):
         
         img_path = metadata.get("path")
-        if not img_path:
-            print("⚠️ No path found in metadata, skipping item")
-            path_count+=1
-            continue
-
+        
         landmark_name = metadata["landmark"]
         landmark_obj = session.query(Landmark).filter_by(name=landmark_name).first()
         if not landmark_obj:
@@ -68,6 +64,5 @@ with Session(engine) as session:
 
     session.commit()
 
-print("✅ Landmark images synced from Chroma to PostgreSQL!")
-print(f"⚠️ Skipped {path_count} items due to missing paths in metadata.")
-print(f"⚠️ Skipped {landmark_count} items due to missing landmarks in DB.")
+print("Landmark images synced from Chroma to PostgreSQL!")
+print(f"Skipped {landmark_count} items due to missing landmarks in DB.")
