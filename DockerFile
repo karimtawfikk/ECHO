@@ -1,7 +1,7 @@
 FROM python:3.11-slim
 
-# Set working directory
-WORKDIR /app
+# Set working directory to /app, could be any name, but /app is common convention
+WORKDIR /app 
 
 # Copy your code
 COPY . .
@@ -13,4 +13,9 @@ ENV APP_ENV=production
 
 CMD ["python", "main.py"]
 
+#for later.
 #dockerfile -(build)> docker image -(run)> docker container -> running application
+#To build the Docker image, run:
+#docker build -t echo-app .
+# once the image is built, you can run a container using:
+#docker run -d -p 8000:8000 --name echo-container echo-app or docker run --name echo-app -p 8000:8000 echo-app
