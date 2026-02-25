@@ -8,12 +8,35 @@ psycopg2-binary
 
 # Migrations
 alembic
+sqlalchemy
 
 # pgvector support in SQLAlchemy
 pgvector
 
 # Environment variables
 python-dotenv
+
+# Data processing and utilities
+pandas
+requests
+tqdm
+pillow
+boto3
+
+# Vector/embedding and local DB tooling
+chromadb
+
+# Generative AI / LLM integrations
+google-genai
+
+# NLP and evaluation tooling (used in notebooks)
+numpy
+scikit-learn
+spacy
+textstat
+sentence-transformers
+transformers
+torch
 
 # Jupyter for experimentation
 notebook
