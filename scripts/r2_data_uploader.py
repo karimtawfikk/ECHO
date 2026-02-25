@@ -21,13 +21,13 @@ client = session.client(
     aws_access_key_id=ACCESS_KEY,
     aws_secret_access_key=SECRET_KEY,
 )
-data_folder = Path("data/video_generation/embeddings/chroma_db_landmarks")
+data_folder = Path("data/video_generation/embeddings/chroma_db_pharaohs") #src
+
 
 files = [f for f in data_folder.rglob("*") if f.is_file()]
 
 print(f"Found {len(files)} files to upload")
-DEST_PREFIX = "data/video_generation/embeddings/"
-
+DEST_PREFIX = "data/video_generation/raw/"
 for file_path in tqdm(files, desc="Uploading files"):
     relative = file_path.relative_to(data_folder.parent)
     key = DEST_PREFIX + str(relative).replace('\\', '/') #uncomment DEST_PREFIX for chroma_db upload
