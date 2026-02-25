@@ -65,4 +65,3 @@ with Session(engine) as session:
     session.commit()
 
 print("Landmark images synced from Chroma to PostgreSQL!")
-print(f"Skipped {landmark_count} items due to missing landmarks in DB.")
