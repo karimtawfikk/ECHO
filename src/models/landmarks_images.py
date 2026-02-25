@@ -1,7 +1,7 @@
 from sqlalchemy import Column, Integer, ForeignKey, String, Boolean
 from sqlalchemy.orm import relationship
 from pgvector.sqlalchemy import Vector
-from app.db.session import Base
+from src.db.session import Base
 
 class LandmarkImage(Base):
     __tablename__ = "landmark_images"
