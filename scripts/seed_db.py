@@ -46,7 +46,7 @@ with Session(engine) as session:
         if not landmark_obj:
             skipped=metadata["landmark"]
             landmark_count+=1   
-            print(f"⚠️ Landmark not found in DB for image: {img_path}")
+            print(f" Landmark not found in DB for image: {img_path}")
             continue
         landmark_id = landmark_obj.id
 
