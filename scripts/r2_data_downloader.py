@@ -20,7 +20,7 @@ client = session.client(
 )
 
 REMOTE_PREFIX = "data/"
-
+# 🔹 Where to save locally
 LOCAL_DIR = Path(r"C:\Uni\4th Year\GP\ECHO\data")
 
 LOCAL_DIR.mkdir(parents=True, exist_ok=True)
@@ -36,12 +36,10 @@ for page in paginator.paginate(Bucket=BUCKET_NAME, Prefix=REMOTE_PREFIX):
         key = obj["Key"]
         if key.endswith("/"):
             continue
+
         local_path = LOCAL_DIR / key
 
         local_path.parent.mkdir(parents=True, exist_ok=True)
 
-        
         print(f"⬇️ Downloading {key} → {local_path}")
         client.download_file(BUCKET_NAME, key, str(local_path))
-
-print("\n✅ Download complete.")
