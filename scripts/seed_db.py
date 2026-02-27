@@ -13,7 +13,7 @@ from chromadb import Client
 Base.metadata.create_all(bind=engine)
 
 #Landmarks
-"""landmarks_json_path = Path("data/video_generation/outputs/landmarks.json")
+landmarks_json_path = Path("data/video_generation/outputs/landmarks.json")
 with open(landmarks_json_path, "r", encoding="utf-8") as f:
     landmarks_data = json.load(f)
 
@@ -68,7 +68,7 @@ with Session(engine) as session:
 
     session.commit()
 
-print("Landmark images synced from Chroma to PostgreSQL!")"""
+print("Landmark images synced from Chroma to PostgreSQL!")
 
 #Pharaohs
 pharaohs_json_path = Path("data/video_generation/outputs/pharaohs.json")
@@ -86,3 +86,5 @@ with Session(engine) as session:
         )
         session.merge(pharaoh)
     session.commit()
+
+#run using python -m scripts.seed_db
