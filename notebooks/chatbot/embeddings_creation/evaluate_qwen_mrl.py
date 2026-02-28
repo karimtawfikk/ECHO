@@ -3,7 +3,10 @@ import math
 from sentence_transformers import SentenceTransformer
 from pathlib import Path
 import numpy as np
+import time
 
+
+print("hi")
 qwen_model = SentenceTransformer("Qwen/Qwen3-Embedding-0.6B", tokenizer_kwargs={"padding_side": "left"})
 
 test_queries_pharaohs = [
@@ -357,8 +360,7 @@ test_queries_landmarks = [
 ]
 
 
-
-def evaluate_model(persist_path, collection_name, model, queries, k=5,mrl_dim=None):
+def evaluate_model(persist_path, collection_name, model, queries, k=5, mrl_dim=None):
 
     client = chromadb.PersistentClient(path=persist_path)
     collection = client.get_collection(collection_name)
@@ -368,24 +370,30 @@ def evaluate_model(persist_path, collection_name, model, queries, k=5,mrl_dim=No
     mrr_total = 0
     ndcg_total = 0
 
+    total_search_time = 0
+
     for query_text, ground_truth_file in queries:
-        
-        query_embedding = model.encode([query_text],normalize_embeddings=True)
+
+        # --- Embed (not timing this) ---
+        query_embedding = model.encode([query_text], normalize_embeddings=True)
 
         if mrl_dim is not None:
-            query_embedding = query_embedding[:, :512]
+            query_embedding = query_embedding[:, :mrl_dim]
             query_embedding = query_embedding / np.linalg.norm(query_embedding, axis=1, keepdims=True)
-            
+
+        # --- Measure search time only ---
+        start = time.perf_counter()
         results = collection.query(
             query_embeddings=query_embedding.tolist(),
-            n_results=k
+            n_results=1
         )
+        end = time.perf_counter()
+
+        total_search_time += (end - start)
 
         retrieved = results["metadatas"][0]
 
-        found = False
         dcg = 0
-
         for rank, meta in enumerate(retrieved):
             if meta["entity_name"] == ground_truth_file:
                 recall_at_k += 1
@@ -393,10 +401,8 @@ def evaluate_model(persist_path, collection_name, model, queries, k=5,mrl_dim=No
                     recall_at_1 += 1
                 mrr_total += 1 / (rank + 1)
                 dcg = 1 / math.log2(rank + 2)
-                found = True
                 break
 
-        # If not found, DCG = 0
         ndcg_total += dcg
 
     total = len(queries)
@@ -405,8 +411,10 @@ def evaluate_model(persist_path, collection_name, model, queries, k=5,mrl_dim=No
         "Recall@1": recall_at_1 / total,
         f"Recall@{k}": recall_at_k / total,
         "MRR": mrr_total / total,
-        f"NDCG@{k}": ndcg_total / total
+        f"NDCG@{k}": ndcg_total / total,
+        "Avg Search Time (s)": total_search_time / total
     }
+
 
 def average_metrics(metrics1, metrics2):
     avg = {}
@@ -428,7 +436,7 @@ results_pharaohs_qwen = evaluate_model(
 
 #Pharaohs 
 #MRL Qwen Evaluation:
-results_pharaohs_qwen_mrl = evaluate_model(
+results_pharaohs_qwen_mrl_512 = evaluate_model(
     Path(r"C:\Uni\4th Year\GP\ECHO\data\chatbot\embeddings\pharaohs_qwen_MRL_512_db"),
     "pharaohs",
     qwen_model,
@@ -437,9 +445,20 @@ results_pharaohs_qwen_mrl = evaluate_model(
     mrl_dim=512
 )
 
-print("PHARAOHS - Qwen:", results_pharaohs_qwen)
-print("PHARAOHS - QWEN 512:", results_pharaohs_qwen_mrl)
+results_pharaohs_qwen_mrl_768 = evaluate_model(
+    Path(r"C:\Uni\4th Year\GP\ECHO\data\chatbot\embeddings\pharaohs_qwen_MRL_768_db"),
+    "pharaohs",
+    qwen_model,
+    test_queries_pharaohs,
+    k=5,
+    mrl_dim=768
+)
 
+
+
+print("PHARAOHS - Qwen:", results_pharaohs_qwen)
+print("PHARAOHS - QWEN 512:", results_pharaohs_qwen_mrl_512)
+print("PHARAOHS - QWEN 768:", results_pharaohs_qwen_mrl_768)
 
 
 #Landmarks
@@ -454,7 +473,7 @@ results_landmarks_qwen = evaluate_model(
 )
 
 #MRL Qwen Evaluation:
-results_landmarks_qwen_mrl = evaluate_model(
+results_landmarks_qwen_mrl_512 = evaluate_model(
     Path(r"C:\Uni\4th Year\GP\ECHO\data\chatbot\embeddings\landmarks_qwen_MRL_512_db"),
     "landmarks",
     qwen_model,
@@ -463,11 +482,28 @@ results_landmarks_qwen_mrl = evaluate_model(
     mrl_dim=512
 )
 
+results_landmarks_qwen_mrl_768 = evaluate_model(
+    Path(r"C:\Uni\4th Year\GP\ECHO\data\chatbot\embeddings\landmarks_qwen_MRL_768_db"),
+    "landmarks",
+    qwen_model,
+    test_queries_landmarks,
+    k=5,
+    mrl_dim=768
+)
+
+
+
 print("LANDMARKS - Qwen:", results_landmarks_qwen)
-print("LANDMARKS - Qwen 512:", results_landmarks_qwen_mrl)
+print("LANDMARKS - Qwen 512:", results_landmarks_qwen_mrl_512)
+print("LANDMARKS - Qwen 768:", results_landmarks_qwen_mrl_768)
+
+
 
 overall_qwen = average_metrics(results_pharaohs_qwen, results_landmarks_qwen)
-overall_qwen_mrl = average_metrics(results_pharaohs_qwen_mrl, results_landmarks_qwen_mrl)
+overall_qwen_mrl_512 = average_metrics(results_pharaohs_qwen_mrl_512, results_landmarks_qwen_mrl_512)
+overall_qwen_mrl_768 = average_metrics(results_pharaohs_qwen_mrl_768, results_landmarks_qwen_mrl_768)
+
 
 print("Qwen overall:", overall_qwen)
-print("Qwen 512 overall:", overall_qwen_mrl)
+print("Qwen 512 overall:", overall_qwen_mrl_512)
+print("Qwen 768 overall:", overall_qwen_mrl_768)
