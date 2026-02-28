@@ -381,7 +381,6 @@ def evaluate_model(persist_path, collection_name, model, queries, k=5, mrl_dim=N
             query_embedding = query_embedding[:, :mrl_dim]
             query_embedding = query_embedding / np.linalg.norm(query_embedding, axis=1, keepdims=True)
 
-        # --- Measure search time only ---
         start = time.perf_counter()
         results = collection.query(
             query_embeddings=query_embedding.tolist(),
