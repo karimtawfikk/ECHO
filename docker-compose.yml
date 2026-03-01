@@ -18,3 +18,4 @@ volumes:
 
 #run with: docker-compose up -d
 #pulls an already built image from Docker Hub, creates a container named "echo_db", sets environment variables for the database credentials, maps port 5432 to the host, and creates a volume for data persistence.
+# docker run --name echo-pg -e POSTGRES_PASSWORD=password -p 5432:5432 -d ankane/pgvector

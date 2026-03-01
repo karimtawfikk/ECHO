@@ -9,7 +9,8 @@ COPY . .
 # Install dependencies
 RUN pip install -r requirements.txt
 
-ENV APP_ENV=production
+ENV APP_ENV=production 
+#todo add missing env vars
 
 CMD ["python", "src/main.py"]
 
