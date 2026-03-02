@@ -8,8 +8,8 @@ class Landmark(Base):
 
     id = Column(Integer, primary_key=True, index=True)
     name = Column(String, nullable=False)
-    description = Column(String)                         
-    location = Column(String)                             
+    description = Column(String, nullable=True)                         
+    location = Column(String, nullable=True)                             
     images = relationship("LandmarkImage", back_populates="landmark")
 
     #text_embedding  = Column(Vector(768))                # store text embeddings

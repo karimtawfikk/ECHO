@@ -12,6 +12,8 @@ from chromadb import Client
 
 Base.metadata.create_all(bind=engine)
 
+
+
 #Landmarks
 landmarks_json_path = Path("data/video_generation/outputs/landmarks.json")
 with open(landmarks_json_path, "r", encoding="utf-8") as f:
@@ -63,6 +65,7 @@ with Session(engine) as session:
             is_plan=is_plan,
             is_location=is_location
         )
+        
         id+=1
         session.merge(lm_image)
 
@@ -71,7 +74,7 @@ with Session(engine) as session:
 print("Landmark images synced from Chroma to PostgreSQL!")
 
 #Pharaohs
-pharaohs_json_path = Path("data/video_generation/outputs/pharaohs.json")
+pharaohs_json_path = Path(r"C:\Uni\4th Year\GP\ECHO\data\video_generation\outputs\pharaohs.json")
 with open(pharaohs_json_path, "r", encoding="utf-8") as f:
     pharaohs_data = json.load(f)
 
@@ -83,8 +86,47 @@ with Session(engine) as session:
             period=ph["period"],
             dynasty=ph["dynasty"],
             description=ph["description"],
+            composite_entity=ph["composite_entity"]
         )
         session.merge(pharaoh)
     session.commit()
 
+#Pharaoh Images
+chroma_db_path = Path(r"data\video_generation\embeddings\chroma_db_pharaohs")
+
+client = chromadb.PersistentClient(path=chroma_db_path)
+collection = client.get_collection("pharaohs_images")
+
+all_items = collection.get(include=["metadatas", "embeddings"])
+id=0
+pharaoh_count=0
+with Session(engine) as session:
+    for metadata, emb in zip(all_items["metadatas"], all_items["embeddings"]):
+        
+        img_path = metadata.get("path")
+        
+        pharaoh_name = metadata["pharaoh_name"]
+        pharaoh_obj = session.query(Pharaoh).filter_by(name=pharaoh_name).first()
+        if not pharaoh_obj:
+            skipped=metadata["pharaoh_name"]
+            pharaoh_count+=1   
+            print(f" Pharaoh not found in DB for image: {img_path}")
+            continue
+        pharaoh_id = pharaoh_obj.id
+        image_description = metadata.get("image_description", "").split('.')[0]
+     
+        ph_image = PharaohImage(
+            id=id,
+            pharaoh_id=pharaoh_id,
+            image_path=img_path,
+            image_embedding=emb,
+            image_description=image_description
+        )
+        id+=1
+        session.merge(ph_image)
+
+    session.commit()
+
+print("Pharaoh images synced from Chroma to PostgreSQL!")
 #run using python -m scripts.seed_db
+

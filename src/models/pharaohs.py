@@ -8,9 +8,9 @@ class Pharaoh(Base):
 
     id = Column(Integer, primary_key=True, index=True)
     name = Column(String, nullable=False)                # e.g., "Ramesses II"
-    dynasty = Column(String)                             # dynasty info
-    description = Column(String)                         # metadata
-    period = Column(String)
+    dynasty = Column(String,nullable=True)                             # dynasty info
+    description = Column(String,nullable=True)                         # metadata
+    period = Column(String,nullable=True)
     images = relationship("PharaohImage", back_populates="pharaoh")
-
-    #text_embedding  = Column(Vector(768))               # store text embeddings
+    composite_entity = Column(String,nullable=True)                  
+    
