@@ -18,7 +18,7 @@ client = session.client(
     aws_secret_access_key=SECRET_KEY,
 )
 
-FOLDER_PREFIX = "data/video_generation/raw/pharaohs_images/"
+FOLDER_PREFIX = "data"
 
 # List all objects with this prefix
 objects = client.list_objects_v2(Bucket=BUCKET_NAME, Prefix=FOLDER_PREFIX)
