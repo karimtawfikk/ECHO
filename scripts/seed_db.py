@@ -15,7 +15,7 @@ Base.metadata.create_all(bind=engine)
 
 
 #Landmarks
-landmarks_json_path = Path("data/video_generation/outputs/landmarks.json")
+landmarks_json_path = Path("data\\data\\video_generation\\outputs\\landmarks.json")
 with open(landmarks_json_path, "r", encoding="utf-8") as f:
     landmarks_data = json.load(f)
 
@@ -31,7 +31,7 @@ with Session(engine) as session:
     session.commit()
 
 #Landmark Images
-chroma_db_path = Path("data/video_generation/embeddings/chroma_db_landmarks")
+chroma_db_path = Path("data\\data\\video_generation\\embeddings\\chroma_db_landmarks")
 client = chromadb.PersistentClient(path=chroma_db_path)
 collection = client.get_collection("landmarks_images")
 
@@ -74,7 +74,7 @@ with Session(engine) as session:
 print("Landmark images synced from Chroma to PostgreSQL!")
 
 #Pharaohs
-pharaohs_json_path = Path(r"C:\Uni\4th Year\GP\ECHO\data\video_generation\outputs\pharaohs.json")
+pharaohs_json_path = Path(r"data\\data\\video_generation\\outputs\\pharaohs.json")
 with open(pharaohs_json_path, "r", encoding="utf-8") as f:
     pharaohs_data = json.load(f)
 
@@ -92,7 +92,7 @@ with Session(engine) as session:
     session.commit()
 
 #Pharaoh Images
-chroma_db_path = Path(r"data\video_generation\embeddings\chroma_db_pharaohs")
+chroma_db_path = Path(r"data\\data\\video_generation\\embeddings\\chroma_db_pharaohs")
 
 client = chromadb.PersistentClient(path=chroma_db_path)
 collection = client.get_collection("pharaohs_images")
