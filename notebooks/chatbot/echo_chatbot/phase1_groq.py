@@ -1,5 +1,7 @@
-import gc
 import os
+
+import gc
+import warnings
 from dotenv import load_dotenv
 from typing import TypedDict, Annotated, List
 from langgraph.graph import StateGraph, END
@@ -12,10 +14,14 @@ from sentence_transformers import SentenceTransformer
 import chromadb
 from pathlib import Path
 import numpy as np
+warnings.filterwarnings("ignore")
+
+
 
 CHROMA_DB_PATH = Path(r"C:\Uni\4th Year\GP\ECHO\data\chatbot\embeddings\pharaohs_qwen_MRL_768_db") 
 COLLECTION_NAME = "pharaohs"
 EMBEDDING_MODEL_NAME = "Qwen/Qwen3-Embedding-0.6B"
+EMBEDDING_MODEL_PATH = "models\Qwen3-Embedding-0.6B"
 
 GROQ_MODEL_NAME = "llama-3.1-8b-instant"
 TOP_K = 3
@@ -51,16 +57,22 @@ collection = chroma_client.get_or_create_collection(name=COLLECTION_NAME)
 # Cloud LLM
 llm = ChatGroq(
     model_name=GROQ_MODEL_NAME,
-    temperature=0.1,
+    temperature=0.4,
     max_tokens=512
 )
 
 
 # --- PROMPT & CHAIN ---
 prompt_template = PromptTemplate.from_template("""
-You are a helpful historical assistant specializing in Ancient Egypt.
-Answer the question based ONLY on the provided context. 
-If the answer is not in the context, say you don't know.
+You are a an expert in ancient Egypt Egyptologist guiding someone through the legacy of ancient Egypt.
+Your goal is to educate the user with accurate and concise historical facts from the provided context.
+
+Instructions:
+- Base your answer strictly on the provided context.
+= Do Not mention you got the answers from the context.
+- Present the information clearly and confidently.
+- Use elegant but concise language.
+- If the context doesn't have the answer, gracefully explain that our current documents haven't revealed that specific detail yet.
 
 Context:
 {context}
@@ -75,11 +87,10 @@ chain = prompt_template | llm | StrOutputParser()
 def retrieve_node(state: AgentState) -> dict:    
     query_embedding = get_embedding(state['query'])
     
-    # Note: I kept your filter logic, but usually you'd want this dynamic
     results = collection.query(
         query_embeddings=[query_embedding],
         n_results=TOP_K,
-        where={"entity_name": {"$eq": "Tutankhamun.txt"}}
+        where={"entity_name": {"$eq": "Ramesses II.txt"}}
     )
     
     context = results["documents"][0] if results["documents"] else []

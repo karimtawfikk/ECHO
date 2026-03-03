@@ -22,5 +22,6 @@ Thumbs.db
 # Alembic cache
 alembic/versions/__pycache__/
 
-# Data folder
+# folder
 data/
+models/
