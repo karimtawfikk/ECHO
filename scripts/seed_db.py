@@ -7,15 +7,14 @@ from src.models.landmarks import Landmark
 from src.models.landmarks_images import LandmarkImage
 from src.models.pharaohs import Pharaoh
 from src.models.pharaohs_images import PharaohImage
+from src.models.landmarks_text import LandmarkText
+from src.models.pharaohs_text import PharaohText
 
-from chromadb import Client
 
 Base.metadata.create_all(bind=engine)
 
-
-
 #Landmarks
-landmarks_json_path = Path("data\\data\\video_generation\\outputs\\landmarks.json")
+landmarks_json_path = Path("data\\video_generation\\outputs\\landmarks.json")
 with open(landmarks_json_path, "r", encoding="utf-8") as f:
     landmarks_data = json.load(f)
 
@@ -31,7 +30,7 @@ with Session(engine) as session:
     session.commit()
 
 #Landmark Images
-chroma_db_path = Path("data\\data\\video_generation\\embeddings\\chroma_db_landmarks")
+chroma_db_path = Path("data\\video_generation\\embeddings\\chroma_db_landmarks")
 client = chromadb.PersistentClient(path=chroma_db_path)
 collection = client.get_collection("landmarks_images")
 
@@ -73,8 +72,50 @@ with Session(engine) as session:
 
 print("Landmark images synced from Chroma to PostgreSQL!")
 
+#Landmarks Text
+chroma_db_path = Path("data\\chatbot\\embeddings\\landmarks_qwen_MRL_768_db")
+client = chromadb.PersistentClient(path=chroma_db_path)
+collection = client.get_collection("landmarks")
+
+all_items = collection.get(include=["metadatas", "embeddings","documents"])
+id=0
+landmark_count=0
+skipped=[]
+with Session(engine) as session:
+    for metadata, emb, docs in zip(all_items["metadatas"], all_items["embeddings"], all_items["documents"]):
+        text_chunk = docs
+        
+        landmark_name = metadata["entity_name"].replace(".txt", "").strip()
+        landmark_obj = session.query(Landmark).filter_by(name=landmark_name).first()
+        if not landmark_obj:
+            skipped.append(metadata["entity_name"])
+            landmark_count+=1   
+            print(f" Landmark not found in DB for text chunk: {text_chunk}")
+            continue
+        landmark_id = landmark_obj.id
+
+        lm_text = LandmarkText(
+            id=id,
+            landmark_id=landmark_id,
+            text_chunk=text_chunk,
+            text_embedding=emb,
+        )
+        
+        id+=1
+        session.merge(lm_text)
+
+    session.commit()
+
+
+print(f"{landmark_count} Landmark texts skipped due to missing landmarks in DB.")
+print(skipped)
+print("Landmark texts synced from Chroma to PostgreSQL!")
+
+
+
+
 #Pharaohs
-pharaohs_json_path = Path(r"data\\data\\video_generation\\outputs\\pharaohs.json")
+pharaohs_json_path = Path("data\\video_generation\\outputs\\pharaohs.json")
 with open(pharaohs_json_path, "r", encoding="utf-8") as f:
     pharaohs_data = json.load(f)
 
@@ -92,7 +133,7 @@ with Session(engine) as session:
     session.commit()
 
 #Pharaoh Images
-chroma_db_path = Path(r"data\\data\\video_generation\\embeddings\\chroma_db_pharaohs")
+chroma_db_path = Path("data\\video_generation\\embeddings\\chroma_db_pharaohs")
 
 client = chromadb.PersistentClient(path=chroma_db_path)
 collection = client.get_collection("pharaohs_images")
@@ -128,5 +169,41 @@ with Session(engine) as session:
     session.commit()
 
 print("Pharaoh images synced from Chroma to PostgreSQL!")
-#run using python -m scripts.seed_db
 
+#Pharaohs Text
+chroma_db_path = Path("data\\chatbot\\embeddings\\pharaohs_qwen_MRL_768_db")
+client = chromadb.PersistentClient(path=chroma_db_path)
+collection = client.get_collection("pharaohs")
+
+all_items = collection.get(include=["metadatas", "embeddings","documents"])
+id=0
+pharoah_count=0
+skipped=[]
+with Session(engine) as session:
+    for metadata, emb, docs in zip(all_items["metadatas"], all_items["embeddings"], all_items["documents"]):
+        text_chunk = docs
+        
+        pharaoh_name = metadata["entity_name"].replace(".txt", "").strip()
+        pharaoh_obj = session.query(Pharaoh).filter_by(name=pharaoh_name).first()
+        if not pharaoh_obj:
+            skipped.append(metadata["entity_name"])
+            pharoah_count+=1   
+            continue
+        pharaoh_id = pharaoh_obj.id
+
+        ph_text = PharaohText(
+            id=id,
+            pharaoh_id=pharaoh_id,
+            text_chunk=text_chunk,
+            text_embedding=emb
+        )
+        
+        id+=1
+        session.merge(ph_text)
+
+    session.commit()
+
+
+print("Pharaohs texts synced from Chroma to PostgreSQL!")
+
+#run using python -m scripts.seed_db

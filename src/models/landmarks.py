@@ -11,5 +11,4 @@ class Landmark(Base):
     description = Column(String, nullable=True)                         
     location = Column(String, nullable=True)                             
     images = relationship("LandmarkImage", back_populates="landmark")
-
-    #text_embedding  = Column(Vector(768))                # store text embeddings
+    texts = relationship("LandmarkText", back_populates="landmark")
