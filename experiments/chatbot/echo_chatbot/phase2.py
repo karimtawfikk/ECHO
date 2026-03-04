@@ -40,12 +40,11 @@ EMBEDDING_MODEL_NAME = "Qwen/Qwen3-Embedding-0.6B"
 EMBEDDING_MODEL_PATH = "models\Qwen3-Embedding-0.6B"
 GROQ_API_KEY1= os.getenv("GROQ_API_KEY1")
 GROQ_API_KEY2= os.getenv("GROQ_API_KEY2")
-GROQ_GENERATOR_MODEL_NAME = "qwen/qwen3-32b"
-GROQ_QUERY_RERWRITER_MODEL_NAME = "llama-3.1-8b-instant"
+GROQ_GENERATOR_MODEL_NAME = "llama-3.3-70b-versatile"
+GROQ_QUERY_RERWRITER_MODEL_NAME = "qwen/qwen3-32b"
 TOP_K = 3
 EMBEDDING_DIM = 768
 ENTITY_NAME="Ramesses II"
-
 
 load_dotenv()
 
@@ -75,18 +74,20 @@ def get_embedding(text: str):
 query_rewriter_llm = ChatGroq(
     model_name=GROQ_QUERY_RERWRITER_MODEL_NAME,
     temperature=0.2,
-    max_tokens=120,
-    api_key= GROQ_API_KEY2
+    max_tokens=1024,
+    api_key= GROQ_API_KEY1,
+     extra_body={
+        "reasoning_effort": "default",
+        "reasoning_format": "hidden" # Use hidden for the rewriter to keep it clean
+    } 
 )
 
 generator_llm = ChatGroq(
     model_name=GROQ_GENERATOR_MODEL_NAME,
     temperature=0.4,
-    max_tokens=1024,
+    max_tokens=4096,
     top_p=0.95,
-    api_key=GROQ_API_KEY2,
-    reasoning_effort='default',
-    reasoning_format='hidden'
+    api_key=GROQ_API_KEY2,   
 )
 
 #  PROMPT & CHAIN
@@ -102,20 +103,24 @@ def rewrite_node(state: AgentState) -> dict:
     dialogue = []
     for msg in state['messages'][:-1]:
         if isinstance(msg, HumanMessage):
-            role = "User"
+            role = "User "
             dialogue.append(f"{role}: {msg.content}")
         elif getattr(msg, "name", None) == "search_query":
-            role = "Search Query:"
+            role = "Search Query "
             dialogue.append(f"{role}: {msg.content}")
-        else:
-            # (The Pharaoh's actual answer). We skip it!
-            continue
 
     history_str = "\n".join(dialogue) if dialogue else "No history yet."
 
+    print("\n\n")
+    print("="*50)
+    print("Rewrite History",history_str)
+    print("="*50)
+    print("\n\n")
+
+
     search_q = rewrite_chain.invoke({"query": state['query'],
                                      "pharaoh_name": ENTITY_NAME,
-                                     "chat_history":history_str})
+                                     "chat_history":history_str}).replace("Search Query:", "").strip()
 
     return {"messages": [AIMessage(content=search_q, name="search_query")], #add metadata
             "search_query": search_q}
@@ -142,17 +147,28 @@ def retrieve_node(state: AgentState) -> dict:
 def generate_node(state: AgentState) -> dict:
     dialogue = []
     for msg in state['messages'][:-1]: #skupping the last message which is the current user query
-        role = "User" if isinstance(msg, HumanMessage) else ENTITY_NAME+": "
-        dialogue.append(f"{role}: {msg.content}") #append all chats
+        if isinstance(msg, HumanMessage) :
+            role = "User "
+            dialogue.append(f"{role}: {msg.content}")
+        elif getattr(msg, "name", None) == "generator_response":
+            role = ENTITY_NAME
+            dialogue.append(f"{role}: {msg.content}")
+
     
     history_str = "\n".join(dialogue) if dialogue else "No previous conversation."
+
+    print("\n\n")
+    print("="*50)
+    print("Generator History",history_str)
+    print("="*50)
+    print("\n\n")
 
     print(ENTITY_NAME, ": ")
     response_text=""
     for chunk in llm_chain.stream({ #Token-level LLM stream, not LG
         "pharaoh_name": ENTITY_NAME,
         "context": "\n\n".join(state['context']),
-        "query": state['query'],
+        "query": state['search_query'],
         "chat_history": history_str,
     }):
         print(chunk, end="", flush=True)
@@ -161,7 +177,7 @@ def generate_node(state: AgentState) -> dict:
     print() 
     
     return {
-        "messages": [AIMessage(content=response_text)],
+        "messages": [AIMessage(content=response_text,name="generator_response")],
         "response": response_text
     }
 
@@ -180,6 +196,10 @@ workflow.add_edge("generator", END)
 memory = MemorySaver()
 graph = workflow.compile(checkpointer=memory)
 
+# Visualize graph
+from IPython.display import Image, display
+display(Image(graph.get_graph().draw_mermaid_png(output_file_path="graph.png")))
+
 def main():
     print("Agentic RAG Ready (Streaming & Persistent Memory):")
     
@@ -190,16 +210,12 @@ def main():
         user_input = input("User: ").strip()
         if user_input.lower() in ['quit', 'exit', 'q']: break
         
-        # 'stream' will yield a dictionary every time a NODE finishes.
-        for event in graph.stream(
-            {"messages": [("user", user_input)], #automatically converted to HumanMessage by the Annotated type
-             "query": user_input,
-             "context": []}, 
-            config=config
-        ):
-            """for node_name, value in event.items():
-                if node_name == "generator":
-                    print(f"\n{ENTITY_NAME}: {value['messages'][-1].content}\n")"""
+        inital_state={
+            "messages": [("user", user_input)], #automatically converted to HumanMessage by the Annotated type
+            "query": user_input,
+            "context": []}
+        
+        graph.invoke(inital_state,config=config)
 
 if __name__ == "__main__":
     main()
