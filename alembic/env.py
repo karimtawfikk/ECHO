@@ -18,6 +18,8 @@ from src.models.landmarks import Landmark
 from src.models.landmarks_images import LandmarkImage
 from src.models.pharaohs import Pharaoh
 from src.models.pharaohs_images import PharaohImage
+from src.models.pharaohs_text import PharaohText
+from src.models.landmarks_text import LandmarkText
 
 # Alembic config
 config = context.config
