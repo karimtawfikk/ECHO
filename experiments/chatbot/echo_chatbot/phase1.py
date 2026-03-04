@@ -6,6 +6,7 @@ import warnings
 from dotenv import load_dotenv
 from typing import TypedDict, Annotated, List
 from langgraph.graph import StateGraph, END
+from langgraph.checkpoint.memory import MemorySaver
 from langgraph.graph.message import add_messages
 from langchain_core.messages import HumanMessage, AIMessage
 from langchain_core.prompts import PromptTemplate
@@ -87,7 +88,6 @@ def retrieve_node(state: AgentState) -> dict:
     query_embedding = get_embedding(state['query'])
     
     with Session(engine) as session:
-        # 1. Still use ORM for the ID if you want (it's easy)
         NAME = "Ramesses II"
         pharaoh = session.query(Pharaoh).filter_by(name=NAME).first()
         if not pharaoh: return {"context": []}
@@ -106,10 +106,26 @@ def retrieve_node(state: AgentState) -> dict:
     return {"context": context}
 
 def generate_node(state: AgentState) -> dict:
+    # 1. Build history
+    dialogue = []
+    for msg in state['messages'][:-1]:
+        role = "User" if isinstance(msg, HumanMessage) else "Assistant"
+        dialogue.append(f"{role}: {msg.content}")
     
+    history_str = "\n".join(dialogue) if dialogue else "No previous conversation."
+
+    # --- DEBUG SECTION ---
+    print("\n" + "="*30)
+    print("DEBUG: CHAT HISTORY PASSED TO LLM")
+    print(history_str)
+    print("="*30 + "\n")
+    # ---------------------
+
+    # 2. Invoke the chain
     response_text = chain.invoke({
         "context": "\n\n".join(state['context']),
-        "query": state['query']
+        "query": state['query'],
+        "chat_history": history_str
     })
     
     return {
@@ -126,28 +142,29 @@ workflow.set_entry_point("retriever")
 workflow.add_edge("retriever", "generator")
 workflow.add_edge("generator", END)
 
-graph = workflow.compile()
+memory = MemorySaver() # Initialize the "RAM" storage
+graph = workflow.compile(checkpointer=memory)
 
 def main():
-    print("Agentic RAG Ready:")
-    """ENTITY_TYPE = input("Type P for pharaohs, L for landmarks").strip()
-    if ENTITY_TYPE.upper() == "P":
-        ENTITY_TYPE = "pharaohs"
-    else:
-        ENTITY_TYPE = "landmarks"""
+    print("Agentic RAG Ready (Streaming & Persistent Memory):")
+    
+    # This ID represents "User 1's Chat Room"
+    config = {"configurable": {"thread_id": "1"}}
+
     while True:
-        user_query = input("You: ").strip()
-        if user_query.lower() in ['quit', 'exit', 'q']: break
-        if not user_query: continue
+        user_input = input("You: ").strip()
+        if user_input.lower() in ['quit', 'exit', 'q']: break
         
-        inputs = {
-            "query": user_query,
-            "messages": [HumanMessage(content=user_query)],
-            "context": []
-        }
-        
-        result = graph.invoke(inputs)
-        print(f"\nAssistant: {result['response']}\n")
+        # 'stream' will yield a dictionary every time a NODE finishes.
+        for event in graph.stream(
+            {"messages": [("user", user_input)], #automatically converted to HumanMessage by the Annotated type
+             "query": user_input,
+             "context": []}, 
+            config=config
+        ):
+            for node_name, value in event.items():
+                if node_name == "generator":
+                    print(f"\nAssistant: {value['messages'][-1].content}\n")
 
 if __name__ == "__main__":
     main()
