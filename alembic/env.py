@@ -20,6 +20,8 @@ from src.models.pharaohs import Pharaoh
 from src.models.pharaohs_images import PharaohImage
 from src.models.pharaohs_text import PharaohText
 from src.models.landmarks_text import LandmarkText
+from src.models.landmarks_scripts import LandmarkScript
+from src.models.pharaohs_scripts import PharaohScript
 
 # Alembic config
 config = context.config
