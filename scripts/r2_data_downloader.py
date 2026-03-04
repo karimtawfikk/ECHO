@@ -21,7 +21,7 @@ client = session.client(
 
 REMOTE_PREFIX = "data/"
 # 🔹 Where to save locally
-LOCAL_DIR = Path(r"C:\Uni\4th Year\GP\ECHO\data")
+LOCAL_DIR = Path(r"D:\\GP\\ECHO\\data")
 
 LOCAL_DIR.mkdir(parents=True, exist_ok=True)
 
