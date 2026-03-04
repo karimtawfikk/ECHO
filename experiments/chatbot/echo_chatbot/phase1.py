@@ -34,15 +34,13 @@ def load_resources():
     return prompts, sql_query
 
 PROMPTS, VECTOR_SQL = load_resources()
-CHROMA_DB_PATH = Path(r"C:\Uni\4th Year\GP\ECHO\data\chatbot\embeddings\pharaohs_qwen_MRL_768_db") 
-COLLECTION_NAME = "pharaohs"
 EMBEDDING_MODEL_NAME = "Qwen/Qwen3-Embedding-0.6B"
 EMBEDDING_MODEL_PATH = "models\Qwen3-Embedding-0.6B"
 
-GROQ_MODEL_NAME = "llama-3.1-8b-instant"
+GROQ_MODEL_NAME = "qwen/qwen3-32b"
 TOP_K = 3
 EMBEDDING_DIM = 768
-ENTITY_TYPE=""
+
 
 load_dotenv()
 
@@ -65,10 +63,6 @@ def get_embedding(text: str):
     embeddings = embeddings[:, :EMBEDDING_DIM]
     query_embedding = embeddings / np.linalg.norm(embeddings, axis=1, keepdims=True)
     return query_embedding[0].tolist()
-
-# ChromaDB client
-chroma_client = chromadb.PersistentClient(path=str(CHROMA_DB_PATH))
-collection = chroma_client.get_or_create_collection(name=COLLECTION_NAME)
 
 
 # Cloud LLM
@@ -144,6 +138,7 @@ workflow.add_edge("generator", END)
 
 memory = MemorySaver() # Initialize the "RAM" storage
 graph = workflow.compile(checkpointer=memory)
+
 
 def main():
     print("Agentic RAG Ready (Streaming & Persistent Memory):")
