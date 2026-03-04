@@ -4,3 +4,5 @@ from .landmarks import Landmark
 from .landmarks_text import LandmarkText
 from .landmarks_images import LandmarkImage
 from .pharaohs_images import PharaohImage
+from .pharaohs_scripts import PharaohScript
+from .landmarks_scripts import LandmarkScript

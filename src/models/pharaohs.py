@@ -11,7 +11,10 @@ class Pharaoh(Base):
     dynasty = Column(String,nullable=True)                             # dynasty info
     description = Column(String,nullable=True)                         # metadata
     period = Column(String,nullable=True)
+    composite_entity = Column(String,nullable=True)   
+   
     images = relationship("PharaohImage", back_populates="pharaoh")
     texts = relationship("PharaohText", back_populates="pharaoh")
-    composite_entity = Column(String,nullable=True)                  
+    scripts = relationship("PharaohScript", back_populates="pharaoh")
+                 
     
