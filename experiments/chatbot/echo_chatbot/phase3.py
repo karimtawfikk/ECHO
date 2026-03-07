@@ -164,11 +164,6 @@ def rerank_node(state: AgentState) -> dict:
     docs = [Document(page_content=chunk) for chunk in state['context']]
     reranked = reranker.compress_documents(docs, query=state['search_query'])
 
-    print("--- Reranker Top Results ---")
-    for rank, doc in enumerate(reranked, 1):
-        score = doc.metadata.get("relevance_score", "N/A")
-        print(f"[Rank {rank} | Score: {score}]\n{doc.page_content}...\n")
-
     return {"context": [doc.page_content for doc in reranked]} #first element is the most relevan
 
     
