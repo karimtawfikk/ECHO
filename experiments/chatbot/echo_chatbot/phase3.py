@@ -13,12 +13,13 @@ from langchain_core.prompts import PromptTemplate
 from langchain_core.output_parsers import StrOutputParser
 from langchain_groq import ChatGroq
 from langchain_cloudflare import CloudflareWorkersAIEmbeddings
-from pathlib import Path
-import numpy as np
+from langchain_community.document_compressors.jina_rerank import JinaRerank
+from langchain_core.documents import Document
 from sqlalchemy.orm import Session
 from src.db.session import engine
 from sqlalchemy import text
 import yaml
+import numpy as np
 warnings.filterwarnings("ignore")
 
 load_dotenv()
@@ -39,6 +40,11 @@ GROQ_API_KEY2= os.getenv("GROQ_API_KEY2")
 CF_WORKERSAI_ACCOUNTID=os.getenv("R2_ACCOUNT_ID")
 CF_AI_API=os.getenv("CF_AI_API")
 
+CF_RERANKER_ACCOUNTID=os.getenv("CF_ACCOUNT_ID")
+CF_RERANKER_API=os.getenv("CF_RERANKER_API")
+JINA_API_KEY = os.getenv("JINA_API_KEY")
+
+
 GROQ_GENERATOR_MODEL_NAME = "openai/gpt-oss-120b"
 GROQ_QUERY_RERWRITER_MODEL_NAME = "qwen/qwen3-32b"
 TOP_K = 3
@@ -54,11 +60,18 @@ class AgentState(TypedDict):
     context: List[str]
     response: str
 
-#Embedding model
+#Embedding Model
 embedding_model = CloudflareWorkersAIEmbeddings(
     account_id=CF_WORKERSAI_ACCOUNTID,
     api_token=CF_AI_API,
     model_name="@cf/qwen/qwen3-embedding-0.6b"
+)
+
+#Reranker Model
+reranker = JinaRerank(
+    model="jina-reranker-v3",
+    top_n=TOP_K,
+    jina_api_key=JINA_API_KEY
 )
 
 def get_embedding(text: str):
@@ -79,7 +92,7 @@ query_rewriter_llm = ChatGroq(
     api_key= GROQ_API_KEY1,
      extra_body={
         "reasoning_effort": "default",
-        "reasoning_format": "hidden" # Use hidden for the rewriter to keep it clean
+        "reasoning_format": "hidden" 
     } 
 )
 
@@ -107,7 +120,7 @@ llm_chain = llm_prompt_template | generator_llm | StrOutputParser()
 def rewrite_node(state: AgentState) -> dict:
 
     clean_dialouge = [
-        msg for msg in state['messages'][:-1] # Exclude current user input
+        msg for msg in state['messages'][:-1] 
         if isinstance(msg, HumanMessage) or getattr(msg, "name", None) == "search_query"
     ]
     
@@ -124,18 +137,11 @@ def rewrite_node(state: AgentState) -> dict:
 
     history_str = "\n".join(dialogue) if dialogue else "No history yet."
 
-    """print("\n\n")
-    print("="*50)
-    print("Rewrite History: ",history_str)
-    print("="*50)
-    print("\n\n")"""
-
-
     search_q = rewrite_chain.invoke({"query": state['query'],
                                      "pharaoh_name": ENTITY_NAME,
                                      "chat_history":history_str}).replace("Search Query:", "").strip()
 
-    return {"messages": [AIMessage(content=search_q, name="search_query")], #add metadata
+    return {"messages": [AIMessage(content=search_q, name="search_query")], 
             "search_query": search_q}
 
 def retrieve_node(state: AgentState) -> dict:
@@ -145,22 +151,36 @@ def retrieve_node(state: AgentState) -> dict:
         raw_query = text(VECTOR_SQL)
         result = session.execute(raw_query, {
                 "pharoah_name": ENTITY_NAME,
-                "embedding": str(query_embedding),
-                "limit": TOP_K
+                "embedding": str(query_embedding)
                 })
 
         context = [row[0] for row in result]
-
+        
     return {"context": context}
+
+
+def rerank_node(state: AgentState) -> dict:
+
+    docs = [Document(page_content=chunk) for chunk in state['context']]
+    reranked = reranker.compress_documents(docs, query=state['search_query'])
+
+    print("--- Reranker Top Results ---")
+    for rank, doc in enumerate(reranked, 1):
+        score = doc.metadata.get("relevance_score", "N/A")
+        print(f"[Rank {rank} | Score: {score}]\n{doc.page_content}...\n")
+
+    return {"context": [doc.page_content for doc in reranked]} #first element is the most relevan
+
+    
 
 def generate_node(state: AgentState) -> dict:
     
     clean_dialogue = [
         msg for msg in state['messages'] 
         if isinstance(msg, HumanMessage) or getattr(msg, "name", None) == "generator_response"
-    ] #neglect search_query messages
+    ] 
 
-    history_window = clean_dialogue[-11:-1] if len(clean_dialogue) > 1 else [] #last 5 turns.(10 so 5 turns)
+    history_window = clean_dialogue[-11:-1] if len(clean_dialogue) > 1 else [] 
 
     dialogue = []
     for msg in history_window: 
@@ -171,18 +191,11 @@ def generate_node(state: AgentState) -> dict:
             role = ENTITY_NAME
             dialogue.append(f"{role}: {msg.content}")
 
-    
     history_str = "\n".join(dialogue) if dialogue else "No previous conversation."
-
-    """print("\n\n")
-    print("="*50)
-    print("Generator History",history_str)
-    print("="*50)
-    print("\n\n")"""
 
     print(ENTITY_NAME, ": ")
     response_text=""
-    for chunk in llm_chain.stream({ #Token-level LLM stream, not LG
+    for chunk in llm_chain.stream({ 
         "pharaoh_name": ENTITY_NAME,
         "context": "\n\n".join(state['context']),
         "query": state['query'],
@@ -202,21 +215,22 @@ def generate_node(state: AgentState) -> dict:
 workflow = StateGraph(AgentState)
 workflow.add_node("rewriter", rewrite_node)
 workflow.add_node("retriever", retrieve_node)
+workflow.add_node("reranker", rerank_node) # Node added
 workflow.add_node("generator", generate_node)
 
 
 workflow.set_entry_point("rewriter")
 workflow.add_edge("rewriter", "retriever")
-workflow.add_edge("retriever", "generator")
+workflow.add_edge("retriever", "reranker") # Link updated
+workflow.add_edge("reranker", "generator") # Link updated
 workflow.add_edge("generator", END)
 
 memory = MemorySaver()
 graph = workflow.compile(checkpointer=memory)
 
 def main():
-    print("Agentic RAG Ready (Streaming & Persistent Memory):")
+    print("Agentic RAG Ready (Phase 3 - Reranking Integration):")
     
-    # This ID represents "User 1's Chat Room"
     config = {"configurable": {"thread_id": "1"}}
 
     while True:
@@ -224,7 +238,7 @@ def main():
         if user_input.lower() in ['quit', 'exit', 'q']: break
         
         inital_state={
-            "messages": [("user", user_input)], #automatically converted to HumanMessage by the Annotated type
+            "messages": [("user", user_input)], 
             "query": user_input,
             "context": []}
         
