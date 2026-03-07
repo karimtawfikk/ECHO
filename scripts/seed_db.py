@@ -1,5 +1,8 @@
-import json
 from pathlib import Path
+import sys
+sys.path.append(str(Path(__file__).resolve().parents[1]))
+
+import json
 import chromadb
 from sqlalchemy.orm import Session
 from src.db.session import engine, Base
