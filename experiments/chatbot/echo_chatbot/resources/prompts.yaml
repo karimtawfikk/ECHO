@@ -8,8 +8,8 @@ rewrite_prompt: |
   {chat_history}
 
   ### INSTRUCTIONS:
-  0. SUBJECT RESOLUTION: Use the "Query Expansion Dialogue History" to resolve pronouns (he, she, it, that) to the specific person or object mentioned previously.
-  1. SCOPE CHECK: First, identify the subject in the user's question (person,thing,place, etc.). If the subject is unrelated to {pharaoh_name} , their family, ancient   egyptian history or associated with modern times, do this:
+  0. SUBJECT RESOLUTION: Use the "Query Expansion Dialogue History" to resolve pronouns (he, she, it, that) to the specific person or subject mentioned previously.
+  1. SCOPE CHECK: First, identify the subject in the user's question (person,thing,place, etc.). If the subject is unrelated to {pharaoh_name} , their family, ancient egyptian history or associated with modern times, do this:
      - Rewrite the user's question into a 3rd-person factual question about that subject.
      - Append " : OUT_OF_SCOPE" to the end.
      - STOP HERE. Do not apply any further instructions AT ALL.
