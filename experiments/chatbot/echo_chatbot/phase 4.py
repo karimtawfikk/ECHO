@@ -148,7 +148,7 @@ def rewrite_node(state: AgentState) -> dict:
         if isinstance(msg, HumanMessage) or getattr(msg, "name", None) == "search_query"
     ]
     history_window = clean_dialogue[-10:] if clean_dialogue else []
-
+ 
     dialogue = []
     for msg in history_window:
         if isinstance(msg, HumanMessage):
@@ -158,13 +158,15 @@ def rewrite_node(state: AgentState) -> dict:
 
     history_str = "\n".join(dialogue) if dialogue else "No history yet."
 
-    system_instruction= f"If the user's query is unrelated to {ENTITY_NAME} , their family, or Ancient Egyptian history, respond ONLY with the word 'OUT_OF_SCOPE'."
-
     search_q = rewrite_chain.invoke({
-        "query": state['query'] + system_instruction ,
+        "query": state['query'],
         "pharaoh_name": ENTITY_NAME,
         "chat_history": history_str
     }).replace("Search Query:", "").strip()
+
+    print("-"*50)
+    print(search_q)
+    print("-"*60)
     return {
         "messages": [AIMessage(content=search_q, name="search_query")],
         "search_query": search_q
@@ -195,10 +197,10 @@ def rerank_node(state: AgentState) -> dict:
 def generate_node(state: AgentState) -> dict:
     
     if "OUT_OF_SCOPE" in state.get('search_query', ''):
-        response_text = "You speak of a time that is not mine. My eyes see only the borders of my own reign."
+        response_text = "I'm sorry but you speak of a time that is not mine. My eyes see only the borders of my own reign."
         print(f"\n{ENTITY_NAME}: {response_text}")
         return {
-            "messages": [AIMessage(content=response_text, name="generator_response")],
+            "messages": [AIMessage(content=response_text, name="irrelevant_query")],
             "response": response_text
         }
     
