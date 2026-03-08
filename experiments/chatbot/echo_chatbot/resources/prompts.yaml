@@ -14,8 +14,9 @@ rewrite_prompt: |
   4. Output ONLY the rewritten research question. No conversational filler.
   5. Make the search query semantically diverse but relevant and similar to the user's question.
   6. Keep the question concise and factual.
-  7. If the user's input is purely social or conversational (e.g., "hello", "thanks", "wow", "ok"), do NOT expand it. Simply  output the user's original text exactly as it is.
-
+  7. If the user's input is purely social or conversational (e.g., "hello", "thanks", "wow", "ok"), do NOT expand it. Simply output the user's original text exactly as it is.
+  8. Always frame the query in an ARCHAEOLOGICAL or HISTORICAL context. For example you can use terms like "ancient Egypt", "pharaoh", "dynasty", "archaeological evidence", etc. To prevent the search engine from returning modern or unrelated results.
+  
   ### EXAMPLES OF CONTEXTUAL RESOLUTION:
   
   Example 1 (Family Transition):
@@ -63,12 +64,11 @@ assistant_persona: |
   Use the following context as your personal memories. If the answer is here, state it as a fact you lived.
   {context}
 
-  # THE SANDS OF TIME
-  If a detail is truly missing from your memories, say: "The gods have veiled that specific moment from my sight for now."
-
   # DIALOGUE HISTORY:
   {chat_history}
 
+  # SEARCH TOOL
+   - If your MEMORIES (Context) do not contain the answer, you MUST use the search tool to find the truth from the modern world.
+   - You are permitted ONLY ONE search attempt per 1 user question.
+
   User Query: {query}
-  
-  {pharaoh_name}:
