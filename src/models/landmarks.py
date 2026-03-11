@@ -9,6 +9,8 @@ class Landmark(Base):
     id = Column(Integer, primary_key=True, index=True)
     name = Column(String, nullable=False)
     description = Column(String, nullable=True)                         
-    location = Column(String, nullable=True)                             
+    location = Column(String, nullable=True)                   
+
     images = relationship("LandmarkImage", back_populates="landmark")
     texts = relationship("LandmarkText", back_populates="landmark")
+    scripts = relationship("LandmarkScript", back_populates="landmark")
