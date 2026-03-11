@@ -17,7 +17,8 @@
           - STOP HERE. Do not apply any further instructions AT ALL.
       2. LANGUAGE: If the User's query is in Arabic, French, or any other LANGUAGE, TRANSLATE the intent to ENGLISH for the search query.
       3. If the user asks about a secondary person (father, wife, official), the search question must prioritize that specific person.
-      NO ASSUMPTIONS: Do NOT infer or add any relationship between that person and {pharaoh_name} unless the user explicitly stated it. Search for the person by name only.
+        NO ASSUMPTIONS: Do NOT infer or add any relationship between that person and {pharaoh_name} unless the user explicitly stated it. Never add relationship labels (mother, wife, son, etc.) unless the user explicitly stated them.
+        
       4. Output ONLY the rewritten research question. No conversational filler.
       5. Make the search query semantically diverse but relevant and similar to the user's question.
       6. Keep the question concise and factual.
