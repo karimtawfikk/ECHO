@@ -5,7 +5,11 @@ sys.path.append(str(Path(__file__).resolve().parents[3]))
 import warnings
 import os
 import re
+import io
 import asyncio
+import threading
+import numpy as np
+from groq import Groq
 from dotenv import load_dotenv
 from typing import TypedDict, Annotated, List
 
@@ -15,7 +19,6 @@ from langgraph.graph import StateGraph, END
 from langgraph.checkpoint.memory import MemorySaver
 from langgraph.graph.message import add_messages
 from langgraph.prebuilt import ToolNode, tools_condition
-from langgraph.types import interrupt, Command
 
 from langchain_core.messages import HumanMessage, AIMessage, ToolMessage
 from langchain_core.prompts import PromptTemplate
@@ -31,11 +34,14 @@ from sqlalchemy import text
 from src.db.session import engine
 
 import yaml
-import numpy as np
 
 warnings.filterwarnings("ignore")
 load_dotenv()
 
+
+# ---------------------------------------------------------------------------
+# Resources
+# ---------------------------------------------------------------------------
 
 def load_resources():
     base_path = Path(__file__).parent / "resources"
@@ -48,6 +54,10 @@ def load_resources():
 PROMPTS, VECTOR_SQL = load_resources()
 
 
+# ---------------------------------------------------------------------------
+# Env
+# ---------------------------------------------------------------------------
+
 GROQ_API_KEY1          = os.getenv("GROQ_API_KEY1")
 GROQ_API_KEY2          = os.getenv("GROQ_API_KEY2")
 CF_WORKERSAI_ACCOUNTID = os.getenv("R2_ACCOUNT_ID")
@@ -55,12 +65,29 @@ CF_AI_API              = os.getenv("CF_AI_API")
 JINA_API_KEY           = os.getenv("JINA_API_KEY")
 
 
+# ---------------------------------------------------------------------------
+# Config
+# ---------------------------------------------------------------------------
+
 GROQ_GENERATOR_MODEL_NAME      = "openai/gpt-oss-120b"
 GROQ_QUERY_REWRITER_MODEL_NAME = "qwen/qwen3-32b"
-EDGE_TTS_VOICE                 = ["en-US-ChristopherNeural","en-US-SteffanNeural"]
+GROQ_STT_MODEL_NAME            = "whisper-large-v3"
+EDGE_TTS_VOICE                 = "en-US-ChristopherNeural"
+EDGE_TTS_RATE                  = "+9%"
+EDGE_TTS_PITCH                 = "-10Hz"
 TOP_K                          = 3
 EMBEDDING_DIM                  = 768
 ENTITY_NAME                    = "Ramesses II"
+
+STT_SAMPLE_RATE                = 16000
+STT_SILENCE_THRESHOLD          = 0.015
+STT_SILENCE_DURATION           = 1.5
+STT_MIN_DURATION               = 1.0
+
+
+# ---------------------------------------------------------------------------
+# State
+# ---------------------------------------------------------------------------
 
 class AgentState(TypedDict):
     query:        str
@@ -68,8 +95,12 @@ class AgentState(TypedDict):
     messages:     Annotated[list, add_messages]
     context:      List[str]
     response:     str
-    tts_enabled:  bool
+    voice_mode:   bool
 
+
+# ---------------------------------------------------------------------------
+# Models & Tools
+# ---------------------------------------------------------------------------
 
 embedding_model = CloudflareWorkersAIEmbeddings(
     account_id=CF_WORKERSAI_ACCOUNTID,
@@ -87,6 +118,8 @@ search_tool = TavilySearch(max_results=4, search_depth="advanced")
 tools       = [search_tool]
 tool_node   = ToolNode(tools=tools)
 
+groq_client = Groq(api_key=GROQ_API_KEY1)
+
 query_rewriter_llm = ChatGroq(
     model_name=GROQ_QUERY_REWRITER_MODEL_NAME,
     temperature=0.2,
@@ -101,30 +134,100 @@ generator_llm = ChatGroq(
     max_tokens=4096,
     top_p=0.95,
     api_key=GROQ_API_KEY2,
-    extra_body={"reasoning_effort": "medium", "reasoning_format": "hidden"}
+    extra_body={"reasoning_effort": "medium", "reasoning_format": "raw"}
 ).bind_tools(tools)
 
 
+# ---------------------------------------------------------------------------
+# Chains
+# ---------------------------------------------------------------------------
+
 rewrite_prompt_template = PromptTemplate.from_template(PROMPTS['rewrite_prompt'])
-rewrite_chain = rewrite_prompt_template | query_rewriter_llm | StrOutputParser()
+rewrite_chain           = rewrite_prompt_template | query_rewriter_llm | StrOutputParser()
+llm_prompt_template     = PromptTemplate.from_template(PROMPTS['assistant_persona'])
 
-llm_prompt_template = PromptTemplate.from_template(PROMPTS['assistant_persona'])
 
+# ---------------------------------------------------------------------------
+# Helpers
+# ---------------------------------------------------------------------------
 
 def get_embedding(text: str):
     embeddings = np.array(embedding_model.embed_query(text))
     embeddings = embeddings / np.linalg.norm(embeddings)
-    sliced = embeddings[:EMBEDDING_DIM]
-    norm = np.linalg.norm(sliced)
+    sliced     = embeddings[:EMBEDDING_DIM]
+    norm       = np.linalg.norm(sliced)
     return (sliced / norm if norm > 0 else sliced).tolist()
 
 
 def clean_for_tts(text: str) -> str:
     text = re.sub(r'\*\*(.+?)\*\*', r'\1', text)
-    text = re.sub(r'\*(.+?)\*', r'\1', text)
-    text = re.sub(r'#{1,6}\s*', '', text)
-    text = re.sub(r'\n+', ' ', text).strip()
+    text = re.sub(r'\*(.+?)\*',     r'\1', text)
+    text = re.sub(r'#{1,6}\s*',     '',    text)
+    text = re.sub(r'\n+',           ' ',   text).strip()
     return text
+
+
+def record_until_silence() -> np.ndarray:
+    import sounddevice as sd
+
+    print("[STT]: Listening... (auto-stops on silence)")
+
+    frames        = []
+    silence_start = [None]
+    done          = threading.Event()
+    start_time    = [None]
+
+    def callback(indata, frame_count, time_info, status):
+        chunk = indata.copy()
+        frames.append(chunk)
+
+        if start_time[0] is None:
+            start_time[0] = len(frames)
+
+        elapsed_secs = len(frames) * frame_count / STT_SAMPLE_RATE
+        volume       = np.linalg.norm(chunk)
+
+        if elapsed_secs < STT_MIN_DURATION:
+            return
+
+        if volume < STT_SILENCE_THRESHOLD:
+            if silence_start[0] is None:
+                silence_start[0] = len(frames)
+        else:
+            silence_start[0] = None
+
+        if silence_start[0] is not None:
+            silent_frames = len(frames) - silence_start[0]
+            silent_secs   = silent_frames * frame_count / STT_SAMPLE_RATE
+            if silent_secs >= STT_SILENCE_DURATION:
+                done.set()
+
+    with sd.InputStream(samplerate=STT_SAMPLE_RATE, channels=1, dtype='float32', callback=callback):
+        done.wait()
+
+    return np.concatenate(frames, axis=0)
+
+
+def transcribe_audio(audio: np.ndarray) -> str:
+    from scipy.io.wavfile import write as wav_write
+
+    audio_int16 = (audio * 32767).astype(np.int16)
+
+    buffer = io.BytesIO()
+    wav_write(buffer, STT_SAMPLE_RATE, audio_int16)
+    buffer.seek(0)
+
+    transcription = groq_client.audio.transcriptions.create(
+        file=("audio.wav", buffer.read()),
+        model=GROQ_STT_MODEL_NAME,
+        temperature=0.2
+    )
+    return transcription.text.strip()
+
+
+# ---------------------------------------------------------------------------
+# Nodes
+# ---------------------------------------------------------------------------
 
 def rewrite_node(state: AgentState) -> dict:
     clean_dialogue = [
@@ -143,17 +246,13 @@ def rewrite_node(state: AgentState) -> dict:
     history_str = "\n".join(dialogue) if dialogue else "No history yet."
 
     search_q = rewrite_chain.invoke({
-        "query": state['query'],
+        "query":        state['query'],
         "pharaoh_name": ENTITY_NAME,
         "chat_history": history_str
     }).replace("Search Query:", "").strip()
 
-    """print("-" * 50)
-    print(search_q)
-    print("-" * 60)"""
-
     return {
-        "messages": [AIMessage(content=search_q, name="search_query")],
+        "messages":     [AIMessage(content=search_q, name="search_query")],
         "search_query": search_q
     }
 
@@ -165,7 +264,7 @@ def retrieve_node(state: AgentState) -> dict:
         result = session.execute(
             text(VECTOR_SQL),
             {"pharoah_name": ENTITY_NAME,
-             "embedding": str(query_embedding)}
+             "embedding":    str(query_embedding)}
         )
         context = [row[0] for row in result]
 
@@ -173,7 +272,7 @@ def retrieve_node(state: AgentState) -> dict:
 
 
 def rerank_node(state: AgentState) -> dict:
-    docs = [Document(page_content=chunk) for chunk in state['context']]
+    docs     = [Document(page_content=chunk) for chunk in state['context']]
     reranked = reranker.compress_documents(docs, query=state['search_query'])
     return {"context": [doc.page_content for doc in reranked]}
 
@@ -193,14 +292,10 @@ def generate_node(state: AgentState) -> dict:
         if isinstance(msg, HumanMessage):
             last_human_index = i
 
-    current_turn_messages = state['messages'][last_human_index:] if last_human_index != -1 else []
-    has_searched = any(isinstance(msg, ToolMessage) for msg in current_turn_messages)
-
-    current_search_results = [
-        msg.content for msg in current_turn_messages
-        if isinstance(msg, ToolMessage)
-    ]
-    combined_context = current_search_results + state['context'] if has_searched else state['context']
+    current_turn_messages  = state['messages'][last_human_index:] if last_human_index != -1 else []
+    has_searched           = any(isinstance(msg, ToolMessage) for msg in current_turn_messages)
+    current_search_results = [msg.content for msg in current_turn_messages if isinstance(msg, ToolMessage)]
+    combined_context       = current_search_results + state['context'] if has_searched else state['context']
 
     clean_dialogue = [
         msg for msg in state['messages']
@@ -245,14 +340,8 @@ def generate_node(state: AgentState) -> dict:
     }
 
 
-def tts_gate_node(state: AgentState) -> dict:
-    user_choice = interrupt("Generate speech for this response? (y/n): ")
-    tts_enabled = user_choice.strip().lower() == "y"
-    return {"tts_enabled": tts_enabled}
-
-
 def tts_node(state: AgentState) -> dict:
-    if not state.get("tts_enabled") or not state.get("response"):
+    if not state.get("response"):
         return {}
 
     clean_text = clean_for_tts(state["response"])
@@ -260,42 +349,38 @@ def tts_node(state: AgentState) -> dict:
     output_dir.mkdir(exist_ok=True)
     output_path = str(output_dir / "response.mp3")
 
-    
     print(f"\n[TTS]: Generating speech via edge-tts ({EDGE_TTS_VOICE})...")
 
     async def generate():
-        for index,voice in enumerate(EDGE_TTS_VOICE):
-            output_path = str(output_dir / f"response{index}.mp3")
-            communicate = edge_tts.Communicate(clean_text, 
-                                               voice,
-                                               rate="+9%",
-                                               pitch="-10Hz")
-            
-            await communicate.save(output_path)
-            print(f"[TTS]: Saved → {output_path}")
+        communicate = edge_tts.Communicate(clean_text, EDGE_TTS_VOICE, rate=EDGE_TTS_RATE, pitch=EDGE_TTS_PITCH)
+        await communicate.save(output_path)
 
     try:
         asyncio.run(generate())
-       
+        print(f"[TTS]: Saved → {output_path}")
     except Exception as e:
         print(f"[TTS]: Failed — {e}")
 
     return {}
 
+
 def route_tts(state: AgentState) -> str:
-    return "tts" if state.get("tts_enabled") else END
+    return "tts" if state.get("voice_mode") else END
 
 
+# ---------------------------------------------------------------------------
+# Graph
+# ---------------------------------------------------------------------------
 
 workflow = StateGraph(AgentState)
 
-workflow.add_node("rewriter",  rewrite_node)
-workflow.add_node("retriever", retrieve_node)
-workflow.add_node("reranker",  rerank_node)
-workflow.add_node("generator", generate_node)
-workflow.add_node("tools",     tool_node)
-workflow.add_node("tts_gate",  tts_gate_node)
-workflow.add_node("tts",       tts_node)
+workflow.add_node("rewriter",   rewrite_node)
+workflow.add_node("retriever",  retrieve_node)
+workflow.add_node("reranker",   rerank_node)
+workflow.add_node("generator",  generate_node)
+workflow.add_node("tools",      tool_node)
+workflow.add_node("tts_router", lambda state: {})
+workflow.add_node("tts",        tts_node)
 
 workflow.set_entry_point("rewriter")
 workflow.add_edge("rewriter",  "retriever")
@@ -306,23 +391,22 @@ workflow.add_conditional_edges(
     tools_condition,
     {
         "tools": "tools",
-        END: "tts_gate"
+        END:     "tts_router"
     }
 )
-workflow.add_edge("tools",    "generator")
-workflow.add_edge("tts_gate", "tts_gate")
+workflow.add_edge("tools", "generator")
 workflow.add_conditional_edges(
-    "tts_gate",
+    "tts_router",
     route_tts,
     {
         "tts": "tts",
-        END: END
+        END:   END
     }
 )
 workflow.add_edge("tts", END)
 
 memory = MemorySaver()
-graph = workflow.compile(checkpointer=memory)
+graph  = workflow.compile(checkpointer=memory)
 
 
 # ---------------------------------------------------------------------------
@@ -330,27 +414,47 @@ graph = workflow.compile(checkpointer=memory)
 # ---------------------------------------------------------------------------
 
 def main():
-    print(f"Pharaoh-RAG Phase 5 — edge-tts ({ENTITY_NAME}) Ready:")
+    print(f"Pharaoh-RAG — Groq STT + edge-tts ({ENTITY_NAME}) Ready")
+    print("Commands: 'v' or 'voice' → toggle voice mode | 'q' → quit\n")
 
-    config = {"configurable": {"thread_id": "1"}}
+    config     = {"configurable": {"thread_id": "1"}}
+    voice_mode = False
 
     while True:
-        user_input = input("\nUser: ").strip()
-        if user_input.lower() in ['quit', 'exit', 'q']:
-            break
+        if voice_mode:
+            raw = input("\n[Voice Mode ON] — press Enter to speak, or type ('v' to switch back, 'q' to quit)\n> ").strip()
+            if raw.lower() in ['v', 'voice']:
+                voice_mode = False
+                print("[Voice Mode OFF]")
+                continue
+            elif raw.lower() in ['quit', 'exit', 'q']:
+                break
+            elif raw == "":
+                try:
+                    audio      = record_until_silence()
+                    user_input = transcribe_audio(audio)
+                    print(f"[STT]: {user_input}")
+                except Exception as e:
+                    print(f"[STT]: Failed — {e}")
+                    continue
+            else:
+                user_input = raw
+        else:
+            user_input = input("\nUser: ").strip()
+            if user_input.lower() in ['quit', 'exit', 'q']:
+                break
+            if user_input.lower() in ['v', 'voice']:
+                voice_mode = True
+                print("[Voice Mode ON] — press Enter with empty input to start speaking")
+                continue
 
-        initial_state = {
-            "messages":    [("user", user_input)],
-            "query":       user_input,
-            "context":     [],
-            "tts_enabled": False
-        }
-
-        result = graph.invoke(initial_state, config=config)
-
-        if result.get("__interrupt__"):
-            user_choice = input("\nGenerate speech for this response? (y/n): ").strip()
-            graph.invoke(Command(resume=user_choice), config=config)
+        graph.invoke(
+            {"messages":   [("user", user_input)],
+             "query":      user_input,
+             "context":    [],
+             "voice_mode": voice_mode},
+            config=config
+        )
 
 
 if __name__ == "__main__":
