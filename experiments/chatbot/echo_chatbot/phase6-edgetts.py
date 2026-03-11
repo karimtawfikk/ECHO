@@ -46,12 +46,12 @@ load_dotenv()
 def load_resources():
     base_path = Path(__file__).parent / "resources"
     with open(base_path / "queries.sql", "r") as f:
-        sql_query = f.read()
+        sql_template = f.read()
     with open(base_path / "prompts.yaml", "r") as f:
         prompts = yaml.safe_load(f)
-    return prompts, sql_query
+    return sql_template, prompts
 
-PROMPTS, VECTOR_SQL = load_resources()
+SQL_TEMPLATE, PROMPTS = load_resources()
 
 
 # ---------------------------------------------------------------------------
@@ -77,12 +77,39 @@ EDGE_TTS_RATE                  = "+9%"
 EDGE_TTS_PITCH                 = "-10Hz"
 TOP_K                          = 3
 EMBEDDING_DIM                  = 768
-ENTITY_NAME                    = "Ramesses II"
 
 STT_SAMPLE_RATE                = 16000
 STT_SILENCE_THRESHOLD          = 0.015
 STT_SILENCE_DURATION           = 1.5
 STT_MIN_DURATION               = 1.0
+
+ENTITY_CONFIG = {
+    "pharaoh": {
+        "texts_table":    "pharaohs_texts",
+        "entities_table": "pharaohs",
+        "entity_id_col":  "pharaoh_id",
+        "prompt_key":     "pharaoh",
+        "name_key":       "pharaoh_name",
+    },
+    "landmark": {
+        "texts_table":    "landmarks_texts",
+        "entities_table": "landmarks",
+        "entity_id_col":  "landmark_id",
+        "prompt_key":     "landmark",
+        "name_key":       "landmark_name",
+    }
+}
+
+
+# ---------------------------------------------------------------------------
+# Session globals (set once at startup)
+# ---------------------------------------------------------------------------
+
+ENTITY_TYPE          = None
+ENTITY_NAME          = None
+VECTOR_SQL           = None
+rewrite_chain        = None
+llm_prompt_template  = None
 
 
 # ---------------------------------------------------------------------------
@@ -134,17 +161,8 @@ generator_llm = ChatGroq(
     max_tokens=4096,
     top_p=0.95,
     api_key=GROQ_API_KEY2,
-    extra_body={"reasoning_effort": "medium", "reasoning_format": "raw"}
+    extra_body={"reasoning_effort": "medium", "reasoning_format": "hidden"}
 ).bind_tools(tools)
-
-
-# ---------------------------------------------------------------------------
-# Chains
-# ---------------------------------------------------------------------------
-
-rewrite_prompt_template = PromptTemplate.from_template(PROMPTS['rewrite_prompt'])
-rewrite_chain           = rewrite_prompt_template | query_rewriter_llm | StrOutputParser()
-llm_prompt_template     = PromptTemplate.from_template(PROMPTS['assistant_persona'])
 
 
 # ---------------------------------------------------------------------------
@@ -175,15 +193,10 @@ def record_until_silence() -> np.ndarray:
     frames        = []
     silence_start = [None]
     done          = threading.Event()
-    start_time    = [None]
 
     def callback(indata, frame_count, time_info, status):
-        chunk = indata.copy()
+        chunk        = indata.copy()
         frames.append(chunk)
-
-        if start_time[0] is None:
-            start_time[0] = len(frames)
-
         elapsed_secs = len(frames) * frame_count / STT_SAMPLE_RATE
         volume       = np.linalg.norm(chunk)
 
@@ -212,8 +225,7 @@ def transcribe_audio(audio: np.ndarray) -> str:
     from scipy.io.wavfile import write as wav_write
 
     audio_int16 = (audio * 32767).astype(np.int16)
-
-    buffer = io.BytesIO()
+    buffer      = io.BytesIO()
     wav_write(buffer, STT_SAMPLE_RATE, audio_int16)
     buffer.seek(0)
 
@@ -245,10 +257,12 @@ def rewrite_node(state: AgentState) -> dict:
 
     history_str = "\n".join(dialogue) if dialogue else "No history yet."
 
+    name_key = ENTITY_CONFIG[ENTITY_TYPE]["name_key"]
+
     search_q = rewrite_chain.invoke({
-        "query":        state['query'],
-        "pharaoh_name": ENTITY_NAME,
-        "chat_history": history_str
+        name_key:       ENTITY_NAME,
+        "chat_history": history_str,
+        "query":        state["query"]
     }).replace("Search Query:", "").strip()
 
     return {
@@ -263,8 +277,8 @@ def retrieve_node(state: AgentState) -> dict:
     with Session(engine) as session:
         result = session.execute(
             text(VECTOR_SQL),
-            {"pharoah_name": ENTITY_NAME,
-             "embedding":    str(query_embedding)}
+            {"entity_name": ENTITY_NAME,
+             "embedding":   str(query_embedding)}
         )
         context = [row[0] for row in result]
 
@@ -280,7 +294,9 @@ def rerank_node(state: AgentState) -> dict:
 def generate_node(state: AgentState) -> dict:
 
     if "OUT_OF_SCOPE" in state.get('search_query', ''):
-        response_text = "I'm sorry but you speak of a time that is not mine. My eyes see only the borders of my own reign."
+        response_text = "I'm sorry but you speak of a time that is not mine. My eyes see only the borders of my own reign." \
+            if ENTITY_TYPE == "pharaoh" else \
+            "I'm sorry, that lies beyond what my stones remember."
         print(f"\n{ENTITY_NAME}: {response_text}")
         return {
             "messages": [AIMessage(content=response_text, name="irrelevant_query")],
@@ -320,23 +336,37 @@ def generate_node(state: AgentState) -> dict:
             "If the answer is still missing, say: 'The gods have veiled that specific moment from my sight for now.'"
         )
 
-    prompt = llm_prompt_template.format(
-        pharaoh_name=ENTITY_NAME,
-        context="\n\n".join(combined_context),
-        query=state['query'],
-        chat_history=history_str,
-    ) + extra_instruction
+    name_key = ENTITY_CONFIG[ENTITY_TYPE]["name_key"]
 
-    response = generator_llm.invoke(prompt)
+    prompt = llm_prompt_template.format(**{
+        name_key:       ENTITY_NAME,
+        "context":      "\n\n".join(combined_context),
+        "query":        state['query'],
+        "chat_history": history_str,
+    }) + extra_instruction
+
+    print(f"\n{ENTITY_NAME}: ", end="", flush=True)
+    full_content   = ""
+    tool_calls_buf = None
+
+    for chunk in generator_llm.stream(prompt):
+        if chunk.content:
+            print(chunk.content, end="", flush=True)
+            full_content += chunk.content
+        if chunk.tool_calls:
+            tool_calls_buf = chunk.tool_calls
+
+    print()
+
+    response = AIMessage(content=full_content, tool_calls=tool_calls_buf or [])
 
     if response.tool_calls and not has_searched:
-        print(f"\n[PHARAOH DECISION]: Consulting modern scrolls via {response.tool_calls[0]['name']}...")
+        print(f"\n[DECISION]: Consulting modern scrolls via {response.tool_calls[0]['name']}...")
         return {"messages": [response]}
 
-    print(f"\n{ENTITY_NAME}: {response.content}")
     return {
-        "messages": [AIMessage(content=response.content, name="generator_response")],
-        "response": response.content
+        "messages": [AIMessage(content=full_content, name="generator_response")],
+        "response": full_content
     }
 
 
@@ -414,7 +444,32 @@ graph  = workflow.compile(checkpointer=memory)
 # ---------------------------------------------------------------------------
 
 def main():
-    print(f"Pharaoh-RAG — Groq STT + edge-tts ({ENTITY_NAME}) Ready")
+    global ENTITY_TYPE, ENTITY_NAME, VECTOR_SQL, rewrite_chain, llm_prompt_template
+
+    print("\n╔══════════════════════════════════╗")
+    print("║        ANCIENT EGYPT RAG         ║")
+    print("╚══════════════════════════════════╝\n")
+
+    while True:
+        ENTITY_TYPE = input("Entity type — 'pharaoh' or 'landmark': ").strip().lower()
+        if ENTITY_TYPE in ENTITY_CONFIG:
+            break
+        print("  → Please enter 'pharaoh' or 'landmark'.")
+
+    ENTITY_NAME = input(f"Enter the {ENTITY_TYPE} name: ").strip()
+
+    cfg         = ENTITY_CONFIG[ENTITY_TYPE]
+    VECTOR_SQL  = SQL_TEMPLATE.format(
+        texts_table=cfg["texts_table"],
+        entities_table=cfg["entities_table"],
+        entity_id_col=cfg["entity_id_col"]
+    )
+
+    prompt_key          = cfg["prompt_key"]
+    rewrite_chain       = PromptTemplate.from_template(PROMPTS["rewrite_prompt"][prompt_key]) | query_rewriter_llm | StrOutputParser()
+    llm_prompt_template = PromptTemplate.from_template(PROMPTS["assistant_persona"][prompt_key])
+
+    print(f"\nNow speaking with: {ENTITY_NAME} ({ENTITY_TYPE})")
     print("Commands: 'v' or 'voice' → toggle voice mode | 'q' → quit\n")
 
     config     = {"configurable": {"thread_id": "1"}}
