@@ -7,9 +7,8 @@ import os
 import re
 import base64
 import io
-import requests
-import tempfile
 import threading
+import requests
 import numpy as np
 import sounddevice as sd
 from scipy.io.wavfile import write as wav_write
@@ -21,7 +20,6 @@ from langgraph.graph import StateGraph, END
 from langgraph.checkpoint.memory import MemorySaver
 from langgraph.graph.message import add_messages
 from langgraph.prebuilt import ToolNode, tools_condition
-from langgraph.types import interrupt, Command
 
 from langchain_core.messages import HumanMessage, AIMessage, ToolMessage
 from langchain_core.prompts import PromptTemplate
@@ -78,20 +76,19 @@ GROQ_QUERY_REWRITER_MODEL_NAME = "qwen/qwen3-32b"
 GROQ_STT_MODEL_NAME            = "whisper-large-v3"
 INWORLD_VOICE_ID               = "default-1ocgrlw5u8sovko4eeeqnw__ancient_egyptian_pharaoh"
 INWORLD_MODEL                  = "inworld-tts-1.5-mini"
-INWORLD_SPEAKING_RATE          = 1.3
-INWORLD_TEMPERATURE            = 1.3
+INWORLD_SPEAKING_RATE          = 1.5
+INWORLD_TEMPERATURE            = 1.5
 TOP_K                          = 3
 EMBEDDING_DIM                  = 768
 ENTITY_NAME                    = "Ramesses II"
 
 STT_SAMPLE_RATE                = 16000
-STT_SILENCE_THRESHOLD          = 0.01
+STT_SILENCE_THRESHOLD          = 0.015
 STT_SILENCE_DURATION           = 1.5
+STT_MIN_DURATION      = 1.0
 
 
-# ---------------------------------------------------------------------------
 # State
-# ---------------------------------------------------------------------------
 
 class AgentState(TypedDict):
     query:        str
@@ -99,14 +96,10 @@ class AgentState(TypedDict):
     messages:     Annotated[list, add_messages]
     context:      List[str]
     response:     str
-    tts_enabled:  bool
     voice_mode:   bool
 
 
-# ---------------------------------------------------------------------------
 # Models & Tools
-# ---------------------------------------------------------------------------
-
 embedding_model = CloudflareWorkersAIEmbeddings(
     account_id=CF_WORKERSAI_ACCOUNTID,
     api_token=CF_AI_API,
@@ -143,19 +136,12 @@ generator_llm = ChatGroq(
 ).bind_tools(tools)
 
 
-# ---------------------------------------------------------------------------
 # Chains
-# ---------------------------------------------------------------------------
-
 rewrite_prompt_template = PromptTemplate.from_template(PROMPTS['rewrite_prompt'])
 rewrite_chain           = rewrite_prompt_template | query_rewriter_llm | StrOutputParser()
 llm_prompt_template     = PromptTemplate.from_template(PROMPTS['assistant_persona'])
 
-
-# ---------------------------------------------------------------------------
 # Helpers
-# ---------------------------------------------------------------------------
-
 def get_embedding(text: str):
     embeddings = np.array(embedding_model.embed_query(text))
     embeddings = embeddings / np.linalg.norm(embeddings)
@@ -173,17 +159,26 @@ def clean_for_tts(text: str) -> str:
 
 
 def record_until_silence() -> np.ndarray:
-    print("[STT]: Listening... (speak now, auto-stops on silence)")
+    print("[STT]: Listening... (auto-stops on silence)")
 
     frames        = []
     silence_start = [None]
     done          = threading.Event()
+    start_time    = [None]
 
     def callback(indata, frame_count, time_info, status):
         chunk = indata.copy()
         frames.append(chunk)
 
-        volume = np.linalg.norm(chunk)
+        if start_time[0] is None:
+            start_time[0] = len(frames)
+
+        elapsed_secs = len(frames) * frame_count / STT_SAMPLE_RATE
+        volume       = np.linalg.norm(chunk)
+
+        if elapsed_secs < STT_MIN_DURATION:
+            return
+
         if volume < STT_SILENCE_THRESHOLD:
             if silence_start[0] is None:
                 silence_start[0] = len(frames)
@@ -208,21 +203,51 @@ def transcribe_audio(audio: np.ndarray) -> str:
     buffer = io.BytesIO()
     wav_write(buffer, STT_SAMPLE_RATE, audio_int16)
     buffer.seek(0)
-    buffer.name = "audio.wav"
 
     transcription = groq_client.audio.transcriptions.create(
         file=("audio.wav", buffer.read()),
         model=GROQ_STT_MODEL_NAME,
-        language="en",
-        temperature=0.0
+        temperature=0.2
     )
     return transcription.text.strip()
 
 
-# ---------------------------------------------------------------------------
-# Nodes
-# ---------------------------------------------------------------------------
+def speak(text: str):
+    clean_text = clean_for_tts(text)
+    output_dir = Path(__file__).parent / "audio"
+    output_dir.mkdir(exist_ok=True)
+    output_path = str(output_dir / "response0.mp3")
 
+    print(f"\n[TTS]: Generating speech via Inworld...")
+
+    try:
+        response = requests.post(
+            "https://api.inworld.ai/tts/v1/voice",
+            headers={
+                "Authorization": f"Basic {INWORLD_API_KEY}",
+                "Content-Type":  "application/json"
+            },
+            json={
+                "text":         clean_text,
+                "voiceId":      INWORLD_VOICE_ID,
+                "modelId":      INWORLD_MODEL,
+                "speakingRate": INWORLD_SPEAKING_RATE,
+                "temperature":  INWORLD_TEMPERATURE
+            }
+        )
+        response.raise_for_status()
+
+        audio_b64 = response.json()["audioContent"]
+        with open(output_path, "wb") as f:
+            f.write(base64.b64decode(audio_b64))
+
+        print(f"[TTS]: Saved → {output_path}")
+
+    except Exception as e:
+        print(f"[TTS]: Failed — {e}")
+
+
+# Nodes
 def rewrite_node(state: AgentState) -> dict:
     clean_dialogue = [
         msg for msg in state['messages'][:-1]
@@ -333,17 +358,8 @@ def generate_node(state: AgentState) -> dict:
         "response": response.content
     }
 
-
-def tts_gate_node(state: AgentState) -> dict:
-    if state.get("voice_mode"):
-        return {"tts_enabled": True}
-    user_choice = interrupt("Generate speech for this response? (y/n): ")
-    tts_enabled = user_choice.strip().lower() == "y"
-    return {"tts_enabled": tts_enabled}
-
-
 def tts_node(state: AgentState) -> dict:
-    if not state.get("tts_enabled") or not state.get("response"):
+    if not state.get("response"):
         return {}
 
     clean_text = clean_for_tts(state["response"])
@@ -351,7 +367,7 @@ def tts_node(state: AgentState) -> dict:
     output_dir.mkdir(exist_ok=True)
     output_path = str(output_dir / "response.mp3")
 
-    print(f"\n[TTS]: Generating speech via Inworld ({INWORLD_VOICE_ID})...")
+    print(f"\n[TTS]: Generating speech via Inworld...")
 
     try:
         response = requests.post(
@@ -383,7 +399,8 @@ def tts_node(state: AgentState) -> dict:
 
 
 def route_tts(state: AgentState) -> str:
-    return "tts" if state.get("tts_enabled") else END
+    return "tts" if state.get("voice_mode") else END
+
 
 
 # ---------------------------------------------------------------------------
@@ -397,7 +414,6 @@ workflow.add_node("retriever", retrieve_node)
 workflow.add_node("reranker",  rerank_node)
 workflow.add_node("generator", generate_node)
 workflow.add_node("tools",     tool_node)
-workflow.add_node("tts_gate",  tts_gate_node)
 workflow.add_node("tts",       tts_node)
 
 workflow.set_entry_point("rewriter")
@@ -409,20 +425,20 @@ workflow.add_conditional_edges(
     tools_condition,
     {
         "tools": "tools",
-        END:     "tts_gate"
+        END:     "tts_router"
     }
 )
-workflow.add_edge("tools",    "generator")
-workflow.add_edge("tts_gate", "tts_gate")
+workflow.add_node("tts_router", lambda state: {})
 workflow.add_conditional_edges(
-    "tts_gate",
+    "tts_router",
     route_tts,
     {
         "tts": "tts",
         END:   END
     }
 )
-workflow.add_edge("tts", END)
+workflow.add_edge("tools", "generator")
+workflow.add_edge("tts",   END)
 
 memory = MemorySaver()
 graph  = workflow.compile(checkpointer=memory)
@@ -433,7 +449,7 @@ graph  = workflow.compile(checkpointer=memory)
 # ---------------------------------------------------------------------------
 
 def main():
-    print(f"Pharaoh-RAG — Inworld TTS + Groq STT ({ENTITY_NAME}) Ready")
+    print(f"Pharaoh-RAG — Groq STT + Inworld TTS ({ENTITY_NAME}) Ready")
     print("Commands: 'v' or 'voice' → toggle voice mode | 'q' → quit\n")
 
     config     = {"configurable": {"thread_id": "1"}}
@@ -441,8 +457,7 @@ def main():
 
     while True:
         if voice_mode:
-            print("\n[Voice Mode ON] — speak your question or type 'v' to switch back")
-            raw = input("(or type) > ").strip()
+            raw = input("\n[Voice Mode ON] — press Enter to speak, or type ('v' to switch back, 'q' to quit)\n> ").strip()
             if raw.lower() in ['v', 'voice']:
                 voice_mode = False
                 print("[Voice Mode OFF]")
@@ -468,20 +483,16 @@ def main():
                 print("[Voice Mode ON] — press Enter with empty input to start speaking")
                 continue
 
-        initial_state = {
-            "messages":    [("user", user_input)],
-            "query":       user_input,
-            "context":     [],
-            "tts_enabled": False,
-            "voice_mode":  voice_mode
-        }
-
-        result = graph.invoke(initial_state, config=config)
-
-        if result.get("__interrupt__"):
-            user_choice = input("\nGenerate speech for this response? (y/n): ").strip()
-            graph.invoke(Command(resume=user_choice), config=config)
+        graph.invoke(
+            {"messages": [("user", user_input)],
+             "query":    user_input,
+             "context":  [],
+             "voice_mode": voice_mode},
+            config=config
+        )
 
 
 if __name__ == "__main__":
     main()
+
+            
