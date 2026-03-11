@@ -1,7 +1,0 @@
-{
-  "dependencies": ["."],
-  "graphs": {
-    "pharaoh_agent": "./phase6-edgetts.py:graph"
-  },
-  "env": ".env"
-}
