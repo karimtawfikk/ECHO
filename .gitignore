@@ -6,8 +6,8 @@ __pycache__/
 *.sqlite3
 
 # Virtual environments
+venv_studio/
 venv/
-.env/
 
 # Environment variables
 .env
@@ -24,3 +24,6 @@ alembic/versions/__pycache__/
 
 # folder
 data/
+
+.vscode/
+.idea/
