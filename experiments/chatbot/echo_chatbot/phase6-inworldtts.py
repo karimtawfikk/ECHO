@@ -6,7 +6,6 @@ import warnings
 import os
 import re
 import io
-import asyncio
 import threading
 import numpy as np
 from groq import Groq
@@ -55,10 +54,7 @@ def load_resources():
 SQL_TEMPLATE, PROMPTS = load_resources()
 
 
-# ---------------------------------------------------------------------------
 # Env
-# ---------------------------------------------------------------------------
-
 GROQ_API_KEY1          = os.getenv("GROQ_API_KEY1")
 GROQ_API_KEY2          = os.getenv("GROQ_API_KEY2")
 CF_WORKERSAI_ACCOUNTID = os.getenv("R2_ACCOUNT_ID")
@@ -66,10 +62,7 @@ CF_AI_API              = os.getenv("CF_AI_API")
 JINA_API_KEY           = os.getenv("JINA_API_KEY")
 
 
-# ---------------------------------------------------------------------------
 # Config
-# ---------------------------------------------------------------------------
-
 GROQ_GENERATOR_MODEL_NAME      = "openai/gpt-oss-120b"
 GROQ_QUERY_REWRITER_MODEL_NAME = "qwen/qwen3-32b"
 GROQ_STT_MODEL_NAME            = "whisper-large-v3"
@@ -79,13 +72,10 @@ EMBEDDING_DIM                  = 768
 INWORLD_API_KEY       = os.getenv("INWORLD_API_KEY")
 INWORLD_VOICE_ID      = "default-1ocgrlw5u8sovko4eeeqnw__ancient_egyptian_pharaoh"
 INWORLD_MODEL         = "inworld-tts-1.5-mini"
-INWORLD_SPEAKING_RATE = 1.5
-INWORLD_TEMPERATURE   = 1.5
+INWORLD_SPEAKING_RATE = 2
+INWORLD_TEMPERATURE   = 1.3
 
 STT_SAMPLE_RATE                = 16000
-STT_SILENCE_THRESHOLD          = 0.015
-STT_SILENCE_DURATION           = 1.5
-STT_MIN_DURATION               = 1.0
 
 ENTITY_CONFIG = {
     "pharaoh": {
@@ -105,10 +95,7 @@ ENTITY_CONFIG = {
 }
 
 
-# ---------------------------------------------------------------------------
 # Session globals (set once at startup)
-# ---------------------------------------------------------------------------
-
 ENTITY_TYPE          = None
 ENTITY_NAME          = None
 VECTOR_SQL           = None
@@ -116,10 +103,7 @@ rewrite_chain        = None
 llm_prompt_template  = None
 
 
-# ---------------------------------------------------------------------------
 # State
-# ---------------------------------------------------------------------------
-
 class AgentState(TypedDict):
     query:        str
     search_query: str
@@ -189,40 +173,29 @@ def clean_for_tts(text: str) -> str:
     return text
 
 
-def record_until_silence() -> np.ndarray:
+def record_audio() -> np.ndarray:
     import sounddevice as sd
 
-    print("[STT]: Listening... (auto-stops on silence)")
+    print("[STT]: Recording... press Enter when done.")
 
-    frames        = []
-    silence_start = [None]
-    done          = threading.Event()
+    frames = []
+    stop   = threading.Event()
 
     def callback(indata, frame_count, time_info, status):
-        chunk        = indata.copy()
-        frames.append(chunk)
-        elapsed_secs = len(frames) * frame_count / STT_SAMPLE_RATE
-        volume       = np.linalg.norm(chunk)
+        frames.append(indata.copy())
 
-        if elapsed_secs < STT_MIN_DURATION:
-            return
+    def wait_for_enter():
+        input()
+        stop.set()
 
-        if volume < STT_SILENCE_THRESHOLD:
-            if silence_start[0] is None:
-                silence_start[0] = len(frames)
-        else:
-            silence_start[0] = None
-
-        if silence_start[0] is not None:
-            silent_frames = len(frames) - silence_start[0]
-            silent_secs   = silent_frames * frame_count / STT_SAMPLE_RATE
-            if silent_secs >= STT_SILENCE_DURATION:
-                done.set()
+    listener = threading.Thread(target=wait_for_enter, daemon=True)
+    listener.start()
 
     with sd.InputStream(samplerate=STT_SAMPLE_RATE, channels=1, dtype='float32', callback=callback):
-        done.wait()
+        stop.wait()
 
     return np.concatenate(frames, axis=0)
+
 
 
 def transcribe_audio(audio: np.ndarray) -> str:
@@ -246,6 +219,7 @@ def transcribe_audio(audio: np.ndarray) -> str:
 # ---------------------------------------------------------------------------
 
 def rewrite_node(state: AgentState) -> dict:
+    print("\n[NODE]: rewriter")
     clean_dialogue = [
         msg for msg in state['messages'][:-1]
         if isinstance(msg, HumanMessage) or getattr(msg, "name", None) == "search_query"
@@ -269,6 +243,10 @@ def rewrite_node(state: AgentState) -> dict:
         "query":        state["query"]
     }).replace("Search Query:", "").strip()
 
+    if not search_q:
+        search_q = state["query"]
+
+    print(f"[REWRITER]: {search_q}")
     return {
         "messages":     [AIMessage(content=search_q, name="search_query")],
         "search_query": search_q
@@ -276,6 +254,7 @@ def rewrite_node(state: AgentState) -> dict:
 
 
 def retrieve_node(state: AgentState) -> dict:
+    print("\n[NODE]: retriever")
     query_embedding = get_embedding(state['search_query'])
 
     with Session(engine) as session:
@@ -290,13 +269,14 @@ def retrieve_node(state: AgentState) -> dict:
 
 
 def rerank_node(state: AgentState) -> dict:
+    print("\n[NODE]: reranker")
     docs     = [Document(page_content=chunk) for chunk in state['context']]
     reranked = reranker.compress_documents(docs, query=state['search_query'])
     return {"context": [doc.page_content for doc in reranked]}
 
 
 def generate_node(state: AgentState) -> dict:
-
+    print("\n[NODE]: generator")
     if "OUT_OF_SCOPE" in state.get('search_query', ''):
         response_text = "I'm sorry but you speak of a time that is not mine. My eyes see only the borders of my own reign." \
             if ENTITY_TYPE == "pharaoh" else \
@@ -362,7 +342,7 @@ def generate_node(state: AgentState) -> dict:
 
     print()
 
-    response = AIMessage(content=full_content, tool_calls=tool_calls_buf or [])
+    response = AIMessage(content=full_content, tool_calls=tool_calls_buf or []) #for the if condition
 
     if response.tool_calls and not has_searched:
         print(f"\n[DECISION]: Consulting modern scrolls via {response.tool_calls[0]['name']}...")
@@ -375,6 +355,7 @@ def generate_node(state: AgentState) -> dict:
 
 
 def tts_node(state: AgentState) -> dict:
+    print("\n[NODE]: tts")
     if not state.get("response"):
         return {}
 
@@ -384,7 +365,7 @@ def tts_node(state: AgentState) -> dict:
     output_path = str(output_dir / "response.mp3")
 
     print(f"\n[TTS]: Generating speech via Inworld...")
-
+    
     try:
         response = requests.post(
             "https://api.inworld.ai/tts/v1/voice",
@@ -506,9 +487,13 @@ def main():
                 break
             elif raw == "":
                 try:
-                    audio      = record_until_silence()
+                    audio      = record_audio()
                     user_input = transcribe_audio(audio)
                     print(f"[STT]: {user_input}")
+
+                    if not user_input or len(user_input.strip()) < 2:
+                        print("[STT]: I didn't catch that. Please try again.")
+                        continue
                 except Exception as e:
                     print(f"[STT]: Failed — {e}")
                     continue
