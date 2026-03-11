@@ -14,6 +14,8 @@ from dotenv import load_dotenv
 from typing import TypedDict, Annotated, List
 
 import edge_tts
+from langdetect import detect
+
 
 from langgraph.graph import StateGraph, END
 from langgraph.checkpoint.memory import MemorySaver
@@ -72,16 +74,12 @@ JINA_API_KEY           = os.getenv("JINA_API_KEY")
 GROQ_GENERATOR_MODEL_NAME      = "openai/gpt-oss-120b"
 GROQ_QUERY_REWRITER_MODEL_NAME = "qwen/qwen3-32b"
 GROQ_STT_MODEL_NAME            = "whisper-large-v3"
-EDGE_TTS_VOICE                 = "en-US-ChristopherNeural"
 EDGE_TTS_RATE                  = "+9%"
 EDGE_TTS_PITCH                 = "-10Hz"
 TOP_K                          = 3
 EMBEDDING_DIM                  = 768
 
 STT_SAMPLE_RATE                = 16000
-STT_SILENCE_THRESHOLD          = 0.015
-STT_SILENCE_DURATION           = 1.5
-STT_MIN_DURATION               = 1.0
 
 ENTITY_CONFIG = {
     "pharaoh": {
@@ -100,10 +98,16 @@ ENTITY_CONFIG = {
     }
 }
 
-
-# ---------------------------------------------------------------------------
-# Session globals (set once at startup)
-# ---------------------------------------------------------------------------
+LANG_TO_VOICE = {
+    "en": "en-US-ChristopherNeural",
+    "es": "es-ES-AlvaroNeural",
+    "fr": "fr-FR-HenriNeural",
+    "ar": "ar-EG-ShakirNeural",
+    "de": "de-DE-ConradNeural",
+    "it": "it-IT-DiegoNeural",
+    "pt": "pt-BR-AntonioNeural",
+}
+DEFAULT_VOICE = "en-US-ChristopherNeural"
 
 ENTITY_TYPE          = None
 ENTITY_NAME          = None
@@ -112,10 +116,7 @@ rewrite_chain        = None
 llm_prompt_template  = None
 
 
-# ---------------------------------------------------------------------------
 # State
-# ---------------------------------------------------------------------------
-
 class AgentState(TypedDict):
     query:        str
     search_query: str
@@ -125,10 +126,7 @@ class AgentState(TypedDict):
     voice_mode:   bool
 
 
-# ---------------------------------------------------------------------------
 # Models & Tools
-# ---------------------------------------------------------------------------
-
 embedding_model = CloudflareWorkersAIEmbeddings(
     account_id=CF_WORKERSAI_ACCOUNTID,
     api_token=CF_AI_API,
@@ -185,38 +183,26 @@ def clean_for_tts(text: str) -> str:
     return text
 
 
-def record_until_silence() -> np.ndarray:
+def record_audio() -> np.ndarray:
     import sounddevice as sd
 
-    print("[STT]: Listening... (auto-stops on silence)")
+    print("[STT]: Recording... press Enter when done.")
 
-    frames        = []
-    silence_start = [None]
-    done          = threading.Event()
+    frames = []
+    stop   = threading.Event()
 
     def callback(indata, frame_count, time_info, status):
-        chunk        = indata.copy()
-        frames.append(chunk)
-        elapsed_secs = len(frames) * frame_count / STT_SAMPLE_RATE
-        volume       = np.linalg.norm(chunk)
+        frames.append(indata.copy())
 
-        if elapsed_secs < STT_MIN_DURATION:
-            return
+    def wait_for_enter():
+        input()
+        stop.set()
 
-        if volume < STT_SILENCE_THRESHOLD:
-            if silence_start[0] is None:
-                silence_start[0] = len(frames)
-        else:
-            silence_start[0] = None
-
-        if silence_start[0] is not None:
-            silent_frames = len(frames) - silence_start[0]
-            silent_secs   = silent_frames * frame_count / STT_SAMPLE_RATE
-            if silent_secs >= STT_SILENCE_DURATION:
-                done.set()
+    listener = threading.Thread(target=wait_for_enter, daemon=True)
+    listener.start()
 
     with sd.InputStream(samplerate=STT_SAMPLE_RATE, channels=1, dtype='float32', callback=callback):
-        done.wait()
+        stop.wait()
 
     return np.concatenate(frames, axis=0)
 
@@ -256,15 +242,20 @@ def rewrite_node(state: AgentState) -> dict:
             dialogue.append(f"Search Query: {msg.content}")
 
     history_str = "\n".join(dialogue) if dialogue else "No history yet."
+    
+    
 
     name_key = ENTITY_CONFIG[ENTITY_TYPE]["name_key"]
-
+    
     search_q = rewrite_chain.invoke({
         name_key:       ENTITY_NAME,
         "chat_history": history_str,
         "query":        state["query"]
     }).replace("Search Query:", "").strip()
 
+    if not search_q:
+        search_q = state["query"]
+    print(f"[REWRITER]: {search_q}")
     return {
         "messages":     [AIMessage(content=search_q, name="search_query")],
         "search_query": search_q
@@ -292,7 +283,7 @@ def rerank_node(state: AgentState) -> dict:
 
 
 def generate_node(state: AgentState) -> dict:
-
+    
     if "OUT_OF_SCOPE" in state.get('search_query', ''):
         response_text = "I'm sorry but you speak of a time that is not mine. My eyes see only the borders of my own reign." \
             if ENTITY_TYPE == "pharaoh" else \
@@ -327,6 +318,7 @@ def generate_node(state: AgentState) -> dict:
             dialogue.append(f"{ENTITY_NAME}: {msg.content}")
 
     history_str = "\n".join(dialogue) if dialogue else "No previous conversation."
+   
 
     extra_instruction = ""
     if has_searched:
@@ -379,10 +371,15 @@ def tts_node(state: AgentState) -> dict:
     output_dir.mkdir(exist_ok=True)
     output_path = str(output_dir / "response.mp3")
 
-    print(f"\n[TTS]: Generating speech via edge-tts ({EDGE_TTS_VOICE})...")
-
+    try:
+        lang  = detect(clean_text)
+        voice = LANG_TO_VOICE.get(lang, DEFAULT_VOICE)
+    except Exception:
+        voice = DEFAULT_VOICE
+    
+    print(f"\n[TTS]: Generating speech via edge-tts ({voice})...")
     async def generate():
-        communicate = edge_tts.Communicate(clean_text, EDGE_TTS_VOICE, rate=EDGE_TTS_RATE, pitch=EDGE_TTS_PITCH)
+        communicate = edge_tts.Communicate(clean_text, voice, rate=EDGE_TTS_RATE, pitch=EDGE_TTS_PITCH)
         await communicate.save(output_path)
 
     try:
@@ -486,9 +483,13 @@ def main():
                 break
             elif raw == "":
                 try:
-                    audio      = record_until_silence()
+                    audio      = record_audio()
                     user_input = transcribe_audio(audio)
                     print(f"[STT]: {user_input}")
+
+                    if not user_input or len(user_input.strip()) < 2:
+                        print("[STT]: I didn't catch that. Please try again.")
+                        continue
                 except Exception as e:
                     print(f"[STT]: Failed — {e}")
                     continue
