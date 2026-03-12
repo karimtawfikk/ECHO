@@ -1,6 +1,6 @@
 import sys
 from pathlib import Path
-sys.path.append(str(Path(__file__).resolve().parents[3]))
+sys.path.append(str(Path(__file__).resolve().parents[4]))
 
 import warnings
 import os
@@ -46,7 +46,7 @@ load_dotenv()
 # ---------------------------------------------------------------------------
 
 def load_resources():
-    base_path = Path(__file__).parent / "resources"
+    base_path = Path(__file__).parent.parent / "resources"
     with open(base_path / "queries.sql", "r") as f:
         sql_template = f.read()
     with open(base_path / "prompts.yaml", "r") as f:
