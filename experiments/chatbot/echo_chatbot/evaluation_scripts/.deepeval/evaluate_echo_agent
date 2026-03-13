@@ -1,0 +1,643 @@
+from pathlib import Path
+import sys
+
+root_path = Path("c:/Uni/4th Year/GP/ECHO/experiments/chatbot/echo_chatbot/chatbot_phases")
+if str(root_path) not in sys.path:
+    sys.path.insert(0, str(root_path)) # Use insert(0) to give it priority
+
+
+import phase6_edgetts
+from phase6_edgetts import graph, ENTITY_CONFIG, SQL_TEMPLATE, PROMPTS
+print("✅ Success: phase6_edgetts is now globally available.")
+
+
+import pandas as pd
+import json
+import time
+import numpy as np
+from datetime import datetime
+import matplotlib.pyplot as plt
+import seaborn as sns
+from typing import List, Dict, Any
+from langchain_core.messages import  ToolMessage
+
+
+from datasets import Dataset
+
+
+import os
+from dotenv import load_dotenv
+
+load_dotenv()
+
+from langchain_core.prompts import PromptTemplate
+from langchain_core.output_parsers import StrOutputParser
+from langchain_groq import ChatGroq
+from groq import Groq
+from langchain_huggingface import HuggingFaceEmbeddings
+
+groq_client = Groq(api_key=os.getenv("GROQ_API_KEY1"))
+
+
+ragas_emb = HuggingFaceEmbeddings(
+    model_name="BAAI/bge-base-en-v1.5",
+    model_kwargs={"device": "cuda"}
+)
+
+#encode_kwargs={"batch_size": 32} later
+
+
+
+# ============================================================================
+# Helper: Initialize Entity Configuration
+# ============================================================================
+
+def initialize_entity_config(entity_type: str, entity_name: str):
+    """
+    Initialize the global configuration for a specific entity
+    This mimics what happens in main() but programmatically
+    """
+    # Set global variables in the phase6_edgetts module
+    phase6_edgetts.ENTITY_TYPE = entity_type
+    phase6_edgetts.ENTITY_NAME = entity_name
+    
+    cfg = ENTITY_CONFIG[entity_type]
+    
+    # Build vector SQL
+    phase6_edgetts.VECTOR_SQL = SQL_TEMPLATE.format(
+        texts_table=cfg["texts_table"],
+        entities_table=cfg["entities_table"],
+        entity_id_col=cfg["entity_id_col"]
+    )
+    
+    # Build rewrite chain
+    prompt_key = cfg["prompt_key"]
+    query_rewriter_llm = ChatGroq(
+        model_name=phase6_edgetts.GROQ_QUERY_REWRITER_MODEL_NAME,
+        temperature=0.2,
+        max_tokens=1024,
+        api_key=os.getenv("GROQ_API_KEY1"),
+        extra_body={"reasoning_effort": "default", "reasoning_format": "hidden"}
+    )
+    phase6_edgetts.rewrite_chain = (
+        PromptTemplate.from_template(PROMPTS["rewrite_prompt"][prompt_key]) | 
+        query_rewriter_llm | 
+        StrOutputParser()
+    )
+    
+    # Build LLM prompt template
+    phase6_edgetts.llm_prompt_template = PromptTemplate.from_template(
+        PROMPTS["assistant_persona"][prompt_key]
+    )
+
+
+# ============================================================================
+# STEP 1: Load Test Dataset
+# ============================================================================
+
+def load_test_dataset(csv_path: str) -> pd.DataFrame:
+    """
+    Load the synthetic test dataset from CSV
+    """
+    print(f"\nLoading test dataset from {csv_path}...")
+    
+    df = pd.read_csv(csv_path)
+    
+    print(f"  ✓ Loaded {len(df)} test cases")
+    print(f"  • Columns: {list(df.columns)}")
+    print(f"  • Entity types: {df['entity_type'].unique()}")
+    print(f"  • Unique entities: {df['entity_name'].nunique()}")
+    
+    return df
+
+
+# ============================================================================
+# STEP 2: Run Evaluation on All Test Cases
+# ============================================================================
+
+def run_evaluation(test_df: pd.DataFrame) -> List[Dict[str, Any]]:
+    """
+    Run the chatbot on all test cases with fresh memory for each
+    """
+    print(f"\n{'='*80}")
+    print(f"Running evaluation on {len(test_df)} test cases...")
+    print(f"{'='*80}\n")
+    
+    results = []
+    current_entity = None
+    
+    for idx, row in test_df.iterrows():
+        entity_key = (row['entity_type'], row['entity_name'])
+        
+        # Only reinitialize if entity changed
+        if current_entity != entity_key:
+            print(f"\n[SWITCHING ENTITY] Initializing {row['entity_type']}: {row['entity_name']}")
+            initialize_entity_config(row['entity_type'], row['entity_name'])
+            current_entity = entity_key
+        
+        print(f"[{idx+1}/{len(test_df)}] Testing: {row['entity_name']} - {row['input'][:60]}...")
+        
+        start_time = time.time()
+        
+        try:
+            # Create unique thread_id for fresh memory
+            config = {"configurable": {"thread_id": f"eval-{idx}"}}
+            
+            # Invoke the graph
+            response = graph.invoke(
+                {
+                    "messages": [("user", row["input"])],
+                    "query": row["input"],
+                    "context": [],
+                    "voice_mode": False
+                },
+                config=config
+            )
+            messages = response.get("messages", [])
+            has_actually_searched = any(isinstance(m, ToolMessage) for m in messages)
+            
+            end_time = time.time()
+            
+            # Extract response and context
+            answer = response.get("response", "")
+            contexts = response.get("context", [])
+            
+            # Ensure contexts is a list
+            if isinstance(contexts, str):
+                contexts = [contexts]
+            elif not isinstance(contexts, list):
+                contexts = []
+            
+            # Store result
+            results.append({
+                "question": row["input"],
+                "answer": answer,
+                "contexts": contexts,
+                "ground_truth": row["expected_output"],
+                "response_time": end_time - start_time,
+                "entity_type": row["entity_type"],
+                "entity_name": row["entity_name"],
+                "success": True,
+                
+                # ADD THESE for more metrics later:
+                "retrieved_before_rerank": response.get("context_before_rerank", []),
+                "answer_length": len(answer.split()),
+                "num_tool_calls": 1 if has_actually_searched else 0
+            })
+            
+            print(f"  ✓ Response time: {end_time - start_time:.2f}s | Contexts: {len(contexts)}")
+            
+        except Exception as e:
+            print(f"  ✗ Error: {str(e)}")
+            results.append({
+                "question": row["input"],
+                "answer": "",
+                "contexts": [],
+                "ground_truth": row["expected_output"],
+                "ground_truth_context": [],
+                "response_time": 0,
+                "entity_type": row["entity_type"],
+                "entity_name": row["entity_name"],
+                "success": False,
+                "error": str(e)
+            })
+        
+        time.sleep(1.2)
+    
+    successful = sum(1 for r in results if r["success"])
+    print(f"\n{'='*80}")
+    print(f"Evaluation complete! {successful}/{len(results)} successful")
+    print(f"{'='*80}\n")
+    
+    return results
+
+
+# ============================================================================
+# STEP 3: Compute Ragas Metrics
+# ============================================================================
+
+from ragas import evaluate
+from ragas.run_config import RunConfig
+from ragas.llms import LangchainLLMWrapper
+from ragas.embeddings import LangchainEmbeddingsWrapper
+from ragas.metrics import Faithfulness, AnswerRelevancy, ContextPrecision, ContextRecall
+import pandas as pd
+import numpy as np
+import os
+
+def compute_ragas_metrics(results: List[Dict], ragas_emb) -> Dict[str, float]:
+    """
+    Computes Ragas metrics using YOUR factory instance.
+    """
+    print("\nComputing Ragas metrics with Groq llama-3.3-70b...")
+    
+    successful_results = [r for r in results if r.get("success") and r.get("answer")]
+    if not successful_results:
+        return {}
+
+    # 1. Dataset Preparation
+    ragas_dataset = Dataset.from_dict({
+        "user_input": [r["question"] for r in successful_results],
+        "response": [r["answer"] for r in successful_results],
+        "retrieved_contexts": [r["contexts"] if r.get("contexts") else ["No context"] for r in successful_results],
+        "reference": [r["ground_truth"] for r in successful_results]
+    })
+    
+    # 2. Setup Wrappers
+    evaluator_llm = ChatGroq(
+        model="llama-3.3-70b-versatile", 
+        api_key=os.getenv("GROQ_API_KEY3"), 
+        temperature=0
+    )
+    ragas_llm = LangchainLLMWrapper(evaluator_llm)
+
+    # --- THE FIX ---
+    # We wrap your ragas_emb so it provides the 'embed_query' method metrics need.
+    # We use the BaseRagasEmbeddings wrapper to keep it native to Ragas.
+    from ragas.embeddings import LangchainEmbeddingsWrapper
+    ragas_emb_fixed = LangchainEmbeddingsWrapper(ragas_emb)
+    try:
+        from ragas.metrics import Faithfulness, AnswerRelevancy, ContextPrecision, ContextRecall
+
+        # 3. Initialize Metrics
+        metrics = [
+            Faithfulness(llm=ragas_llm),
+            AnswerRelevancy(llm=ragas_llm, embeddings=ragas_emb_fixed, strictness=1), 
+            ContextPrecision(llm=ragas_llm),
+            ContextRecall(llm=ragas_llm)
+        ]
+        
+        # 4. Execute Evaluation
+        evaluation_result = evaluate(
+            dataset=ragas_dataset,
+            metrics=metrics,
+            llm=ragas_llm,
+            embeddings=ragas_emb_fixed,
+            #run_config=RunConfig(max_workers=1, timeout=120),
+            raise_exceptions=False 
+        )
+        
+        # 5. Extraction
+        df_scores = evaluation_result.to_pandas()
+        summary_scores = df_scores.mean(numeric_only=True).to_dict()
+        
+        return {
+            k: float(v) if not np.isnan(v) else 0.0 
+            for k, v in summary_scores.items()
+        }
+        
+    except Exception as e:
+        print(f" ✗ Error during evaluation: {e}")
+        return {}
+
+# ============================================================================
+# STEP 4: Compute Custom Metrics
+# ============================================================================
+
+def compute_custom_metrics(results: List[Dict]) -> Dict[str, Any]:
+    """
+    Compute custom performance metrics
+    """
+    print("\nComputing custom metrics...")
+    
+    successful_results = [r for r in results if r["success"]]
+    
+    metrics = {
+        "total_queries": len(results),
+        "successful_queries": len(successful_results),
+        "success_rate": len(successful_results) / len(results) if results else 0,
+        "avg_response_time": np.mean([r["response_time"] for r in successful_results]) if successful_results else 0,
+        "min_response_time": np.min([r["response_time"] for r in successful_results]) if successful_results else 0,
+        "max_response_time": np.max([r["response_time"] for r in successful_results]) if successful_results else 0,
+        "median_response_time": np.median([r["response_time"] for r in successful_results]) if successful_results else 0,
+        "avg_context_chunks": np.mean([len(r["contexts"]) for r in successful_results]) if successful_results else 0,
+    }
+    
+    # Performance by entity type
+    entity_types = {}
+    for r in results:
+        etype = r["entity_type"]
+        if etype not in entity_types:
+            entity_types[etype] = {"total": 0, "successful": 0}
+        entity_types[etype]["total"] += 1
+        if r["success"]:
+            entity_types[etype]["successful"] += 1
+    
+    metrics["entity_type_performance"] = {
+        etype: stats["successful"] / stats["total"] if stats["total"] > 0 else 0
+        for etype, stats in entity_types.items()
+    }
+    
+    # Retrieval success rate
+    retrieved = sum(1 for r in successful_results if len(r["contexts"]) > 0)
+    metrics["retrieval_success_rate"] = retrieved / len(successful_results) if successful_results else 0
+    
+    print("  ✓ Custom metrics computed successfully!")
+    return metrics
+
+
+# ============================================================================
+# STEP 5-7: Visualization, JSON, and Markdown generation
+# (Same as before - keeping them identical)
+# ============================================================================
+
+def generate_visualizations(results: List[Dict], ragas_scores: Dict, custom_metrics: Dict, output_dir: Path):
+    """Generate visualization charts"""
+    print("\nGenerating visualizations...")
+    
+    output_dir.mkdir(exist_ok=True)
+    
+    sns.set_style("whitegrid")
+    plt.rcParams['figure.facecolor'] = 'white'
+    
+    fig, axes = plt.subplots(2, 3, figsize=(18, 10))
+    fig.suptitle('Ancient Egypt RAG Chatbot - Evaluation Results', fontsize=16, fontweight='bold')
+    
+    # 1. RAG Triad Metrics
+    if ragas_scores:
+        metrics_df = pd.DataFrame({
+            'Metric': ['Faithfulness', 'Answer\nRelevancy', 'Context\nPrecision', 'Context\nRecall'],
+            'Score': [
+                ragas_scores.get('faithfulness', 0),
+                ragas_scores.get('answer_relevancy', 0),
+                ragas_scores.get('context_precision', 0),
+                ragas_scores.get('context_recall', 0)
+            ]
+        })
+        sns.barplot(data=metrics_df, x='Metric', y='Score', ax=axes[0, 0], palette='viridis')
+        axes[0, 0].set_title('RAG Triad Metrics', fontweight='bold')
+        axes[0, 0].set_ylim(0, 1)
+        axes[0, 0].axhline(y=0.75, color='r', linestyle='--', label='Target (0.75)')
+        axes[0, 0].legend()
+    
+    # 2. Response Time Distribution
+    successful_results = [r for r in results if r["success"]]
+    if successful_results:
+        times = [r['response_time'] for r in successful_results]
+        axes[0, 1].hist(times, bins=20, edgecolor='black', color='skyblue')
+        axes[0, 1].set_title('Response Time Distribution', fontweight='bold')
+        axes[0, 1].set_xlabel('Time (seconds)')
+        axes[0, 1].set_ylabel('Frequency')
+        axes[0, 1].axvline(x=np.mean(times), color='r', linestyle='--', label=f'Mean: {np.mean(times):.2f}s')
+        axes[0, 1].legend()
+    
+    # 3. Entity Type Performance
+    entity_perf = custom_metrics.get('entity_type_performance', {})
+    if entity_perf:
+        etypes = list(entity_perf.keys())
+        scores = list(entity_perf.values())
+        axes[0, 2].bar(etypes, scores, color='coral', edgecolor='black')
+        axes[0, 2].set_title('Success Rate by Entity Type', fontweight='bold')
+        axes[0, 2].set_ylabel('Success Rate')
+        axes[0, 2].set_ylim(0, 1)
+    
+    # 4. Context Retrieval Distribution
+    if successful_results:
+        context_lengths = [len(r.get('contexts', [])) for r in successful_results]
+        max_contexts = max(context_lengths) if context_lengths else 10
+        axes[1, 0].hist(context_lengths, bins=range(0, max_contexts+2), edgecolor='black', color='lightgreen')
+        axes[1, 0].set_title('Retrieved Context Distribution', fontweight='bold')
+        axes[1, 0].set_xlabel('Number of Chunks Retrieved')
+        axes[1, 0].set_ylabel('Frequency')
+    
+    # 5. Success vs Failure
+    success_count = custom_metrics.get('successful_queries', 0)
+    failure_count = custom_metrics.get('total_queries', 0) - success_count
+    axes[1, 1].pie([success_count, failure_count], labels=['Success', 'Failure'], 
+                   autopct='%1.1f%%', colors=['lightgreen', 'lightcoral'])
+    axes[1, 1].set_title('Query Success Rate', fontweight='bold')
+    
+    # 6. Performance Summary Table
+    axes[1, 2].axis('off')
+    summary_data = [
+        ['Total Queries', f"{custom_metrics['total_queries']}"],
+        ['Success Rate', f"{custom_metrics['success_rate']*100:.1f}%"],
+        ['Avg Response Time', f"{custom_metrics['avg_response_time']:.2f}s"],
+        ['Retrieval Success', f"{custom_metrics['retrieval_success_rate']*100:.1f}%"],
+    ]
+    if ragas_scores:
+        summary_data.extend([
+            ['Faithfulness', f"{ragas_scores.get('faithfulness', 0):.3f}"],
+            ['Answer Relevancy', f"{ragas_scores.get('answer_relevancy', 0):.3f}"],
+        ])
+    
+    table = axes[1, 2].table(cellText=summary_data, cellLoc='left', loc='center',
+                             colWidths=[0.6, 0.4])
+    table.auto_set_font_size(False)
+    table.set_fontsize(10)
+    table.scale(1, 2)
+    axes[1, 2].set_title('Performance Summary', fontweight='bold')
+    
+    plt.tight_layout()
+    
+    output_path = output_dir / 'evaluation_visualization.png'
+    plt.savefig(output_path, dpi=300, bbox_inches='tight')
+    print(f"  ✓ Saved visualization to {output_path}")
+    
+    plt.close()
+
+
+def save_json_report(results: List[Dict], ragas_scores: Dict, custom_metrics: Dict, output_dir: Path):
+    """Save detailed results as JSON"""
+    print("\nSaving JSON report...")
+    
+    report = {
+        "metadata": {
+            "timestamp": datetime.now().isoformat(),
+            "total_test_cases": len(results),
+            "evaluation_model": "llama-3.3-70b-versatile"
+        },
+        "ragas_metrics": ragas_scores,
+        "custom_metrics": custom_metrics,
+        "detailed_results": results
+    }
+    
+    output_path = output_dir / f"evaluation_results_{datetime.now().strftime('%Y%m%d_%H%M%S')}.json"
+    
+    with open(output_path, 'w', encoding='utf-8') as f:
+        json.dump(report, f, indent=2, ensure_ascii=False)
+    
+    print(f"  ✓ Saved JSON report to {output_path}")
+    
+    return output_path
+
+
+def generate_markdown_report(results: List[Dict], ragas_scores: Dict, custom_metrics: Dict, output_dir: Path):
+    """Generate comprehensive markdown report"""
+    print("\nGenerating Markdown report...")
+    
+    md = f"""# Ancient Egypt RAG Chatbot - Evaluation Report
+
+**Generated:** {datetime.now().strftime('%Y-%m-%d %H:%M:%S')}  
+**Evaluation Model:** Groq llama-3.3-70b-versatile  
+**Test Cases:** {len(results)}
+
+---
+
+## Executive Summary
+
+This evaluation assesses the Ancient Egypt RAG chatbot across {len(results)} test cases covering {len(set(r['entity_name'] for r in results))} unique entities (pharaohs and landmarks).
+
+### Key Findings
+
+"""
+    
+    if ragas_scores:
+        avg_score = np.mean(list(ragas_scores.values()))
+        md += f"- **Overall RAG Performance:** {avg_score:.2f}/1.00\n"
+    
+    md += f"- **System Success Rate:** {custom_metrics['success_rate']*100:.1f}%\n"
+    md += f"- **Average Response Time:** {custom_metrics['avg_response_time']:.2f} seconds\n"
+    md += f"- **Retrieval Success Rate:** {custom_metrics['retrieval_success_rate']*100:.1f}%\n"
+    
+    md += "\n---\n\n## RAG Triad Metrics\n\n"
+    md += "The three core metrics for evaluating Retrieval-Augmented Generation:\n\n"
+    
+    if ragas_scores:
+        md += "| Metric | Score | Target | Status | Interpretation |\n"
+        md += "|--------|-------|--------|--------|----------------|\n"
+        
+        metrics_info = {
+            "faithfulness": ("0.85", "Did the Pharaoh hallucinate? (Answer vs Context)"),
+            "answer_relevancy": ("0.80", "Did it answer the question? (Answer vs Question)"),
+            "context_precision": ("0.75", "Did retrieval find the best chunks? (Context vs Answer)"),
+            "context_recall": ("0.75", "Does context contain the answer? (Answer coverage)")
+        }
+        
+        for metric_name, score in ragas_scores.items():
+            target, description = metrics_info.get(metric_name, ("0.75", "N/A"))
+            status = "✓ Pass" if score >= float(target) else "✗ Needs Improvement"
+            md += f"| {metric_name.replace('_', ' ').title()} | {score:.3f} | {target} | {status} | {description} |\n"
+    else:
+        md += "*Ragas metrics not available*\n"
+    
+    md += "\n---\n\n## Performance Breakdown\n\n"
+    
+    # By entity type
+    md += "### By Entity Type\n\n"
+    md += "| Entity Type | Success Rate | Test Cases |\n"
+    md += "|-------------|--------------|------------|\n"
+    
+    for etype, perf in custom_metrics.get('entity_type_performance', {}).items():
+        count = sum(1 for r in results if r['entity_type'] == etype)
+        md += f"| {etype.title()} | {perf*100:.1f}% | {count} |\n"
+    
+    # Response time stats
+    md += "\n### Response Time Statistics\n\n"
+    md += "| Metric | Value |\n"
+    md += "|--------|-------|\n"
+    md += f"| Average | {custom_metrics['avg_response_time']:.2f}s |\n"
+    md += f"| Median | {custom_metrics['median_response_time']:.2f}s |\n"
+    md += f"| Min | {custom_metrics['min_response_time']:.2f}s |\n"
+    md += f"| Max | {custom_metrics['max_response_time']:.2f}s |\n"
+    
+    md += "\n---\n\n## Sample Results\n\n"
+    
+    # Show 5 sample results
+    successful_results = [r for r in results if r["success"] and r["answer"]]
+    
+    if successful_results:
+        md += "### Sample Responses\n\n"
+        for i, r in enumerate(successful_results[:5], 1):
+            md += f"#### Example {i}: {r['entity_name']}\n\n"
+            md += f"**Question:** {r['question']}\n\n"
+            md += f"**Generated Answer:** {r['answer']}...\n\n"
+            md += f"**Expected Answer:** {r['ground_truth']}\n\n"
+            md += f"**Response Time:** {r['response_time']:.2f}s | **Contexts Retrieved:** {len(r['contexts'])}\n\n"
+            md += "---\n\n"
+    
+    md += "\n## Recommendations\n\n"
+    
+    issues = []
+    if ragas_scores.get('faithfulness', 1) < 0.85:
+        issues.append("- **Improve Faithfulness:** Answers show hallucination. Strengthen prompt to stay grounded in context.")
+    if ragas_scores.get('context_precision', 1) < 0.75:
+        issues.append("- **Improve Context Precision:** Retrieved chunks contain noise. Tune reranker or retrieval strategy.")
+    if ragas_scores.get('answer_relevancy', 1) < 0.80:
+        issues.append("- **Improve Answer Relevancy:** Answers don't fully address questions. Review generation prompt.")
+    if custom_metrics['avg_response_time'] > 5:
+        issues.append("- **Optimize Response Time:** Average exceeds 5 seconds. Consider caching or faster models.")
+    if custom_metrics['retrieval_success_rate'] < 0.95:
+        issues.append("- **Improve Retrieval:** Some queries fail to retrieve context. Check embedding quality.")
+    
+    if issues:
+        md += "\n".join(issues)
+    else:
+        md += "✅ **System performing well across all metrics!**\n"
+    
+    md += "\n\n---\n\n*End of Report*"
+    
+    output_path = output_dir / 'evaluation_report.md'
+    
+    with open(output_path, 'w', encoding='utf-8') as f:
+        f.write(md)
+    
+    print(f"  ✓ Saved Markdown report to {output_path}")
+    
+    return output_path
+
+
+# ============================================================================
+# MAIN EXECUTION
+# ============================================================================
+
+def main():
+    """Main execution function"""
+    print("\n" + "="*80)
+    print(" Ancient Egypt RAG Chatbot - Comprehensive Evaluation")
+    print("="*80 + "\n")
+    
+    # Setup
+    csv_path = r"C:\Uni\4th Year\GP\ECHO\data\chatbot\outputs\evaluation_data\synthetic_dataset.csv"
+    output_dir = Path("data\chatbot\outputs\evaluation_results")
+    output_dir.mkdir(exist_ok=True)
+    
+    # Step 1: Load test dataset
+    test_df = load_test_dataset(csv_path).head(2)
+    
+    # Step 2: Run evaluation (automatically handles entity switching)
+    results = run_evaluation(test_df)
+    
+    # Step 3: Compute Ragas metrics
+    ragas_scores = compute_ragas_metrics(results,ragas_emb)
+    
+    # Step 4: Compute custom metrics
+    custom_metrics = compute_custom_metrics(results)
+    
+    # Step 5: Generate visualizations
+    generate_visualizations(results, ragas_scores, custom_metrics, output_dir)
+    
+    # Step 6: Save JSON report
+    json_path = save_json_report(results, ragas_scores, custom_metrics, output_dir)
+    
+    # Step 7: Generate Markdown report
+    md_path = generate_markdown_report(results, ragas_scores, custom_metrics, output_dir)
+    
+    # Print summary
+    print("\n" + "="*80)
+    print(" EVALUATION COMPLETE!")
+    print("="*80 + "\n")
+    
+    print("📊 Results Summary:")
+    print(f"  • Total test cases: {custom_metrics['total_queries']}")
+    print(f"  • Success rate: {custom_metrics['success_rate']*100:.1f}%")
+    print(f"  • Avg response time: {custom_metrics['avg_response_time']:.2f}s")
+    
+    if ragas_scores:
+        print(f"\n📈 RAG Triad Metrics:")
+        print(f"  • Faithfulness: {ragas_scores.get('faithfulness', 0):.3f}")
+        print(f"  • Answer Relevancy: {ragas_scores.get('answer_relevancy', 0):.3f}")
+        print(f"  • Context Precision: {ragas_scores.get('context_precision', 0):.3f}")
+        print(f"  • Context Recall: {ragas_scores.get('context_recall', 0):.3f}")
+    
+    print(f"\n📁 Generated Files:")
+    print(f"  • Visualization: {output_dir}/evaluation_visualization.png")
+    print(f"  • JSON Report: {json_path}")
+    print(f"  • Markdown Report: {md_path}")
+    
+    print("\n✅ All evaluation files saved to:", output_dir.absolute())
+    print("\n" + "="*80 + "\n")
+
+
+if __name__ == "__main__":
+    main()

@@ -158,7 +158,7 @@ generator_llm = ChatGroq(
     temperature=0.8,
     max_tokens=4096,
     top_p=0.95,
-    api_key=GROQ_API_KEY1,
+    api_key=GROQ_API_KEY2,
     extra_body={"reasoning_effort": "medium", "reasoning_format": "hidden"}
 ).bind_tools(tools)
 
@@ -348,8 +348,17 @@ def generate_node(state: AgentState) -> dict:
         if chunk.tool_calls:
             tool_calls_buf = chunk.tool_calls
 
-    print()
 
+
+    if tool_calls_buf:
+        print(f"⚠️ [ATTENTION]: LLM is requesting a TOOL CALL: {tool_calls_buf[0]['name']}")
+    elif has_searched:
+        print("🌐 [SOURCE]: Final answer generated using WEB SEARCH + RAG context.")
+    else:
+        print("🏛️ [SOURCE]: Final answer generated using RAG context ONLY.")
+
+    
+    print()
     response = AIMessage(content=full_content, tool_calls=tool_calls_buf or [])
 
     if response.tool_calls and not has_searched:
