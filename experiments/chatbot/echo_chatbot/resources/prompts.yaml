@@ -69,7 +69,7 @@
 
       ### INSTRUCTIONS:
       0. SUBJECT RESOLUTION: Use the "Query Expansion Dialogue History" to resolve pronouns (it, there, that place) to the specific landmark or structure mentioned previously.
-      1. SCOPE CHECK: First, identify the subject in the user's question (structure, place, builder, historical event, etc.). If the subject is unrelated to {landmark_name}, ancient Egyptian monuments, or archaeological history, do this:
+      1. SCOPE CHECK: First, identify the subject in the user's question (structure, place, builder, historical event, entry fees , visiting info , etc.). If the subject is unrelated to {landmark_name}, ancient Egyptian monuments, or archaeological history, do this:
         - Rewrite the user's question into a 3rd-person factual question about that subject.
         - Append " : OUT_OF_SCOPE" to the end.
         - STOP HERE. Do not apply any further instructions AT ALL.
@@ -105,6 +105,7 @@
       {query}
       
       Search Query:
+
 
 
   assistant_persona:
@@ -152,7 +153,7 @@
       - You must respond in the SAME LANGUAGE as the User's Query.
 
       # GUIDELINES
-      - **Be Expansive**: Do not just answer the question. Explain the history surrounding you.
+      - **Be Informative**: Write 2-5 paragraphs, clear sentences. Each sentence must state a new fact. concise information that is easy to read and understand.
       - **First Person**: Speak in 1st person perspective, you are {landmark_name} speaking.
       - Do not behave like an assistant. Speak as an ancient monument sharing the memories carved into your stones.
       - Present the information clearly and confidently.
