@@ -1,23 +1,17 @@
 """
-Ancient Egypt RAG Chatbot - Complete Evaluation Script
-Evaluates the chatbot using Ragas metrics and generates comprehensive reports
+Ragas Evaluation Script - Evaluates Pre-Collected Agent Responses
+Loads agent responses from CSV and computes Ragas metrics without re-running the agent
 """
 
 from pathlib import Path
 import sys
-
+import warnings
 root_path = Path("c:/Uni/4th Year/GP/ECHO/experiments/chatbot/echo_chatbot/chatbot_phases")
 if str(root_path) not in sys.path:
     sys.path.insert(0, str(root_path))
 
 import asyncio
-import sys
 
-if sys.platform == 'win32':
-    asyncio.set_event_loop_policy(asyncio.WindowsProactorEventLoopPolicy())
-
-import evaluation_graph
-from evaluation_graph import graph, ENTITY_CONFIG, SQL_TEMPLATE, PROMPTS
 
 import pandas as pd
 import json
@@ -31,6 +25,8 @@ from typing import List, Dict, Any
 from datasets import Dataset
 import os
 from dotenv import load_dotenv
+warnings.filterwarnings("ignore")
+warnings.filterwarnings("ignore", category=RuntimeError, message=".*Event loop is closed.*")
 
 load_dotenv()
 
@@ -67,56 +63,20 @@ ragas_emb = HuggingFaceEmbeddings(
 
 
 # ============================================================================
-# Helper: Initialize Entity Configuration
-# ============================================================================
-
-def initialize_entity_config(entity_type: str, entity_name: str):
-    """Initialize the global configuration for a specific entity"""
-    evaluation_graph.ENTITY_TYPE = entity_type
-    evaluation_graph.ENTITY_NAME = entity_name
-    
-    cfg = ENTITY_CONFIG[entity_type]
-    
-    evaluation_graph.VECTOR_SQL = SQL_TEMPLATE.format(
-        texts_table=cfg["texts_table"],
-        entities_table=cfg["entities_table"],
-        entity_id_col=cfg["entity_id_col"]
-    )
-    
-    prompt_key = cfg["prompt_key"]
-    query_rewriter_llm = ChatGroq(
-        model_name=evaluation_graph.GROQ_QUERY_REWRITER_MODEL_NAME,
-        temperature=0.2,
-        max_tokens=1024,
-        api_key=os.getenv("GROQ_API_KEY1"),
-        extra_body={"reasoning_effort": "default", "reasoning_format": "hidden"}
-    )
-    evaluation_graph.rewrite_chain = (
-        PromptTemplate.from_template(PROMPTS["rewrite_prompt"][prompt_key]) | 
-        query_rewriter_llm | 
-        StrOutputParser()
-    )
-    
-    evaluation_graph.llm_prompt_template = PromptTemplate.from_template(
-        PROMPTS["assistant_persona"][prompt_key]
-    )
-
-
-# ============================================================================
-# Custom Ragas Prompt for Persona-based Responses
+# Custom Ragas Prompts
 # ============================================================================
 
 class CustomNLIPrompt(PydanticPrompt[NLIStatementInput, NLIStatementOutput]):
     instruction = """You are a factual auditor for a historical RAG system for ancient egypt. The system's 'answer' is written in a 1st-person narrative persona (e.g., a King, a Queen, or an Ancient Monument).
 
-        Your goal is to verify factual faithfulness based ONLY on historical claims.
+Your goal is to verify factual faithfulness based ONLY on historical claims.
 
-        STRICT EVALUATION RULES:
-        1. **Fact vs. Flavor**: Separate 'historical facts' (names, dates, locations, military events, architectural builds) from 'narrative flavor' (first-person pronouns, emotional expressions, poetic descriptions, and metaphorical personification).
-        2. **Metaphorical Equivalence**: Treat poetic descriptions of historical entities as equivalent to their literal names (e.g., descriptions of invaders, symbols of a nation, or poetic names for locations).
-        3. **Ignore Honorifics**: Titles, praise, and self-referential introductory phrases (e.g., "I, the eternal stone," "My reign was glorious") should not be checked for faithfulness.
-        4. **Context Check**: A claim is 'Faithful' (1) if the underlying historical event or data point is supported by the context, regardless of the creative language used to describe it. It is 'Unfaithful' (0) only if it introduces a historical fact that contradicts or is entirely absent from the context.
-        5. Break down the answer into simple, atomic facts. Ignore the 'Thee' and 'Thou' and extract only the historical claims."
+STRICT EVALUATION RULES:
+1. **Fact vs. Flavor**: Separate 'historical facts' (names, dates, locations, military events, architectural builds) from 'narrative flavor' (first-person pronouns, emotional expressions, poetic descriptions, and metaphorical personification).
+2. **Metaphorical Equivalence**: Treat poetic descriptions of historical entities as equivalent to their literal names (e.g., descriptions of invaders, symbols of a nation, or poetic names for locations).
+3. **Ignore Honorifics**: Titles, praise, and self-referential introductory phrases (e.g., "I, the eternal stone," "My reign was glorious") should not be checked for faithfulness.
+4. **Context Check**: A claim is 'Faithful' (1) if the underlying historical event or data point is supported by the context, regardless of the creative language used to describe it. It is 'Unfaithful' (0) only if it introduces a historical fact that contradicts or is entirely absent from the context.
+5. Break down the answer into simple, atomic facts. Ignore the 'Thee' and 'Thou' and extract only the historical claims.
 """
     input_model = NLIStatementInput
     output_model = NLIStatementOutput
@@ -140,51 +100,51 @@ class CustomNLIPrompt(PydanticPrompt[NLIStatementInput, NLIStatementOutput]):
         )
     ]
 
+
 class CustomRelevancePrompt(PydanticPrompt[ResponseRelevanceInput, ResponseRelevanceOutput]):
     instruction = """Generate a question for the given answer. The answer is provided by a historical RAG chatbot acting as an Ancient Egyptian persona.
-    You are a historical query analyst. Your task is to generate a question that would result in the provided 'answer'. 
-    The answer is written in a 1st-person narrative persona (e.g., a Pharaoh or Ancient Monument).
-    
-    STRICT ANALYSIS RULES:
-    1. **Direct Address**: The question MUST be written in the 2nd person, addressing the entity directly (e.g., Use "You," "Your," "Mighty [Name]").
-    2. **Fact vs. Flavor**: Ignore 1st-person pronouns ("I", "My"), emotional expressions, and poetic storytelling. Focus only on the 'historical facts' (achievements, names, dates, military events).
-    3. If the answer contains narrative 'flavor' but answers a specific historical event, the generated question should reflect that event.
-    4. **Reverse Engineering**: Generate a question that targets the core factual information. If the answer describes military resistance, the question should be about military resistance, even if the answer is written as a poem.
-    5.**Tone Matching**: The question should sound like it belongs in your dataset—formal, respectful, and inquiring about specific reign achievements or historical events.
-    6. **Precision**: The generated question must be a direct map to the factual substance of the answer provided.
-    """
-    
-    
+You are a historical query analyst. Your task is to generate a question that would result in the provided 'answer'. 
+The answer is written in a 1st-person narrative persona (e.g., a Pharaoh or Ancient Monument).
+
+STRICT ANALYSIS RULES:
+1. **Direct Address**: The question MUST be written in the 2nd person, addressing the entity directly (e.g., Use "You," "Your," "Mighty [Name]").
+2. **Fact vs. Flavor**: Ignore 1st-person pronouns ("I", "My"), emotional expressions, and poetic storytelling. Focus only on the 'historical facts' (achievements, names, dates, military events).
+3. If the answer contains narrative 'flavor' but answers a specific historical event, the generated question should reflect that event.
+4. **Reverse Engineering**: Generate a question that targets the core factual information. If the answer describes military resistance, the question should be about military resistance, even if the answer is written as a poem.
+5. **Tone Matching**: The question should sound like it belongs in your dataset—formal, respectful, and inquiring about specific reign achievements or historical events.
+6. **Precision**: The generated question must be a direct map to the factual substance of the answer provided.
+"""
     input_model = ResponseRelevanceInput
     output_model = ResponseRelevanceOutput
+    
     examples = [
         (
-            
-                ResponseRelevanceInput(response="I, Hakoris, secured the future by naming my son Nephrites as my successor to ensure stability.")
-                ,ResponseRelevanceOutput(question="Mighty Hakoris, how did you ensure political stability and what was the significance of naming, your son as heir?",noncommittal=0)
+            ResponseRelevanceInput(response="I, Hakoris, secured the future by naming my son Nephrites as my successor to ensure stability."),
+            ResponseRelevanceOutput(question="Mighty Hakoris, how did you ensure political stability and what was the significance of naming your son as heir?", noncommittal=0)
         )
     ]
 
+
 class CustomRecallExtractionPrompt(ContextRecallClassificationPrompt):
     instruction = """
-    Given a context and a poetic reference answer (labeled 'answer'), analyze each sentence 
-    in the answer. Classify if the historical/factual claim in that sentence is supported 
-    by the context.
-    
-    GUIDELINES:
-    1. The 'expected_output' is written in a poetic, first-person Pharaoh persona. 
-    2. STRIP AWAY all persona elements (e.g., 'I recall', 'My spirit') and extract ONLY the underlying historical data points.
-    3. Ignore all first-person roleplay, metaphors, flavor text, and poetic descriptions (e.g., 'immortal horizons', 'ghostly whispers').
-    4. Extract only dates, names, physical locations, archaeological finds, and specific historical events.
-    5. Only extract verifiable facts: names, dates, quantities, and specific locations.
-    6. Example: If it says "My spirit saw fifty sarcophagi," you extract: "Fifty sarcophagi were present."
-    7. If the sentence contains a date, name, or location found in the context, mark as 1.
-    8. Use only 'Yes' (1) or 'No' (0) as a binary classification. Output json with reason."
-    """
+Given a context and a poetic reference answer (labeled 'answer'), analyze each sentence 
+in the answer. Classify if the historical/factual claim in that sentence is supported 
+by the context.
+
+GUIDELINES:
+1. The 'expected_output' is written in a poetic, first-person Pharaoh persona. 
+2. STRIP AWAY all persona elements (e.g., 'I recall', 'My spirit') and extract ONLY the underlying historical data points.
+3. Ignore all first-person roleplay, metaphors, flavor text, and poetic descriptions (e.g., 'immortal horizons', 'ghostly whispers').
+4. Extract only dates, names, physical locations, archaeological finds, and specific historical events.
+5. Only extract verifiable facts: names, dates, quantities, and specific locations.
+6. Example: If it says "My spirit saw fifty sarcophagi," you extract: "Fifty sarcophagi were present."
+7. If the sentence contains a date, name, or location found in the context, mark as 1.
+8. Use only 'Yes' (1) or 'No' (0) as a binary classification. Output json with reason.
+"""
     input_model = QCA
     output_model = ContextRecallClassifications
 
-    examples: list = [
+    examples = [
         (
             QCA(
                 question="When was Neith confirmed as Teti's wife?",
@@ -219,109 +179,33 @@ class CustomRecallExtractionPrompt(ContextRecallClassificationPrompt):
         )
     ]
 
+
 # ============================================================================
-# STEP 1: Load Test Dataset
+# Load Agent Responses from CSV
 # ============================================================================
 
-def load_test_dataset(csv_path: str) -> pd.DataFrame:
-    """Load the synthetic test dataset from CSV"""
-    print(f"\nLoading test dataset from {csv_path}...")
+def load_agent_responses(csv_path: str) -> List[Dict[str, Any]]:
+    """Load pre-collected agent responses from CSV"""
+    print(f"\nLoading agent responses from {csv_path}...")
+    
     df = pd.read_csv(csv_path)
-    print(f"  ✓ Loaded {len(df)} test cases")
+    
+    # Convert contexts string back to list
+    df['contexts'] = df['contexts'].apply(lambda x: x.split('|||') if isinstance(x, str) else [])
+    
+    # Convert to list of dicts
+    results = df.to_dict('records')
+    
+    print(f"  ✓ Loaded {len(results)} agent responses")
+    print(f"  • Successful: {sum(1 for r in results if r.get('success', False))}")
     print(f"  • Unique entities: {df['entity_name'].nunique()}")
-    return df.sample(5)
-
-
-# ============================================================================
-# STEP 2: Run Evaluation on All Test Cases
-# ============================================================================
-
-def run_evaluation(test_df: pd.DataFrame) -> List[Dict[str, Any]]:
-    """Run the chatbot on all test cases with fresh memory for each"""
-    print(f"\n{'='*80}")
-    print(f"Running evaluation on {len(test_df)} test cases...")
-    print(f"{'='*80}\n")
-    
-    results = []
-    current_entity = None
-    
-    for idx, row in test_df.iterrows():
-        entity_key = (row['entity_type'], row['entity_name'])
-        
-        if current_entity != entity_key:
-            print(f"\n[SWITCHING ENTITY] Initializing {row['entity_type']}: {row['entity_name']}")
-            initialize_entity_config(row['entity_type'], row['entity_name'])
-            current_entity = entity_key
-        
-        print(f"[{idx+1}/{len(test_df)}] Testing: {row['entity_name']} - {row['input'][:60]}...")
-        
-        start_time = time.time()
-        
-        try:
-            config = {"configurable": {"thread_id": f"eval-{idx}"}}
-            
-            response = graph.invoke(
-                {
-                    "messages": [("user", row["input"])],
-                    "query": row["input"],
-                    "context": [],
-                    "voice_mode": False
-                },
-                config=config
-            )
-            
-            end_time = time.time()
-            
-            answer = response.get("response", "")
-            contexts = response.get("context", [])
-            
-            if isinstance(contexts, str):
-                contexts = [contexts]
-            elif not isinstance(contexts, list):
-                contexts = []
-            
-            results.append({
-                "question": row["input"],
-                "answer": answer,
-                "contexts": contexts,
-                "ground_truth": row["expected_output"],
-                "response_time": end_time - start_time,
-                "entity_type": row["entity_type"],
-                "entity_name": row["entity_name"],
-                "success": True,
-                "answer_length": len(answer.split()),
-                "context_count": len(contexts)
-            })
-            
-            print(f"  ✓ Response time: {end_time - start_time:.2f}s | Contexts: {len(contexts)}")
-            
-        except Exception as e:
-            print(f"  ✗ Error: {str(e)}")
-            results.append({
-                "question": row["input"],
-                "answer": "",
-                "contexts": [],
-                "ground_truth": row["expected_output"],
-                "response_time": 0,
-                "entity_type": row["entity_type"],
-                "entity_name": row["entity_name"],
-                "success": False,
-                "error": str(e),
-                "answer_length": 0,
-                "context_count": 0
-            })
-        
-        time.sleep(1.2)
-    
-    successful = sum(1 for r in results if r["success"])
-    print(f"\n{'='*80}")
-    print(f"Evaluation complete! {successful}/{len(results)} successful")
-    print(f"{'='*80}\n")
     
     return results
 
 
-
+# ============================================================================
+# Groq Key Manager
+# ============================================================================
 
 class GroqKeyManager:
     def __init__(self, keys):
@@ -337,21 +221,46 @@ class GroqKeyManager:
         return self.get_current_key()
 
 
+# ============================================================================
+# Compute Ragas Metrics
+# ============================================================================
 def compute_ragas_metrics(results: List[Dict]) -> Dict[str, float]:
+    """Compute Ragas metrics on pre-collected responses"""
+    print("\n" + "="*80)
+    print("Computing Ragas Metrics")
+    print("="*80 + "\n")
+
+    if sys.platform == 'win32':
+        asyncio.set_event_loop_policy(asyncio.WindowsProactorEventLoopPolicy())
+        try:
+            loop = asyncio.get_event_loop()
+        except RuntimeError:
+            loop = asyncio.new_event_loop()
+            asyncio.set_event_loop(loop)
+
     successful_results = [r for r in results if r.get("success") and r.get("answer")]
     
-    keys = [os.getenv(f"GROQ_API_KEY{i}") for i in range(1, 6)]
+    keys = [os.getenv(f"GROQ_API_KEY{i}") for i in range(1, 8)]
     manager = GroqKeyManager([k for k in keys if k])
     
     all_individual_results = []
     i = 0
+    retry_count = {}  # Track retries per sample
 
-    print(f"🚀 Evaluating {len(successful_results)} entities. (Individual Resume Mode)")
+    print(f"🚀 Evaluating {len(successful_results)} responses (Individual Resume Mode)")
 
     while i < len(successful_results):
         item = successful_results[i]
         
-        # 1. Setup LLM (Removed 'parsed' format to fix StringIO error)
+        # Print entity name before evaluation
+        entity_name = item.get("entity_name", "Unknown")
+        entity_type = item.get("entity_type", "Unknown")
+        print(f"\n[Sample {i+1}/{len(successful_results)}] Entity: {entity_name} ({entity_type})")
+        
+        # Initialize retry counter for this sample
+        if i not in retry_count:
+            retry_count[i] = 0
+        
         evaluator_llm = ChatGroq(
             model="openai/gpt-oss-20b", 
             api_key=manager.get_current_key(),
@@ -362,7 +271,6 @@ def compute_ragas_metrics(results: List[Dict]) -> Dict[str, float]:
         ragas_llm = LangchainLLMWrapper(evaluator_llm)
         ragas_emb_wrapped = LangchainEmbeddingsWrapper(ragas_emb)
 
-        # 2. Re-apply your custom prompts to the variables
         f_metric = Faithfulness(llm=ragas_llm)
         f_metric.set_prompts(n_l_i_statement_prompt=CustomNLIPrompt())
         
@@ -372,7 +280,6 @@ def compute_ragas_metrics(results: List[Dict]) -> Dict[str, float]:
         recall_metric = ContextRecall(llm=ragas_llm)
         recall_metric.context_recall_prompt = CustomRecallExtractionPrompt()
 
-        # 3. Prepare Single Dataset
         single_dataset = Dataset.from_dict({
             "user_input": [item["question"]],
             "response": [item["answer"]],
@@ -381,7 +288,6 @@ def compute_ragas_metrics(results: List[Dict]) -> Dict[str, float]:
         })
 
         try:
-            # 4. PASS THE VARIABLES (f_metric, r_metric)
             res = evaluate(
                 dataset=single_dataset,
                 metrics=[
@@ -398,54 +304,70 @@ def compute_ragas_metrics(results: List[Dict]) -> Dict[str, float]:
             
             all_individual_results.append(res.to_pandas())
             i += 1
+            retry_count[i] = 0  # Reset retry count on success
             print(f"✅ Success [{i}/{len(successful_results)}]")
 
         except Exception as e:
             err_msg = str(e)
+            
             if "rate_limit" in err_msg.lower() or "429" in err_msg:
                 print(f"🚨 Rate Limit. Swapping to Key {manager.current_index + 2}...")
                 manager.rotate_key()
-                time.sleep(15) 
+                time.sleep(15)
+                
             elif "StringIO" in err_msg:
-                print("⚠️ Parser glitch. Retrying this sample with a slight cooldown...")
-                time.sleep(5)
+                retry_count[i] += 1
+                
+                if retry_count[i] <= 1:
+                    # First retry - give it one more chance
+                    print(f"⚠️ Parser glitch (attempt {retry_count[i]}/1). Retrying...")
+                    time.sleep(5)
+                else:
+                    # Second failure - skip this sample
+                    print(f"❌ Parser glitch persists after 1 retry. Skipping sample {i+1} ({entity_name})...")
+                    i += 1
+                    
             else:
-                print(f"❌ Hard error on sample {i}: {err_msg}")
-                i += 1 
+                print(f"❌ Hard error on sample {i+1} ({entity_name}): {err_msg}")
+                i += 1
 
-    # Final Average
     final_df = pd.concat(all_individual_results, ignore_index=True)
     summary = final_df.mean(numeric_only=True).to_dict()
+    
+    print("\n✅ Ragas evaluation complete!")
     return {k: float(v) for k, v in summary.items()}
 
 
 
+# ============================================================================
+# Compute Custom Metrics
+# ============================================================================
 
 def compute_custom_metrics(results: List[Dict]) -> Dict[str, Any]:
     """Compute custom performance metrics"""
     print("\nComputing custom metrics...")
     
-    successful_results = [r for r in results if r["success"]]
+    successful_results = [r for r in results if r.get("success", False)]
     
     metrics = {
         "total_queries": len(results),
         "successful_queries": len(successful_results),
         "success_rate": len(successful_results) / len(results) if results else 0,
-        "avg_response_time": np.mean([r["response_time"] for r in successful_results]) if successful_results else 0,
-        "min_response_time": np.min([r["response_time"] for r in successful_results]) if successful_results else 0,
-        "max_response_time": np.max([r["response_time"] for r in successful_results]) if successful_results else 0,
-        "median_response_time": np.median([r["response_time"] for r in successful_results]) if successful_results else 0,
+        "avg_response_time": np.mean([r.get("response_time", 0) for r in successful_results]) if successful_results else 0,
+        "min_response_time": np.min([r.get("response_time", 0) for r in successful_results]) if successful_results else 0,
+        "max_response_time": np.max([r.get("response_time", 0) for r in successful_results]) if successful_results else 0,
+        "median_response_time": np.median([r.get("response_time", 0) for r in successful_results]) if successful_results else 0,
         "avg_context_chunks": np.mean([r.get("context_count", 0) for r in successful_results]) if successful_results else 0,
         "avg_answer_length": np.mean([r.get("answer_length", 0) for r in successful_results]) if successful_results else 0,
     }
     
     entity_types = {}
     for r in results:
-        etype = r["entity_type"]
+        etype = r.get("entity_type", "unknown")
         if etype not in entity_types:
             entity_types[etype] = {"total": 0, "successful": 0}
         entity_types[etype]["total"] += 1
-        if r["success"]:
+        if r.get("success", False):
             entity_types[etype]["successful"] += 1
     
     metrics["entity_type_performance"] = {
@@ -461,7 +383,7 @@ def compute_custom_metrics(results: List[Dict]) -> Dict[str, Any]:
 
 
 # ============================================================================
-# STEP 5: Generate Visualizations
+# Generate Visualizations
 # ============================================================================
 
 def generate_visualizations(results: List[Dict], ragas_scores: Dict, custom_metrics: Dict, output_dir: Path):
@@ -492,9 +414,9 @@ def generate_visualizations(results: List[Dict], ragas_scores: Dict, custom_metr
         axes[0, 0].axhline(y=0.75, color='r', linestyle='--', label='Target (0.75)')
         axes[0, 0].legend()
     
-    successful_results = [r for r in results if r["success"]]
+    successful_results = [r for r in results if r.get("success", False)]
     if successful_results:
-        times = [r['response_time'] for r in successful_results]
+        times = [r.get('response_time', 0) for r in successful_results]
         axes[0, 1].hist(times, bins=20, edgecolor='black', color='skyblue')
         axes[0, 1].set_title('Response Time Distribution', fontweight='bold')
         axes[0, 1].set_xlabel('Time (seconds)')
@@ -555,7 +477,7 @@ def generate_visualizations(results: List[Dict], ragas_scores: Dict, custom_metr
 
 
 # ============================================================================
-# STEP 6: Save JSON Report
+# Save JSON Report
 # ============================================================================
 
 def save_json_report(results: List[Dict], ragas_scores: Dict, custom_metrics: Dict, output_dir: Path):
@@ -584,7 +506,7 @@ def save_json_report(results: List[Dict], ragas_scores: Dict, custom_metrics: Di
 
 
 # ============================================================================
-# STEP 7: Generate Markdown Report
+# Generate Markdown Report
 # ============================================================================
 
 def generate_markdown_report(results: List[Dict], ragas_scores: Dict, custom_metrics: Dict, output_dir: Path):
@@ -594,14 +516,14 @@ def generate_markdown_report(results: List[Dict], ragas_scores: Dict, custom_met
     md = f"""# Ancient Egypt RAG Chatbot - Evaluation Report
 
 **Generated:** {datetime.now().strftime('%Y-%m-%d %H:%M:%S')}  
-**Evaluation Model:** Groq llama-3.3-70b-versatile  
+**Evaluation Model:** Groq gpt-oss-20b  
 **Test Cases:** {len(results)}
 
 ---
 
 ## Executive Summary
 
-This evaluation assesses the Ancient Egypt RAG chatbot across {len(results)} test cases covering {len(set(r['entity_name'] for r in results))} unique entities (pharaohs and landmarks).
+This evaluation assesses the Ancient Egypt RAG chatbot across {len(results)} test cases covering {len(set(r.get('entity_name', '') for r in results))} unique entities (pharaohs and landmarks).
 
 ### Key Findings
 
@@ -616,7 +538,6 @@ This evaluation assesses the Ancient Egypt RAG chatbot across {len(results)} tes
     md += f"- **Retrieval Success Rate:** {custom_metrics['retrieval_success_rate']*100:.1f}%\n"
     
     md += "\n---\n\n## RAG Triad Metrics\n\n"
-    md += "The three core metrics for evaluating Retrieval-Augmented Generation:\n\n"
     
     if ragas_scores:
         md += "| Metric | Score | Target | Status | Interpretation |\n"
@@ -633,59 +554,19 @@ This evaluation assesses the Ancient Egypt RAG chatbot across {len(results)} tes
             target, description = metrics_info.get(metric_name, ("0.75", "N/A"))
             status = "✓ Pass" if score >= float(target) else "✗ Needs Improvement"
             md += f"| {metric_name.replace('_', ' ').title()} | {score:.3f} | {target} | {status} | {description} |\n"
-    else:
-        md += "*Ragas metrics not available*\n"
     
     md += "\n---\n\n## Performance Breakdown\n\n"
-    
     md += "### By Entity Type\n\n"
-    md += "| Entity Type | Success Rate | Test Cases |\n"
-    md += "|-------------|--------------|------------|\n"
     
     for etype, perf in custom_metrics.get('entity_type_performance', {}).items():
-        count = sum(1 for r in results if r['entity_type'] == etype)
+        count = sum(1 for r in results if r.get('entity_type') == etype)
         md += f"| {etype.title()} | {perf*100:.1f}% | {count} |\n"
     
     md += "\n### Response Time Statistics\n\n"
-    md += "| Metric | Value |\n"
-    md += "|--------|-------|\n"
     md += f"| Average | {custom_metrics['avg_response_time']:.2f}s |\n"
     md += f"| Median | {custom_metrics['median_response_time']:.2f}s |\n"
     md += f"| Min | {custom_metrics['min_response_time']:.2f}s |\n"
     md += f"| Max | {custom_metrics['max_response_time']:.2f}s |\n"
-    
-    md += "\n---\n\n## Sample Results\n\n"
-    
-    successful_results = [r for r in results if r["success"] and r["answer"]]
-    
-    if successful_results:
-        md += "### Sample Responses\n\n"
-        for i, r in enumerate(successful_results[:5], 1):
-            md += f"#### Example {i}: {r['entity_name']}\n\n"
-            md += f"**Question:** {r['question']}\n\n"
-            md += f"**Generated Answer:** {r['answer']}\n\n"
-            md += f"**Expected Answer:** {r['ground_truth']}\n\n"
-            md += f"**Response Time:** {r['response_time']:.2f}s | **Contexts Retrieved:** {r.get('context_count', 0)}\n\n"
-            md += "---\n\n"
-    
-    md += "\n## Recommendations\n\n"
-    
-    issues = []
-    if ragas_scores.get('faithfulness', 1) < 0.85:
-        issues.append("- **Improve Faithfulness:** Answers show hallucination. Strengthen prompt to stay grounded in context.")
-    if ragas_scores.get('context_precision', 1) < 0.75:
-        issues.append("- **Improve Context Precision:** Retrieved chunks contain noise. Tune reranker or retrieval strategy.")
-    if ragas_scores.get('answer_relevancy', 1) < 0.80:
-        issues.append("- **Improve Answer Relevancy:** Answers don't fully address questions. Review generation prompt.")
-    if custom_metrics['avg_response_time'] > 5:
-        issues.append("- **Optimize Response Time:** Average exceeds 5 seconds. Consider caching or faster models.")
-    if custom_metrics['retrieval_success_rate'] < 0.95:
-        issues.append("- **Improve Retrieval:** Some queries fail to retrieve context. Check embedding quality.")
-    
-    if issues:
-        md += "\n".join(issues)
-    else:
-        md += "✅ **System performing well across all metrics!**\n"
     
     md += "\n\n---\n\n*End of Report*"
     
@@ -700,31 +581,38 @@ This evaluation assesses the Ancient Egypt RAG chatbot across {len(results)} tes
 
 
 # ============================================================================
-# MAIN EXECUTION
+# Main Execution
 # ============================================================================
 
 def main():
     """Main execution function"""
     print("\n" + "="*80)
-    print(" Ancient Egypt RAG Chatbot - Comprehensive Evaluation")
+    print(" Ragas Evaluation on Pre-Collected Agent Responses")
     print("="*80 + "\n")
     
-    csv_path = r"C:\Uni\4th Year\GP\ECHO\data\chatbot\outputs\evaluation_data\eval_part_1.csv"
-    output_dir = Path("data/chatbot/outputs/evaluation_results")
+    # Input: Pre-collected agent responses CSV
+    responses_csv = r"C:\Uni\4th Year\GP\ECHO\data\chatbot\outputs\agent_responses\agent_responses_pt1.csv"
+    
+    # Output directory
+    output_dir = Path("data/chatbot/outputs/ragas_evaluation_results")
     output_dir.mkdir(exist_ok=True)
     
-    test_df = load_test_dataset(csv_path)
+    # Step 1: Load pre-collected responses
+    results = load_agent_responses(responses_csv)
     
-    results = run_evaluation(test_df)
-    
+    # Step 2: Compute Ragas metrics
     ragas_scores = compute_ragas_metrics(results)
     
+    # Step 3: Compute custom metrics
     custom_metrics = compute_custom_metrics(results)
     
+    # Step 4: Generate visualizations
     generate_visualizations(results, ragas_scores, custom_metrics, output_dir)
     
+    # Step 5: Save JSON report
     json_path = save_json_report(results, ragas_scores, custom_metrics, output_dir)
     
+    # Step 6: Generate Markdown report
     md_path = generate_markdown_report(results, ragas_scores, custom_metrics, output_dir)
     
     print("\n" + "="*80)
