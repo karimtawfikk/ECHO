@@ -248,8 +248,13 @@ def compute_ragas_metrics(results: List[Dict]) -> Dict[str, float]:
     retry_count = {}  # Track retries per sample
 
     print(f"🚀 Evaluating {len(successful_results)} responses (Individual Resume Mode)")
+    print(f"🔑 Using {len(manager.keys)} API keys with preventive rotation every 10 samples\n")
 
     while i < len(successful_results):
+        # Preventive key rotation every 10 samples
+        if i > 0 and i % 10 == 0:
+            manager.rotate_key()
+        
         item = successful_results[i]
         
         # Print entity name before evaluation
@@ -262,7 +267,7 @@ def compute_ragas_metrics(results: List[Dict]) -> Dict[str, float]:
             retry_count[i] = 0
         
         evaluator_llm = ChatGroq(
-            model="openai/gpt-oss-20b", 
+            model="moonshotai/kimi-k2-instruct-0905", 
             api_key=manager.get_current_key(),
             temperature=0,
             max_tokens=4096,
@@ -305,13 +310,13 @@ def compute_ragas_metrics(results: List[Dict]) -> Dict[str, float]:
             all_individual_results.append(res.to_pandas())
             i += 1
             retry_count[i] = 0  # Reset retry count on success
-            print(f"✅ Success [{i}/{len(successful_results)}]")
+            print(f"✅ Success [{i}/{len(successful_results)}] (Key {manager.current_index + 1})")
 
         except Exception as e:
             err_msg = str(e)
             
             if "rate_limit" in err_msg.lower() or "429" in err_msg:
-                print(f"🚨 Rate Limit. Swapping to Key {manager.current_index + 2}...")
+                print(f"🚨 Rate Limit hit! Force-rotating key...")
                 manager.rotate_key()
                 time.sleep(15)
                 
@@ -335,6 +340,7 @@ def compute_ragas_metrics(results: List[Dict]) -> Dict[str, float]:
     summary = final_df.mean(numeric_only=True).to_dict()
     
     print("\n✅ Ragas evaluation complete!")
+    print(f"📊 Evaluated {len(all_individual_results)}/{len(successful_results)} samples successfully")
     return {k: float(v) for k, v in summary.items()}
 
 
