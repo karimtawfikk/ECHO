@@ -49,7 +49,7 @@ def load_resources():
     base_path = Path(__file__).parent.parent / "resources"
     with open(base_path / "queries.sql", "r") as f:
         sql_template = f.read()
-    with open(base_path / "evaluation_prompt.yaml", "r") as f:
+    with open(base_path / "evaluation_promptnew.yaml", "r") as f:
         prompts = yaml.safe_load(f)
     return sql_template, prompts
 
@@ -62,6 +62,7 @@ SQL_TEMPLATE, PROMPTS = load_resources()
 
 GROQ_API_KEY1          = os.getenv("GROQ_API_KEY1")
 GROQ_API_KEY2          = os.getenv("GROQ_API_KEY2")
+GROQ_API_KEY9          = os.getenv("GROQ_API_KEY9")
 CF_WORKERSAI_ACCOUNTID = os.getenv("R2_ACCOUNT_ID")
 CF_AI_API              = os.getenv("CF_AI_API")
 JINA_API_KEY           = os.getenv("JINA_API_KEY")
@@ -155,10 +156,10 @@ query_rewriter_llm = ChatGroq(
 
 generator_llm = ChatGroq(
     model_name=GROQ_GENERATOR_MODEL_NAME,
-    temperature=0.8,
+    temperature=0.7,
     max_tokens=4096,
     top_p=0.95,
-    api_key=GROQ_API_KEY2,
+    api_key=GROQ_API_KEY9,
     extra_body={"reasoning_effort": "medium", "reasoning_format": "hidden"}
 )
 

@@ -6,7 +6,7 @@ Runs the Ancient Egypt RAG chatbot on test dataset and saves all responses for l
 from pathlib import Path
 import sys
 
-root_path = Path("c:/Uni/4th Year/GP/ECHO/experiments/chatbot/echo_chatbot/chatbot_phases")
+root_path = Path(r"C:\Users\Zeyad\Desktop\4th Year\GP\ECHO\experiments\chatbot\echo_chatbot\chatbot_phases")
 if str(root_path) not in sys.path:
     sys.path.insert(0, str(root_path))
 
@@ -194,8 +194,8 @@ def main():
     print(" Agent Response Collection for Evaluation")
     print("="*80 + "\n")
     
-    csv_path = r"C:\Uni\4th Year\GP\ECHO\data\chatbot\outputs\evaluation_data\eval_part_2.csv"
-    output_dir = Path("data/chatbot/outputs/agent_responses")
+    csv_path = r"C:\Users\Zeyad\Desktop\4th Year\GP\ECHO\data\chatbot\outputs\new_evaluation_data\eval_part_1.csv"
+    output_dir = Path("data/chatbot/outputs/new_agent_responses")
     
     results = collect_agent_responses(csv_path)
     
