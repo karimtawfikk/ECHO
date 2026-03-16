@@ -26,7 +26,7 @@ from datasets import Dataset
 import os
 from dotenv import load_dotenv
 warnings.filterwarnings("ignore")
-warnings.filterwarnings("ignore", category=RuntimeError, message=".*Event loop is closed.*")
+warnings.filterwarnings("ignore", category=DeprecationWarning)
 
 load_dotenv()
 
@@ -56,9 +56,20 @@ from ragas.metrics._context_recall import (
     ContextRecallClassifications, 
     ContextRecallClassification
 )
-ragas_emb = HuggingFaceEmbeddings(
+from langchain_cloudflare import CloudflareWorkersAIEmbeddings
+
+"""ragas_emb = HuggingFaceEmbeddings(
     model_name="BAAI/bge-base-en-v1.5",
     model_kwargs={"device": "cuda"}
+)"""
+
+CF_WORKERSAI_ACCOUNTID = os.getenv("R2_ACCOUNT_ID")
+CF_AI_API              = os.getenv("CF_AI_API")
+
+ragas_emb = CloudflareWorkersAIEmbeddings(
+    account_id=CF_WORKERSAI_ACCOUNTID,
+    api_token=CF_AI_API,
+    model_name="@cf/qwen/qwen3-embedding-0.6b"
 )
 
 
@@ -107,20 +118,61 @@ You are a historical query analyst. Your task is to generate a question that wou
 The answer is written in a 1st-person narrative persona (e.g., a Pharaoh or Ancient Monument).
 
 STRICT ANALYSIS RULES:
-1. **Direct Address**: The question MUST be written in the 2nd person, addressing the entity directly (e.g., Use "You," "Your," "Mighty [Name]").
-2. **Fact vs. Flavor**: Ignore 1st-person pronouns ("I", "My"), emotional expressions, and poetic storytelling. Focus only on the 'historical facts' (achievements, names, dates, military events).
-3. If the answer contains narrative 'flavor' but answers a specific historical event, the generated question should reflect that event.
-4. **Reverse Engineering**: Generate a question that targets the core factual information. If the answer describes military resistance, the question should be about military resistance, even if the answer is written as a poem.
-5. **Tone Matching**: The question should sound like it belongs in your dataset—formal, respectful, and inquiring about specific reign achievements or historical events.
-6. **Precision**: The generated question must be a direct map to the factual substance of the answer provided.
+1. **Direct Address**: The question MUST be written in the 2nd person, addressing the entity directly (e.g., "Mighty [Name], how did you...").
+2. **Fact vs. Flavor**: Ignore 1st-person pronouns, emotional expressions, and poetic storytelling. Focus ONLY on the core factual claim.
+3. **Core Fact Extraction**: If the answer describes a military campaign poetically, the question should ask about that campaign directly.
+4. **Reverse Engineering**: The generated question must target the specific historical event/action in the answer.
+5. **Tone Matching**: Formal, respectful, inquiring about specific achievements or events.
+6. **Precision**: Map directly to the factual substance, not the narrative style.
 """
     input_model = ResponseRelevanceInput
     output_model = ResponseRelevanceOutput
     
     examples = [
         (
-            ResponseRelevanceInput(response="I, Hakoris, secured the future by naming my son Nephrites as my successor to ensure stability."),
-            ResponseRelevanceOutput(question="Mighty Hakoris, how did you ensure political stability and what was the significance of naming your son as heir?", noncommittal=0)
+            ResponseRelevanceInput(
+                response="I, Hakoris, secured the future by naming my son Nephrites as my successor to ensure stability."
+            ),
+            ResponseRelevanceOutput(
+                question="Mighty Hakoris, how did you ensure political stability and what was the significance of naming your son as heir?",
+                noncommittal=0
+            )
+        ),
+        (
+            ResponseRelevanceInput(
+                response="I, Kha-kha-per-re Senwosret, commanded my engineers to erect towering stone barriers along the frontier, each bastion a warning that the Black Land's ruler would brook no southern spear."
+            ),
+            ResponseRelevanceOutput(
+                question="Mighty Senwosret III, what defensive structures did you build along the Nubian frontier to protect Egypt?",
+                noncommittal=0
+            )
+        ),
+        (
+            ResponseRelevanceInput(
+                response="I caused sacred houses for my Ka to rise in Memphis, and at Abydos and Dendera I raised eternal monuments—pyramids that proclaimed my divine authority across the Two Lands."
+            ),
+            ResponseRelevanceOutput(
+                question="Great Pepi I, what monuments and Ka-chapels did you construct to reinforce your royal presence throughout Egypt?",
+                noncommittal=0
+            )
+        ),
+        (
+            ResponseRelevanceInput(
+                response="The Nile betrayed me in Year 19: her waters sank lower than memory, stranding my galleys on sandbars and forcing me to withdraw before hostile Nubian forces trapped my host in waterless desert."
+            ),
+            ResponseRelevanceOutput(
+                question="Mighty Senwosret III, what forced you to abandon your final Nubian campaign in Year 19?",
+                noncommittal=0
+            )
+        ),
+        (
+            ResponseRelevanceInput(
+                response="I spread along the sinews of empire, my temples rising from Alexandria to Britannia, where a sculpted head of my face was set up in London's Walbrook Mithraeum."
+            ),
+            ResponseRelevanceOutput(
+                question="Mighty Serapis, how did your worship spread beyond Egypt, and what evidence remains of your cult in distant lands?",
+                noncommittal=0
+            )
         )
     ]
 
@@ -134,12 +186,12 @@ by the context.
 GUIDELINES:
 1. The 'expected_output' is written in a poetic, first-person Pharaoh persona. 
 2. STRIP AWAY all persona elements (e.g., 'I recall', 'My spirit') and extract ONLY the underlying historical data points.
-3. Ignore all first-person roleplay, metaphors, flavor text, and poetic descriptions (e.g., 'immortal horizons', 'ghostly whispers').
+3. Ignore all first-person roleplay, metaphors, flavor text, and poetic descriptions.
 4. Extract only dates, names, physical locations, archaeological finds, and specific historical events.
-5. Only extract verifiable facts: names, dates, quantities, and specific locations.
-6. Example: If it says "My spirit saw fifty sarcophagi," you extract: "Fifty sarcophagi were present."
-7. If the sentence contains a date, name, or location found in the context, mark as 1.
-8. Use only 'Yes' (1) or 'No' (0) as a binary classification. Output json with reason.
+5. **CRITICAL**: If the core fact is present but expressed differently, mark as 1 (attributed).
+   - Example: Context says "temple built", answer says "I raised a shrine" → SAME FACT → 1
+   - Example: Context says "defensive walls", answer says "stone barriers" → SAME FACT → 1
+6. Use only 'Yes' (1) or 'No' (0) as a binary classification.
 """
     input_model = QCA
     output_model = ContextRecallClassifications
@@ -156,6 +208,43 @@ GUIDELINES:
                     ContextRecallClassification(
                         statement="I, Teti, saw the scholars find the temple of my beloved Neith in January 2021.",
                         reason="The context confirms the discovery of Neith's temple in January 2021. The first-person 'I' and 'beloved' are persona flavor and should be ignored.",
+                        attributed=1
+                    )
+                ]
+            )
+        ),
+        (
+            QCA(
+                question="What defensive structures did Senwosret build?",
+                context="Senusret III raised defensive walls and built fortifications along the Nubian frontier.",
+                answer="I, Kha-kha-per-re, commanded my engineers to erect towering stone barriers that would shield the Black Land from southern invasion."
+            ),
+            ContextRecallClassifications(
+                classifications=[
+                    ContextRecallClassification(
+                        statement="I commanded my engineers to erect towering stone barriers that would shield the Black Land from southern invasion.",
+                        reason="Context mentions 'defensive walls' and 'fortifications'. The answer's 'stone barriers' and 'shield' are synonymous descriptions of the same defensive structures. The poetic language ('towering', 'Black Land') is flavor.",
+                        attributed=1
+                    )
+                ]
+            )
+        ),
+        (
+            QCA(
+                question="What building projects did Pepi I undertake?",
+                context="Pepi I constructed Ka-chapels at Memphis and built pyramids at Abydos and Dendera.",
+                answer="I caused sacred houses for my Ka to rise in the capital, and raised eternal monuments at the city of Osiris and the dwelling of Hathor."
+            ),
+            ContextRecallClassifications(
+                classifications=[
+                    ContextRecallClassification(
+                        statement="I caused sacred houses for my Ka to rise in the capital.",
+                        reason="Context confirms Ka-chapels at Memphis (the capital). 'Sacred houses for my Ka' = Ka-chapels. Same fact.",
+                        attributed=1
+                    ),
+                    ContextRecallClassification(
+                        statement="I raised eternal monuments at the city of Osiris and the dwelling of Hathor.",
+                        reason="Context confirms pyramids at Abydos (city of Osiris) and Dendera (dwelling of Hathor). 'Eternal monuments' = pyramids. Same facts.",
                         attributed=1
                     )
                 ]
@@ -220,10 +309,28 @@ class GroqKeyManager:
         print(f"🔄 Swapping to API Key {self.current_index + 1}...")
         return self.get_current_key()
 
+"""def validate_and_fix_contexts(item):
+    
+    contexts = item.get("contexts", [])
+    
+    if not contexts:
+        return contexts
+    
+    cleaned = []
+    for ctx in contexts:
+        if not ctx:
+            continue
+            
+        # Only fix encoding, keep everything else
+        ctx = str(ctx).strip()
+        ctx = ctx.replace('\x00', '')  # Remove null bytes
+        ctx = ctx.encode('utf-8', 'ignore').decode('utf-8')
+        
+        cleaned.append(ctx)
+    
+    return cleaned if cleaned else contexts"""
 
-# ============================================================================
-# Compute Ragas Metrics
-# ============================================================================
+
 def compute_ragas_metrics(results: List[Dict]) -> Dict[str, float]:
     """Compute Ragas metrics on pre-collected responses"""
     print("\n" + "="*80)
@@ -240,8 +347,9 @@ def compute_ragas_metrics(results: List[Dict]) -> Dict[str, float]:
 
     successful_results = [r for r in results if r.get("success") and r.get("answer")]
     
-    keys = [os.getenv(f"GROQ_API_KEY{i}") for i in range(1, 8)]
+    keys = [os.getenv(f"GROQ_API_KEY{i}") for i in range(1, 10)]
     manager = GroqKeyManager([k for k in keys if k])
+    
     
     all_individual_results = []
     i = 0
@@ -266,15 +374,17 @@ def compute_ragas_metrics(results: List[Dict]) -> Dict[str, float]:
         if i not in retry_count:
             retry_count[i] = 0
         
+        #item["contexts"] = validate_and_fix_contexts(item)
+
         evaluator_llm = ChatGroq(
             model="moonshotai/kimi-k2-instruct-0905", 
             api_key=manager.get_current_key(),
             temperature=0,
-            max_tokens=4096,
-            extra_body={"reasoning_effort": "low"} 
+            max_tokens=3000
         )
         ragas_llm = LangchainLLMWrapper(evaluator_llm)
         ragas_emb_wrapped = LangchainEmbeddingsWrapper(ragas_emb)
+        
 
         f_metric = Faithfulness(llm=ragas_llm)
         f_metric.set_prompts(n_l_i_statement_prompt=CustomNLIPrompt())
@@ -333,7 +443,11 @@ def compute_ragas_metrics(results: List[Dict]) -> Dict[str, float]:
                     i += 1
                     
             else:
-                print(f"❌ Hard error on sample {i+1} ({entity_name}): {err_msg}")
+                # Print the FULL exception details
+                print(f"❌ Hard error on sample {i+1} ({entity_name}):")
+                print(f"   Type: {type(e).__name__}")
+                print(f"   Message: {err_msg if err_msg else '(no message)'}")
+                print(f"   Full exception: {repr(e)}")
                 i += 1
 
     final_df = pd.concat(all_individual_results, ignore_index=True)
@@ -494,7 +608,7 @@ def save_json_report(results: List[Dict], ragas_scores: Dict, custom_metrics: Di
         "metadata": {
             "timestamp": datetime.now().isoformat(),
             "total_test_cases": len(results),
-            "evaluation_model": "gpt-oss-20b"
+            "evaluation_model": "kimi"
         },
         "ragas_metrics": ragas_scores,
         "custom_metrics": custom_metrics,
@@ -597,10 +711,10 @@ def main():
     print("="*80 + "\n")
     
     # Input: Pre-collected agent responses CSV
-    responses_csv = r"C:\Uni\4th Year\GP\ECHO\data\chatbot\outputs\agent_responses\agent_responses_pt1.csv"
+    responses_csv = r"C:\Uni\4th Year\GP\ECHO\data\chatbot\outputs\agent_responses\agent_responses_pt2.csv"
     
     # Output directory
-    output_dir = Path("data/chatbot/outputs/ragas_evaluation_results")
+    output_dir = Path("data/chatbot/outputs/ragas_evaluation_results_kimi_pt2")
     output_dir.mkdir(exist_ok=True)
     
     # Step 1: Load pre-collected responses
