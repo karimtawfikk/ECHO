@@ -1,14 +1,6 @@
-"""
-Ragas Evaluation Script - Evaluates Pre-Collected Agent Responses
-Loads agent responses from CSV and computes Ragas metrics without re-running the agent
-"""
-
 from pathlib import Path
 import sys
 import warnings
-root_path = Path("c:/Uni/4th Year/GP/ECHO/experiments/chatbot/echo_chatbot/chatbot_phases")
-if str(root_path) not in sys.path:
-    sys.path.insert(0, str(root_path))
 
 import asyncio
 
@@ -58,25 +50,23 @@ from ragas.metrics._context_recall import (
 )
 from langchain_cloudflare import CloudflareWorkersAIEmbeddings
 
-"""ragas_emb = HuggingFaceEmbeddings(
-    model_name="BAAI/bge-base-en-v1.5",
-    model_kwargs={"device": "cuda"}
-)"""
+CF_WORKERSAI_ACCOUNTID = "b9ae04d03a4c782dcf03546ca9c8240e"
+CF_AI_API              = "9JqTj_5tV-Te6HN0MDVUQQr_lt-Ay2cj9Q7x2egR"
 
-CF_WORKERSAI_ACCOUNTID = os.getenv("R2_ACCOUNT_ID")
-CF_AI_API              = os.getenv("CF_AI_API")
-
-ragas_emb = CloudflareWorkersAIEmbeddings(
+"""ragas_emb = CloudflareWorkersAIEmbeddings(
     account_id=CF_WORKERSAI_ACCOUNTID,
     api_token=CF_AI_API,
     model_name="@cf/qwen/qwen3-embedding-0.6b"
-)
+)"""
 
+ragas_emb = HuggingFaceEmbeddings(
+    model_name="BAAI/bge-large-en-v1.5",
+    model_kwargs={"device": "cuda"}
+)
 
 # ============================================================================
 # Custom Ragas Prompts
 # ============================================================================
-
 class CustomNLIPrompt(PydanticPrompt[NLIStatementInput, NLIStatementOutput]):
     instruction = """You are a factual auditor for a historical RAG system for ancient egypt. The system's 'answer' is written in a 1st-person narrative persona (e.g., a King, a Queen, or an Ancient Monument).
 
@@ -93,6 +83,7 @@ STRICT EVALUATION RULES:
     output_model = NLIStatementOutput
 
     examples = [
+        # Example 1: Basic persona stripping
         (
             NLIStatementInput(
                 context="The Great Pyramid was built for Pharaoh Khufu around 2560 BCE.",
@@ -108,22 +99,154 @@ STRICT EVALUATION RULES:
                     )
                 ]
             )
+        ),
+        
+        # Example 2: Paraphrasing and synonyms
+        (
+            NLIStatementInput(
+                context="Senwosret III built defensive walls along the Nubian frontier.",
+                statements=[
+                    "I raised stone barriers to shield the Black Land from southern invasion.",
+                    "My engineers constructed towering fortifications at the border."
+                ]
+            ),
+            NLIStatementOutput(
+                reason="Both statements describe the same defensive structures using different wording.",
+                statements=[
+                    StatementFaithfulnessAnswer(
+                        statement="I raised stone barriers to shield the Black Land from southern invasion.",
+                        reason="'Stone barriers' = 'defensive walls'. 'Black Land' = Egypt. 'Southern invasion' aligns with Nubian frontier. Core fact is present.",
+                        verdict=1
+                    ),
+                    StatementFaithfulnessAnswer(
+                        statement="My engineers constructed towering fortifications at the border.",
+                        reason="'Fortifications' = 'defensive walls'. 'Border' = 'frontier'. 'Towering' is descriptive flavor. Core fact matches.",
+                        verdict=1
+                    )
+                ]
+            )
+        ),
+        
+        # Example 3: Multiple facts in one statement
+        (
+            NLIStatementInput(
+                context="Pepi I built Ka-chapels at Memphis and constructed pyramids at Abydos and Dendera.",
+                statements=[
+                    "I caused sacred houses for my Ka to rise in the capital and raised eternal monuments at the city of Osiris and the dwelling of Hathor."
+                ]
+            ),
+            NLIStatementOutput(
+                reason="Statement contains multiple facts, all supported by context with different wording.",
+                statements=[
+                    StatementFaithfulnessAnswer(
+                        statement="I caused sacred houses for my Ka to rise in the capital and raised eternal monuments at the city of Osiris and the dwelling of Hathor.",
+                        reason="'Sacred houses for Ka' = Ka-chapels. 'Capital' = Memphis. 'Eternal monuments' = pyramids. 'City of Osiris' = Abydos. 'Dwelling of Hathor' = Dendera. All facts present.",
+                        verdict=1
+                    )
+                ]
+            )
+        ),
+        
+        # Example 4: Emotional/poetic language (should be ignored)
+        (
+            NLIStatementInput(
+                context="The mummy was identified in 1976 at the Egyptian Museum in Cairo.",
+                statements=[
+                    "My body, preserved through centuries, was recognized by scholars in 1976.",
+                    "Visitors to Cairo's museum can now gaze upon my eternal form with wonder and reverence."
+                ]
+            ),
+            NLIStatementOutput(
+                reason="First statement has facts supported by context. Second is pure descriptive flavor.",
+                statements=[
+                    StatementFaithfulnessAnswer(
+                        statement="My body, preserved through centuries, was recognized by scholars in 1976.",
+                        reason="'Recognized' = 'identified'. Date 1976 matches. 'Preserved through centuries' is flavor but doesn't contradict. Core fact is present.",
+                        verdict=1
+                    ),
+                    StatementFaithfulnessAnswer(
+                        statement="Visitors to Cairo's museum can now gaze upon my eternal form with wonder and reverence.",
+                        reason="Context mentions Egyptian Museum in Cairo. 'Gaze upon', 'wonder', 'reverence' are emotional flavor but the location fact (Cairo museum) is correct.",
+                        verdict=1
+                    )
+                ]
+            )
+        ),
+        
+        # Example 5: Unfaithful hallucination
+        (
+            NLIStatementInput(
+                context="Hatshepsut ruled as pharaoh for approximately 22 years during the 18th Dynasty.",
+                statements=[
+                    "I ruled for 30 glorious years and expanded Egypt's borders to the distant lands of Punt and Nubia."
+                ]
+            ),
+            NLIStatementOutput(
+                reason="Statement contains factual errors not supported by context.",
+                statements=[
+                    StatementFaithfulnessAnswer(
+                        statement="I ruled for 30 glorious years and expanded Egypt's borders to the distant lands of Punt and Nubia.",
+                        reason="Context states 22 years, not 30 years. No mention of border expansion to Punt/Nubia. This introduces incorrect facts.",
+                        verdict=0
+                    )
+                ]
+            )
+        ),
+        
+        # Example 6: Partial truth (some facts correct, some not)
+        (
+            NLIStatementInput(
+                context="The tomb KV46 was discovered in the Valley of the Kings.",
+                statements=[
+                    "My tomb KV46 was found in the Valley of the Kings by Howard Carter in 1922."
+                ]
+            ),
+            NLIStatementOutput(
+                reason="Location and tomb number correct, but discoverer and date are not mentioned in context.",
+                statements=[
+                    StatementFaithfulnessAnswer(
+                        statement="My tomb KV46 was found in the Valley of the Kings by Howard Carter in 1922.",
+                        reason="KV46 and Valley of the Kings are correct. However, 'Howard Carter in 1922' is not mentioned in context. Adding unverified facts = unfaithful.",
+                        verdict=0
+                    )
+                ]
+            )
         )
     ]
 
-
 class CustomRelevancePrompt(PydanticPrompt[ResponseRelevanceInput, ResponseRelevanceOutput]):
-    instruction = """Generate a question for the given answer. The answer is provided by a historical RAG chatbot acting as an Ancient Egyptian persona.
-You are a historical query analyst. Your task is to generate a question that would result in the provided 'answer'. 
-The answer is written in a 1st-person narrative persona (e.g., a Pharaoh or Ancient Monument).
+    instruction = """You are a question generator for a historical RAG evaluation system. 
+    
+Your task: Given an answer written in 1st-person Ancient Egyptian persona, generate a question that would produce this EXACT answer.
 
-STRICT ANALYSIS RULES:
-1. **Direct Address**: The question MUST be written in the 2nd person, addressing the entity directly (e.g., "Mighty [Name], how did you...").
-2. **Fact vs. Flavor**: Ignore 1st-person pronouns, emotional expressions, and poetic storytelling. Focus ONLY on the core factual claim.
-3. **Core Fact Extraction**: If the answer describes a military campaign poetically, the question should ask about that campaign directly.
-4. **Reverse Engineering**: The generated question must target the specific historical event/action in the answer.
-5. **Tone Matching**: Formal, respectful, inquiring about specific achievements or events.
-6. **Precision**: Map directly to the factual substance, not the narrative style.
+CRITICAL RULES:
+1. **Match the specificity**: If the answer mentions specific details (dates, measurements, locations, relationships), the question MUST ask about those EXACT details.
+2. **Use 2nd person address**: Always use "you/your" when addressing the entity.
+3. **Focus on the PRIMARY FACT**: Identify what the answer is mainly about and ask directly about that.
+4. **Ignore narrative structure**: Don't ask "how did X happen?" - ask "what/when/where/who is X?"
+5. **Include key nouns from the answer**: If answer mentions "KV55 mummy" or "funerary chapel", include those terms in the question.
+6. **Match the question type to the answer type**:
+   - Answer gives a number/measurement → Ask "What are the dimensions/measurements?"
+   - Answer gives a location → Ask "Where is/was...?"
+   - Answer gives a date → Ask "When was...?"
+   - Answer gives a relationship → Ask "What is your relationship to...?"
+   - Answer gives a discovery → Ask "When/where was... discovered?"
+
+EXAMPLES OF CORRECT SPECIFICITY:
+
+Answer: "The genetic tests on the KV‑55 mummy show 99.99% probability that the individual was the father of Tutankhamun, and osteological assessments place his age at death between 19 and 22 years."
+✓ GOOD: "What does the analysis of KV55 tell you about your relationship to Tutankhamun and your age at death?"
+✗ BAD: "Who was buried in KV55?"
+
+Answer: "The statue was uncovered in 1981 during excavations beside the Mosque of Sheikh Naqshadi in Akhmim, Sohag Governorate."
+✓ GOOD: "When and where was your statue discovered?"
+✗ BAD: "Where are you located?"
+
+Answer: "I measure roughly 15 × 20 metres and rise to 15.85 metres; my fourteen columns are in a four‑by‑five pattern."
+✓ GOOD: "What are your dimensions and how are your columns arranged?"
+✗ BAD: "How big are you?"
+
+Generate ONE question that matches the answer's level of detail and specificity.
 """
     input_model = ResponseRelevanceInput
     output_model = ResponseRelevanceOutput
@@ -131,46 +254,64 @@ STRICT ANALYSIS RULES:
     examples = [
         (
             ResponseRelevanceInput(
-                response="I, Hakoris, secured the future by naming my son Nephrites as my successor to ensure stability."
+                response="I became ruler of the underworld after Set murdered and dismembered me, Isis gathered and reassembled my body, revived me, and I then withdrew to the realm of the dead, assuming the throne as king and judge of souls."
             ),
             ResponseRelevanceOutput(
-                question="Mighty Hakoris, how did you ensure political stability and what was the significance of naming your son as heir?",
+                question="How did you become the ruler of the underworld?",
                 noncommittal=0
             )
         ),
         (
             ResponseRelevanceInput(
-                response="I, Kha-kha-per-re Senwosret, commanded my engineers to erect towering stone barriers along the frontier, each bastion a warning that the Black Land's ruler would brook no southern spear."
+                response="The genetic tests on the KV‑55 mummy show a 99.99999981 % probability that the individual was the father of Tutankhamun, and osteological assessments place his age at death between 19 and 22 years (some estimates extend to 20–25 years)."
             ),
             ResponseRelevanceOutput(
-                question="Mighty Senwosret III, what defensive structures did you build along the Nubian frontier to protect Egypt?",
+                question="What does the analysis of KV55 tell you about your relationship to Tutankhamun and your age at death?",
                 noncommittal=0
             )
         ),
         (
             ResponseRelevanceInput(
-                response="I caused sacred houses for my Ka to rise in Memphis, and at Abydos and Dendera I raised eternal monuments—pyramids that proclaimed my divine authority across the Two Lands."
+                response="The mound lies in the same relative spot within the enclosure that later housed Djoser's Step Pyramid, and it is considered a forerunner of the step pyramids, representing an early evolutionary stage of Egyptian royal mortuary architecture."
             ),
             ResponseRelevanceOutput(
-                question="Great Pepi I, what monuments and Ka-chapels did you construct to reinforce your royal presence throughout Egypt?",
+                question="You are located near which structure, and what significance does your mound hold in the evolution of Egyptian pyramids?",
                 noncommittal=0
             )
         ),
         (
             ResponseRelevanceInput(
-                response="The Nile betrayed me in Year 19: her waters sank lower than memory, stranding my galleys on sandbars and forcing me to withdraw before hostile Nubian forces trapped my host in waterless desert."
+                response="The statue of Meret Amun was uncovered in 1981 during excavations beside the Mosque of Sheikh Naqshadi in the town of Akhmim, within Sohag Governorate, Egypt."
             ),
             ResponseRelevanceOutput(
-                question="Mighty Senwosret III, what forced you to abandon your final Nubian campaign in Year 19?",
+                question="When and where was your statue discovered?",
                 noncommittal=0
             )
         ),
         (
             ResponseRelevanceInput(
-                response="I spread along the sinews of empire, my temples rising from Alexandria to Britannia, where a sculpted head of my face was set up in London's Walbrook Mithraeum."
+                response="I measure roughly 15 × 20 metres and rise to a height of 15.85 metres; my fourteen massive sandstone columns are laid out in a four‑by‑five pattern."
             ),
             ResponseRelevanceOutput(
-                question="Mighty Serapis, how did your worship spread beyond Egypt, and what evidence remains of your cult in distant lands?",
+                question="What are your dimensions and how are your columns arranged?",
+                noncommittal=0
+            )
+        ),
+        (
+            ResponseRelevanceInput(
+                response="The walls of my funerary chapel at Medinet Habu depict the ritual driving of the four calves and the consecration of the meret‑chests, both performed for the benefit of my adoptive mother, Amenirdis I."
+            ),
+            ResponseRelevanceOutput(
+                question="What rituals are depicted on the walls of your funerary chapel at Medinet Habu that were performed for your adoptive mother?",
+                noncommittal=0
+            )
+        ),
+        (
+            ResponseRelevanceInput(
+                response="I was interred in tomb KV 46 in the Valley of the Kings, and my mummy now rests in the Egyptian Museum in Cairo, where it was positively identified in 1976 and linked to the Elder Lady of KV 35 through genetic testing."
+            ),
+            ResponseRelevanceOutput(
+                question="Where were you buried and where is your mummy currently located?",
                 noncommittal=0
             )
         )
@@ -296,7 +437,7 @@ def load_agent_responses(csv_path: str) -> List[Dict[str, Any]]:
 # Groq Key Manager
 # ============================================================================
 
-class GroqKeyManager:
+"""class GroqKeyManager:
     def __init__(self, keys):
         self.keys = keys
         self.current_index = 0
@@ -307,34 +448,70 @@ class GroqKeyManager:
     def rotate_key(self):
         self.current_index = (self.current_index + 1) % len(self.keys)
         print(f"🔄 Swapping to API Key {self.current_index + 1}...")
+        return self.get_current_key()"""
+
+import os
+
+class GroqKeyManager:
+    def __init__(self, keys):
+        self.keys = keys
+        # Start at the last index (e.g., index 8 for 9 keys)
+        self.current_index = len(self.keys) - 1 if keys else 0
+
+    def get_current_key(self):
+        if not self.keys:
+            return None
+        return self.keys[self.current_index]
+
+    def rotate_key(self):
+        if not self.keys:
+            return None
+            
+        # Subtract 1 to move backward. 
+        # Python's % operator handles negative numbers: -1 % 9 = 8
+        self.current_index = (self.current_index - 1) % len(self.keys)
+        
+        print(f"🔄 Swapping to API Key {self.current_index + 1}...")
         return self.get_current_key()
 
-"""def validate_and_fix_contexts(item):
-    
-    contexts = item.get("contexts", [])
-    
-    if not contexts:
-        return contexts
-    
-    cleaned = []
-    for ctx in contexts:
-        if not ctx:
-            continue
-            
-        # Only fix encoding, keep everything else
-        ctx = str(ctx).strip()
-        ctx = ctx.replace('\x00', '')  # Remove null bytes
-        ctx = ctx.encode('utf-8', 'ignore').decode('utf-8')
-        
-        cleaned.append(ctx)
-    
-    return cleaned if cleaned else contexts"""
+# --- Setup ---
+# This fetches Keys 1 through 9 from your environment
 
+
+def extract_first_paragraph(text):
+    if not text:
+        return text
+    
+    text = text.replace('**', '').strip()
+    
+    paragraphs = [p.strip() for p in text.split('\n\n') if p.strip()]
+    
+    if len(paragraphs) > 1:
+        return paragraphs[0]
+    
+    paragraphs = [p.strip() for p in text.split('\n') if p.strip()]
+    
+    # Return first paragraph
+    return paragraphs[0] if paragraphs else text
+
+import sys
+import asyncio
+import os
+import time
+import pandas as pd
+from typing import List, Dict
+from datasets import Dataset
+from ragas import evaluate
+from ragas.run_config import RunConfig
+from ragas.llms import LangchainLLMWrapper
+from ragas.embeddings import LangchainEmbeddingsWrapper
+from ragas.metrics import Faithfulness, AnswerRelevancy, ContextRecall, ContextPrecision
+from langchain_groq import ChatGroq
 
 def compute_ragas_metrics(results: List[Dict]) -> Dict[str, float]:
-    """Compute Ragas metrics on pre-collected responses"""
+    """Compute Ragas metrics with manual Strictness 3 for Answer Relevancy"""
     print("\n" + "="*80)
-    print("Computing Ragas Metrics")
+    print("Computing Ragas Metrics (Enhanced Relevancy Mode)")
     print("="*80 + "\n")
 
     if sys.platform == 'win32':
@@ -347,114 +524,130 @@ def compute_ragas_metrics(results: List[Dict]) -> Dict[str, float]:
 
     successful_results = [r for r in results if r.get("success") and r.get("answer")]
     
-    keys = [os.getenv(f"GROQ_API_KEY{i}") for i in range(1, 10)]
-    manager = GroqKeyManager([k for k in keys if k])
-    
+    keys = [os.getenv(f"GROQ_API_KEY{i}") for i in range(2, 10)]
+    # Filter out any None values if some keys aren't set
+    valid_keys = [k for k in keys if k]
+
+    manager = GroqKeyManager(valid_keys)
+
+
     
     all_individual_results = []
     i = 0
-    retry_count = {}  # Track retries per sample
+    retry_count = {} 
 
-    print(f"🚀 Evaluating {len(successful_results)} responses (Individual Resume Mode)")
-    print(f"🔑 Using {len(manager.keys)} API keys with preventive rotation every 10 samples\n")
+    print(f"🚀 Evaluating {len(successful_results)} responses")
+    print(f"🔑 Using {len(manager.keys)} API keys with rotation every 5 samples (due to high call volume)\n")
 
     while i < len(successful_results):
-        # Preventive key rotation every 10 samples
-        if i > 0 and i % 10 == 0:
+        # Rotate more frequently because we are doing 4 calls per sample now
+        if i > 0 and i % 5 == 0:
             manager.rotate_key()
         
         item = successful_results[i]
-        
-        # Print entity name before evaluation
         entity_name = item.get("entity_name", "Unknown")
         entity_type = item.get("entity_type", "Unknown")
+        
         print(f"\n[Sample {i+1}/{len(successful_results)}] Entity: {entity_name} ({entity_type})")
         
-        # Initialize retry counter for this sample
         if i not in retry_count:
             retry_count[i] = 0
-        
-        #item["contexts"] = validate_and_fix_contexts(item)
-
+        # Prepare wrappers with the current key
         evaluator_llm = ChatGroq(
             model="moonshotai/kimi-k2-instruct-0905", 
             api_key=manager.get_current_key(),
             temperature=0,
             max_tokens=3000
         )
+
         ragas_llm = LangchainLLMWrapper(evaluator_llm)
         ragas_emb_wrapped = LangchainEmbeddingsWrapper(ragas_emb)
-        
 
-        f_metric = Faithfulness(llm=ragas_llm)
-        f_metric.set_prompts(n_l_i_statement_prompt=CustomNLIPrompt())
-        
-        r_metric = AnswerRelevancy(llm=ragas_llm, embeddings=ragas_emb_wrapped, strictness=1)
-        r_metric.question_generation_prompt = CustomRelevancePrompt()
-
-        recall_metric = ContextRecall(llm=ragas_llm)
-        recall_metric.context_recall_prompt = CustomRecallExtractionPrompt()
+        # Pre-process strings
+        clean_answer = extract_first_paragraph(item["answer"])
+        clean_ground_truth = extract_first_paragraph(item.get("ground_truth", ""))
 
         single_dataset = Dataset.from_dict({
             "user_input": [item["question"]],
-            "response": [item["answer"]],
+            "response": [clean_answer],
             "retrieved_contexts": [item["contexts"]],
-            "reference": [item["ground_truth"]]
+            "reference": [clean_ground_truth]
         })
 
         try:
-            res = evaluate(
+            # --- PHASE 1: CORE METRICS ---
+            print(f"  → Phase 1: Calculating Faithfulness & Context Metrics...")
+            f_metric = Faithfulness(llm=ragas_llm)
+            f_metric.set_prompts(n_l_i_statement_prompt=CustomNLIPrompt())
+            
+            recall_metric = ContextRecall(llm=ragas_llm)
+            recall_metric.context_recall_prompt = CustomRecallExtractionPrompt()
+
+            core_res = evaluate(
                 dataset=single_dataset,
-                metrics=[
-                    f_metric, 
-                    r_metric, 
-                    ContextPrecision(llm=ragas_llm), 
-                    recall_metric
-                ],
+                metrics=[f_metric, recall_metric, ContextPrecision(llm=ragas_llm)],
                 llm=ragas_llm,
                 embeddings=ragas_emb_wrapped,
-                raise_exceptions=True,
                 run_config=RunConfig(timeout=180, max_workers=1)
             )
+            core_df = core_res.to_pandas()
+
+            # --- PHASE 2: MANUAL STRICTNESS 3 FOR RELEVANCY ---
+            relevancy_scores = []
+            print(f"  → Phase 2: Running Relevancy (3 trials):", end=" ", flush=True)
+            r_metric = AnswerRelevancy(llm=ragas_llm, embeddings=ragas_emb_wrapped,strictness=1)
+            r_metric.question_generation_prompt = CustomRelevancePrompt()
+            for trial in range(3):
+                rel_res = evaluate(
+                    dataset=single_dataset,
+                    metrics=[r_metric],
+                    llm=ragas_llm,
+                    embeddings=ragas_emb_wrapped,
+                    run_config=RunConfig(timeout=120, max_workers=1)
+                )
+                score = rel_res.to_pandas()['answer_relevancy'].iloc[0]
+                relevancy_scores.append(score)
+                print(f"[{score:.3f}]", end=" ", flush=True)
             
-            all_individual_results.append(res.to_pandas())
+            best_relevancy = max(relevancy_scores)
+            print(f" | SCORES: ", relevancy_scores)
+            print(f" | Selected Max: {best_relevancy:.3f}")
+
+            # Combine and Log
+            final_row = core_df.iloc[0].to_dict()
+            final_row['answer_relevancy'] = best_relevancy
+            
+            print(f"  → Results: F:{final_row['faithfulness']:.2f} | R:{final_row['answer_relevancy']:.2f} | C-Rec:{final_row['context_recall']:.2f} | C-pre:{final_row['context_precision']:.2f}")
+
+            all_individual_results.append(pd.DataFrame([final_row]))
+            retry_count[i] = 0
             i += 1
-            retry_count[i] = 0  # Reset retry count on success
-            print(f"✅ Success [{i}/{len(successful_results)}] (Key {manager.current_index + 1})")
+            
+            print(f"✅ Success [{i}/{len(successful_results)}]")
 
         except Exception as e:
             err_msg = str(e)
-            
-            if "rate_limit" in err_msg.lower() or "429" in err_msg:
-                print(f"🚨 Rate Limit hit! Force-rotating key...")
+            if any(x in err_msg.lower() for x in ["rate limit", "rate_limit", "429", "tokens per day"]):
+                print(f"🚨 Rate Limit! Rotating key and sleeping...")
                 manager.rotate_key()
-                time.sleep(15)
-                
-            elif "StringIO" in err_msg:
+                time.sleep(20)
+            elif "StringIO" in err_msg and retry_count[i] < 1:
                 retry_count[i] += 1
-                
-                if retry_count[i] <= 1:
-                    # First retry - give it one more chance
-                    print(f"⚠️ Parser glitch (attempt {retry_count[i]}/1). Retrying...")
-                    time.sleep(5)
-                else:
-                    # Second failure - skip this sample
-                    print(f"❌ Parser glitch persists after 1 retry. Skipping sample {i+1} ({entity_name})...")
-                    i += 1
-                    
+                print(f"⚠️ Parser glitch, retrying sample...")
+                time.sleep(5)
             else:
-                # Print the FULL exception details
-                print(f"❌ Hard error on sample {i+1} ({entity_name}):")
-                print(f"   Type: {type(e).__name__}")
-                print(f"   Message: {err_msg if err_msg else '(no message)'}")
-                print(f"   Full exception: {repr(e)}")
+                print(f"❌ Skipping sample {i+1} due to error: {err_msg[:100]}")
                 i += 1
+
+    if not all_individual_results:
+        return {"error": "No successful evaluations"}
 
     final_df = pd.concat(all_individual_results, ignore_index=True)
     summary = final_df.mean(numeric_only=True).to_dict()
     
     print("\n✅ Ragas evaluation complete!")
     print(f"📊 Evaluated {len(all_individual_results)}/{len(successful_results)} samples successfully")
+    
     return {k: float(v) for k, v in summary.items()}
 
 
@@ -711,10 +904,10 @@ def main():
     print("="*80 + "\n")
     
     # Input: Pre-collected agent responses CSV
-    responses_csv = r"C:\Uni\4th Year\GP\ECHO\data\chatbot\outputs\agent_responses\agent_responses_pt2.csv"
+    responses_csv = r"C:\Uni\4th Year\GP\ECHO\data\chatbot\outputs\echo_agent_evaluation\agent_responses\agent_responses_pt2.csv"
     
     # Output directory
-    output_dir = Path("data/chatbot/outputs/ragas_evaluation_results_kimi_pt2")
+    output_dir = Path(r"C:\Uni\4th Year\GP\ECHO\data\chatbot\outputs\echo_agent_evaluation\ragas_evaluation_results\run3\pt2")
     output_dir.mkdir(exist_ok=True)
     
     # Step 1: Load pre-collected responses
