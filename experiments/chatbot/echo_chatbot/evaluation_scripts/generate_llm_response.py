@@ -6,12 +6,12 @@ Runs the Ancient Egypt RAG chatbot on test dataset and saves all responses for l
 from pathlib import Path
 import sys
 
-root_path = Path(r"C:\Users\Zeyad\Desktop\4th Year\GP\ECHO\experiments\chatbot\echo_chatbot\chatbot_phases")
+root_path = Path(r"C:\Uni\4th Year\GP\ECHO\experiments\chatbot\echo_chatbot\evaluation_scripts")
 if str(root_path) not in sys.path:
     sys.path.insert(0, str(root_path))
 
-import evaluation_graph
-from evaluation_graph import graph, ENTITY_CONFIG, SQL_TEMPLATE, PROMPTS
+import evaluation_graph_wo_reranker
+from evaluation_graph_wo_reranker import graph, ENTITY_CONFIG, SQL_TEMPLATE, PROMPTS
 
 import pandas as pd
 import time
@@ -31,13 +31,13 @@ from langchain_core.output_parsers import StrOutputParser
 
 def initialize_entity_config(entity_type: str, entity_name: str):
     """Set the 3 global variables that change per entity"""
-    evaluation_graph.ENTITY_TYPE = entity_type
-    evaluation_graph.ENTITY_NAME = entity_name
+    evaluation_graph_wo_reranker.ENTITY_TYPE = entity_type
+    evaluation_graph_wo_reranker.ENTITY_NAME = entity_name
     
     cfg = ENTITY_CONFIG[entity_type]
     
     # Set SQL query for this entity type
-    evaluation_graph.VECTOR_SQL = SQL_TEMPLATE.format(
+    evaluation_graph_wo_reranker.VECTOR_SQL = SQL_TEMPLATE.format(
         texts_table=cfg["texts_table"],
         entities_table=cfg["entities_table"],
         entity_id_col=cfg["entity_id_col"]
@@ -45,14 +45,14 @@ def initialize_entity_config(entity_type: str, entity_name: str):
     
     # Set rewrite chain for this entity (uses already-initialized query_rewriter_llm)
     prompt_key = cfg["prompt_key"]
-    evaluation_graph.rewrite_chain = (
+    evaluation_graph_wo_reranker.rewrite_chain = (
         PromptTemplate.from_template(PROMPTS["rewrite_prompt"][prompt_key]) | 
-        evaluation_graph.query_rewriter_llm | 
+        evaluation_graph_wo_reranker.query_rewriter_llm | 
         StrOutputParser()
     )
     
     # Set prompt template for this entity
-    evaluation_graph.llm_prompt_template = PromptTemplate.from_template(
+    evaluation_graph_wo_reranker.llm_prompt_template = PromptTemplate.from_template(
         PROMPTS["assistant_persona"][prompt_key]
     )
 
@@ -194,8 +194,9 @@ def main():
     print(" Agent Response Collection for Evaluation")
     print("="*80 + "\n")
     
-    csv_path = r"C:\Users\Zeyad\Desktop\4th Year\GP\ECHO\data\chatbot\outputs\new_evaluation_data\eval_part_1.csv"
-    output_dir = Path("data/chatbot/outputs/new_agent_responses")
+    csv_path = r"C:\Uni\4th Year\GP\ECHO\data\chatbot\outputs\echo_agent_evaluation\evaluation_data\eval_part_2.csv"
+
+    output_dir = Path(r"C:\Uni\4th Year\GP\ECHO\data\chatbot\outputs\echo_agent_evaluation\agent_responses_wo_reranker")
     
     results = collect_agent_responses(csv_path)
     
@@ -206,11 +207,7 @@ def main():
     print("="*80 + "\n")
     
     print(f"✅ Agent responses saved to: {output_path.absolute()}")
-    print("\n💡 Next steps:")
-    print("  1. Use this CSV file as input for Ragas evaluation")
-    print("  2. Run evaluation 3 times on the same responses")
-    print("  3. Compare metric stability across runs")
-    print("\n" + "="*80 + "\n")
+    
 
 
 if __name__ == "__main__":

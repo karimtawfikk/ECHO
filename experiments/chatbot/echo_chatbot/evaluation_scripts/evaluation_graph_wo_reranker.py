@@ -62,7 +62,7 @@ SQL_TEMPLATE, PROMPTS = load_resources()
 
 GROQ_API_KEY1          = os.getenv("GROQ_API_KEY1")
 GROQ_API_KEY2          = os.getenv("GROQ_API_KEY2")
-GROQ_API_KEY9          = os.getenv("GROQ_API_KEY9")
+GROQ_API_KEY8          = os.getenv("GROQ_API_KEY8")
 CF_WORKERSAI_ACCOUNTID = os.getenv("R2_ACCOUNT_ID")
 CF_AI_API              = os.getenv("CF_AI_API")
 JINA_API_KEY           = os.getenv("JINA_API_KEY")
@@ -134,12 +134,6 @@ embedding_model = CloudflareWorkersAIEmbeddings(
     model_name="@cf/qwen/qwen3-embedding-0.6b"
 )
 
-reranker = JinaRerank(
-    model="jina-reranker-v3",
-    top_n=3,
-    jina_api_key=JINA_API_KEY
-)
-
 search_tool = TavilySearch(max_results=4, search_depth="advanced")
 tools       = [search_tool]
 tool_node   = ToolNode(tools=tools)
@@ -159,7 +153,7 @@ generator_llm = ChatGroq(
     temperature=0.7,
     max_tokens=4096,
     top_p=0.95,
-    api_key=GROQ_API_KEY9,
+    api_key=GROQ_API_KEY8,
     extra_body={"reasoning_effort": "medium", "reasoning_format": "hidden"}
 )
 
@@ -276,13 +270,6 @@ def retrieve_node(state: AgentState) -> dict:
 
     return {"context": context}
 
-
-def rerank_node(state: AgentState) -> dict:
-    docs     = [Document(page_content=chunk) for chunk in state['context']]
-    reranked = reranker.compress_documents(docs, query=state['search_query'])
-    return {"context": [doc.page_content for doc in reranked]}
-
-
 def generate_node(state: AgentState) -> dict:
 
     combined_context = state.get('context', [])
@@ -374,7 +361,6 @@ workflow = StateGraph(AgentState)
 
 workflow.add_node("rewriter",   rewrite_node)
 workflow.add_node("retriever",  retrieve_node)
-workflow.add_node("reranker",   rerank_node)
 workflow.add_node("generator",  generate_node)
 workflow.add_node("tools",      tool_node)
 workflow.add_node("tts_router", lambda state: {})
@@ -382,8 +368,7 @@ workflow.add_node("tts",        tts_node)
 
 workflow.set_entry_point("rewriter")
 workflow.add_edge("rewriter",  "retriever")
-workflow.add_edge("retriever", "reranker")
-workflow.add_edge("reranker",  "generator")
+workflow.add_edge("retriever", "generator")
 workflow.add_conditional_edges(
     "generator",
     tools_condition,
