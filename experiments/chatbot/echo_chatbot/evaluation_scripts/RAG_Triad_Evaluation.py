@@ -35,7 +35,7 @@ from ragas.metrics.collections.faithfulness.util import (
     NLIStatementOutput, 
     StatementFaithfulnessAnswer
 )
-from ragas.metrics import Faithfulness, AnswerRelevancy, ContextPrecision, ContextRecall
+from ragas.metrics import Faithfulness, AnswerRelevancy, ContextPrecision, ContextRecall,AnswerAccuracy
 from ragas.metrics._answer_relevance import ( 
     ResponseRelevanceInput, 
     ResponseRelevanceOutput
@@ -494,19 +494,6 @@ def extract_first_paragraph(text):
     # Return first paragraph
     return paragraphs[0] if paragraphs else text
 
-import sys
-import asyncio
-import os
-import time
-import pandas as pd
-from typing import List, Dict
-from datasets import Dataset
-from ragas import evaluate
-from ragas.run_config import RunConfig
-from ragas.llms import LangchainLLMWrapper
-from ragas.embeddings import LangchainEmbeddingsWrapper
-from ragas.metrics import Faithfulness, AnswerRelevancy, ContextRecall, ContextPrecision
-from langchain_groq import ChatGroq
 
 def compute_ragas_metrics(results: List[Dict]) -> Dict[str, float]:
     """Compute Ragas metrics with manual Strictness 3 for Answer Relevancy"""
@@ -524,7 +511,7 @@ def compute_ragas_metrics(results: List[Dict]) -> Dict[str, float]:
 
     successful_results = [r for r in results if r.get("success") and r.get("answer")]
     
-    keys = [os.getenv(f"GROQ_API_KEY{i}") for i in range(2, 10)]
+    keys = [os.getenv(f"GROQ_API_KEY{i}") for i in range(1, 10)]
     # Filter out any None values if some keys aren't set
     valid_keys = [k for k in keys if k]
 
@@ -583,20 +570,20 @@ def compute_ragas_metrics(results: List[Dict]) -> Dict[str, float]:
             recall_metric = ContextRecall(llm=ragas_llm)
             recall_metric.context_recall_prompt = CustomRecallExtractionPrompt()
 
+            r_metric = AnswerRelevancy(llm=ragas_llm, embeddings=ragas_emb_wrapped,strictness=1)
+            r_metric.question_generation_prompt = CustomRelevancePrompt()
+
+
             core_res = evaluate(
                 dataset=single_dataset,
-                metrics=[f_metric, recall_metric, ContextPrecision(llm=ragas_llm)],
+                metrics=[f_metric, recall_metric, r_metric,ContextPrecision(llm=ragas_llm), AnswerAccuracy(llm=ragas_llm) ],
                 llm=ragas_llm,
                 embeddings=ragas_emb_wrapped,
                 run_config=RunConfig(timeout=180, max_workers=1)
             )
             core_df = core_res.to_pandas()
-
-            # --- PHASE 2: MANUAL STRICTNESS 3 FOR RELEVANCY ---
-            relevancy_scores = []
+            '''relevancy_scores = []
             print(f"  → Phase 2: Running Relevancy (3 trials):", end=" ", flush=True)
-            r_metric = AnswerRelevancy(llm=ragas_llm, embeddings=ragas_emb_wrapped,strictness=1)
-            r_metric.question_generation_prompt = CustomRelevancePrompt()
             for trial in range(3):
                 rel_res = evaluate(
                     dataset=single_dataset,
@@ -611,13 +598,18 @@ def compute_ragas_metrics(results: List[Dict]) -> Dict[str, float]:
             
             best_relevancy = max(relevancy_scores)
             print(f" | SCORES: ", relevancy_scores)
-            print(f" | Selected Max: {best_relevancy:.3f}")
+            print(f" | Selected Max: {best_relevancy:.3f}")'''
 
             # Combine and Log
             final_row = core_df.iloc[0].to_dict()
-            final_row['answer_relevancy'] = best_relevancy
+            #final_row['answer_relevancy'] = best_relevancy
             
-            print(f"  → Results: F:{final_row['faithfulness']:.2f} | R:{final_row['answer_relevancy']:.2f} | C-Rec:{final_row['context_recall']:.2f} | C-pre:{final_row['context_precision']:.2f}")
+            
+            
+            print(f"  → Results: F:{final_row['faithfulness']:.2f} | R:{final_row['answer_relevancy']:.2f} | C-Rec:{final_row['context_recall']:.2f} | C-Pre:{final_row['context_precision']:.2f} | Acc:{final_row['nv_accuracy']:.2f}")
+            
+           
+
 
             all_individual_results.append(pd.DataFrame([final_row]))
             retry_count[i] = 0
@@ -713,12 +705,13 @@ def generate_visualizations(results: List[Dict], ragas_scores: Dict, custom_metr
     
     if ragas_scores:
         metrics_df = pd.DataFrame({
-            'Metric': ['Faithfulness', 'Answer\nRelevancy', 'Context\nPrecision', 'Context\nRecall'],
+            'Metric': ['Faithfulness', 'Answer\nRelevancy', 'Context\nPrecision', 'Context\nRecall', 'Answer\nAccuracy'],
             'Score': [
                 ragas_scores.get('faithfulness', 0),
                 ragas_scores.get('answer_relevancy', 0),
                 ragas_scores.get('context_precision', 0),
-                ragas_scores.get('context_recall', 0)
+                ragas_scores.get('context_recall', 0),
+                ragas_scores.get('nv_accuracy', 0)
             ]
         })
         sns.barplot(data=metrics_df, x='Metric', y='Score', ax=axes[0, 0], palette='viridis')
@@ -860,7 +853,8 @@ This evaluation assesses the Ancient Egypt RAG chatbot across {len(results)} tes
             "faithfulness": ("0.85", "Did the Pharaoh hallucinate? (Answer vs Context)"),
             "answer_relevancy": ("0.80", "Did it answer the question? (Answer vs Question)"),
             "context_precision": ("0.75", "Did retrieval find the best chunks? (Context vs Answer)"),
-            "context_recall": ("0.75", "Does context contain the answer? (Answer coverage)")
+            "context_recall": ("0.75", "Does context contain the answer? (Answer coverage)"),
+            "answer_accuracy": ("0.80", "How accurate is the answer vs ground truth? (Answer vs Reference)")
         }
         
         for metric_name, score in ragas_scores.items():
@@ -943,6 +937,7 @@ def main():
         print(f"  • Answer Relevancy: {ragas_scores.get('answer_relevancy', 0):.3f}")
         print(f"  • Context Precision: {ragas_scores.get('context_precision', 0):.3f}")
         print(f"  • Context Recall: {ragas_scores.get('context_recall', 0):.3f}")
+        print(f"  • Answer Accuracy: {ragas_scores.get('nv_accuracy', 0):.3f}")
     
     print(f"\n📁 Generated Files:")
     print(f"  • Visualization: {output_dir}/evaluation_visualization.png")

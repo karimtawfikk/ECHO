@@ -1,70 +1,105 @@
 """
-Agent Response Collection Script
-Runs the Ancient Egypt RAG chatbot on test dataset and saves all responses for later evaluation
+LLM-Only Response Collection Script (No RAG)
+Tests LLM's knowledge without retrieval - baseline evaluation
 """
 
 from pathlib import Path
-import sys
-
-root_path = Path(r"C:\Uni\4th Year\GP\ECHO\experiments\chatbot\echo_chatbot\evaluation_scripts")
-if str(root_path) not in sys.path:
-    sys.path.insert(0, str(root_path))
-
-import evaluation_graph_wo_reranker
-from evaluation_graph_wo_reranker import graph, ENTITY_CONFIG, SQL_TEMPLATE, PROMPTS
-
 import pandas as pd
 import time
 from datetime import datetime
 from typing import List, Dict, Any
 from dotenv import load_dotenv
+import os
+os.environ["LANGCHAIN_TRACING_V2"] = "false"
+os.environ["LANGCHAIN_API_KEY"] = ""
+
 
 load_dotenv()
 
+from langchain_groq import ChatGroq
 from langchain_core.prompts import PromptTemplate
 from langchain_core.output_parsers import StrOutputParser
 
-
 # ============================================================================
-# Helper: Initialize Entity Configuration
-# ============================================================================
-
-def initialize_entity_config(entity_type: str, entity_name: str):
-    """Set the 3 global variables that change per entity"""
-    evaluation_graph_wo_reranker.ENTITY_TYPE = entity_type
-    evaluation_graph_wo_reranker.ENTITY_NAME = entity_name
-    
-    cfg = ENTITY_CONFIG[entity_type]
-    
-    # Set SQL query for this entity type
-    evaluation_graph_wo_reranker.VECTOR_SQL = SQL_TEMPLATE.format(
-        texts_table=cfg["texts_table"],
-        entities_table=cfg["entities_table"],
-        entity_id_col=cfg["entity_id_col"]
-    )
-    
-    # Set rewrite chain for this entity (uses already-initialized query_rewriter_llm)
-    prompt_key = cfg["prompt_key"]
-    evaluation_graph_wo_reranker.rewrite_chain = (
-        PromptTemplate.from_template(PROMPTS["rewrite_prompt"][prompt_key]) | 
-        evaluation_graph_wo_reranker.query_rewriter_llm | 
-        StrOutputParser()
-    )
-    
-    # Set prompt template for this entity
-    evaluation_graph_wo_reranker.llm_prompt_template = PromptTemplate.from_template(
-        PROMPTS["assistant_persona"][prompt_key]
-    )
-
-
-# ============================================================================
-# Collect Agent Responses
+# Prompts (No Context, No Chat History)
 # ============================================================================
 
-def collect_agent_responses(csv_path: str) -> List[Dict[str, Any]]:
-    """Run the chatbot on all test cases and collect responses"""
+PROMPTS = {
+    "pharaoh": """# THE SOVEREIGN IDENTITY
+You are {pharaoh_name}, speaking from your legacy in ancient Egypt.
+
+Your goal is to educate the user with accurate and concise historical facts from your knowledge.
+
+**IMPORTANT**: Answer based on your general knowledge and training data about ancient Egypt. Do not make up facts if you're unsure.
+
+
+# MULTILINGUAL MANDATE
+- You must respond in the SAME LANGUAGE as the User's Query.
+- If the user asks in Arabic, respond in Arabic. If in English, respond in English and so on for the other languages.
+
+# MANDATORY RESPONSE STRUCTURE
+Structure every response in 2 parts:
+- **Paragraph 1**: Directly answer the question with concrete facts only (dates, names, events, locations). No elaboration yet.
+- **Remaining Paragraphs**: Expand on the WHY and HOW in an immersive, first-person voice.
+
+# GUIDELINES
+- **First Person**: Speak in 1st person perspective, you are {pharaoh_name} speaking.
+- **Do not be a "helpful assistant."** Be {pharaoh_name} sharing memories.
+- Present the information clearly and confidently.
+- Don't output **Paragraph 1** or **Remaining Paragraphs**, answer directly.
+
+User Query: {query}""",
+
+    "landmark": """# THE MONUMENTAL IDENTITY
+You are {landmark_name}, an ancient monument of Egypt that has stood through centuries of history.
+You speak as a timeless structure whose stones remember the past.
+
+Your goal is to educate the user with accurate historical facts about yourself from your knowledge.
+
+**IMPORTANT**: Answer based on your general knowledge and training data about ancient Egypt. Do not make up facts if you're unsure.
+
+
+# MULTILINGUAL MANDATE
+- You must respond in the SAME LANGUAGE as the User's Query.
+- If the user asks in Arabic, respond in Arabic. If in English, respond in English and so on for the other languages.
+
+# MANDATORY RESPONSE STRUCTURE
+Structure every response in 2 parts:
+- **Paragraph 1**: Directly answer the question with concrete facts only (dates, names, events, locations). No elaboration yet.
+- **Remaining Paragraphs**: Expand on the WHY and HOW in an immersive, first-person voice.
+
+# GUIDELINES
+- **First Person**: Speak in 1st person perspective, you are {landmark_name} speaking.
+- **Do not be a "helpful assistant."** Speak as {landmark_name} sharing the memories carved into your stones.
+- Present the information clearly and confidently.
+- Don't output **Paragraph 1** or **Remaining Paragraphs**, answer directly.
+
+User Query: {query}"""
+}
+
+
+# ============================================================================
+# LLM Setup
+# ============================================================================
+
+llm = ChatGroq(
+    model="llama-3.3-70b-versatile",  # gpt-120b (actual model name on Groq)
+    api_key=os.getenv("GROQ_API_KEY1"),
+    temperature=0.7,
+    top_p=0.95,
+    max_tokens=4096,
+    streaming=True
+)
+
+
+# ============================================================================
+# Collect LLM-Only Responses
+# ============================================================================
+
+def collect_llm_only_responses(csv_path: str) -> List[Dict[str, Any]]:
+    """Run LLM without RAG on all test cases and collect responses"""
     print(f"\n{'='*80}")
-    print("Collecting Agent Responses")
+    print("Collecting LLM-Only Responses (No RAG)")
     print(f"{'='*80}\n")
     
     print(f"Loading test dataset from {csv_path}...")
@@ -73,75 +108,74 @@ def collect_agent_responses(csv_path: str) -> List[Dict[str, Any]]:
     print(f"  • Unique entities: {test_df['entity_name'].nunique()}\n")
     
     results = []
-    current_entity = None
     
     for idx, row in test_df.iterrows():
-        entity_key = (row['entity_type'], row['entity_name'])
+        entity_type = row['entity_type']
+        entity_name = row['entity_name']
+        query = row['input']
         
-        if current_entity != entity_key:
-            print(f"\n[SWITCHING ENTITY] Initializing {row['entity_type']}: {row['entity_name']}")
-            initialize_entity_config(row['entity_type'], row['entity_name'])
-            current_entity = entity_key
+        print(f"[{idx+1}/{len(test_df)}] {entity_name} - {query[:60]}...")
         
-        print(f"[{idx+1}/{len(test_df)}] Testing: {row['entity_name']} - {row['input'][:60]}...")
+        # Select prompt template based on entity type
+        prompt_template = PROMPTS[entity_type]
+        
+        # Format prompt with entity name and query
+        if entity_type == "pharaoh":
+            formatted_prompt = prompt_template.format(
+                pharaoh_name=entity_name,
+                query=query
+            )
+        else:  # landmark
+            formatted_prompt = prompt_template.format(
+                landmark_name=entity_name,
+                query=query
+            )
         
         start_time = time.time()
         
         try:
-            config = {"configurable": {"thread_id": f"collect-{idx}"}}
+            # Stream response token by token
+            answer_chunks = []
+            print(f"  → Streaming response: ", end="", flush=True)
             
-            response = graph.invoke(
-                {
-                    "messages": [("user", row["input"])],
-                    "query": row["input"],
-                    "context": [],
-                    "voice_mode": False
-                },
-                config=config
-            )
+            for chunk in llm.stream(formatted_prompt):
+                token = chunk.content
+                answer_chunks.append(token)
+                print(token, end="", flush=True)
             
+            print()  # New line after streaming
+            
+            answer = "".join(answer_chunks)
             end_time = time.time()
             
-            answer = response.get("response", "")
-            contexts = response.get("context", [])
-            
-            if isinstance(contexts, str):
-                contexts = [contexts]
-            elif not isinstance(contexts, list):
-                contexts = []
-            
             results.append({
-                "question": row["input"],
+                "question": query,
                 "answer": answer,
-                "contexts": contexts,
                 "ground_truth": row["expected_output"],
                 "response_time": end_time - start_time,
-                "entity_type": row["entity_type"],
-                "entity_name": row["entity_name"],
+                "entity_type": entity_type,
+                "entity_name": entity_name,
                 "success": True,
-                "answer_length": len(answer.split()),
-                "context_count": len(contexts)
+                "answer_length": len(answer.split())
             })
             
-            print(f"  ✓ Response time: {end_time - start_time:.2f}s | Contexts: {len(contexts)}")
+            print(f"  ✓ Response time: {end_time - start_time:.2f}s | Length: {len(answer.split())} words\n")
             
         except Exception as e:
-            print(f"  ✗ Error: {str(e)}")
+            print(f"  ✗ Error: {str(e)}\n")
             results.append({
-                "question": row["input"],
+                "question": query,
                 "answer": "",
-                "contexts": [],
                 "ground_truth": row["expected_output"],
                 "response_time": 0,
-                "entity_type": row["entity_type"],
-                "entity_name": row["entity_name"],
+                "entity_type": entity_type,
+                "entity_name": entity_name,
                 "success": False,
                 "error": str(e),
-                "answer_length": 0,
-                "context_count": 0
+                "answer_length": 0
             })
         
-        time.sleep(1.2)
+        time.sleep(1.2)  # Rate limiting
     
     successful = sum(1 for r in results if r["success"])
     print(f"\n{'='*80}")
@@ -163,11 +197,8 @@ def save_responses_to_csv(results: List[Dict[str, Any]], output_dir: Path):
     
     df = pd.DataFrame(results)
     
-    # Convert contexts list to string for CSV storage
-    df['contexts'] = df['contexts'].apply(lambda x: '|||'.join(x) if isinstance(x, list) else x)
-    
     timestamp = datetime.now().strftime('%Y%m%d_%H%M%S')
-    output_path = output_dir / f"agent_responses_{timestamp}.csv"
+    output_path = output_dir / f"llm_only_responses_{timestamp}.csv"
     
     df.to_csv(output_path, index=False, encoding='utf-8')
     
@@ -179,7 +210,6 @@ def save_responses_to_csv(results: List[Dict[str, Any]], output_dir: Path):
     print(f"  • Failed: {(~df['success']).sum()}")
     print(f"  • Avg response time: {df[df['success']]['response_time'].mean():.2f}s")
     print(f"  • Avg answer length: {df[df['success']]['answer_length'].mean():.0f} words")
-    print(f"  • Avg context count: {df[df['success']]['context_count'].mean():.1f} chunks")
     
     return output_path
 
@@ -191,23 +221,26 @@ def save_responses_to_csv(results: List[Dict[str, Any]], output_dir: Path):
 def main():
     """Main execution function"""
     print("\n" + "="*80)
-    print(" Agent Response Collection for Evaluation")
+    print(" LLM-Only Response Collection (Baseline - No RAG)")
     print("="*80 + "\n")
     
+    # Input CSV
     csv_path = r"C:\Uni\4th Year\GP\ECHO\data\chatbot\outputs\echo_agent_evaluation\evaluation_data\eval_part_2.csv"
-
-    output_dir = Path(r"C:\Uni\4th Year\GP\ECHO\data\chatbot\outputs\echo_agent_evaluation\agent_responses_wo_reranker")
     
-    results = collect_agent_responses(csv_path)
+    # Output directory
+    output_dir = Path(r"C:\Uni\4th Year\GP\ECHO\data\chatbot\outputs\echo_agent_evaluation\llama_3_70b_responses")
     
+    # Collect responses
+    results = collect_llm_only_responses(csv_path)
+    
+    # Save to CSV
     output_path = save_responses_to_csv(results, output_dir)
     
     print("\n" + "="*80)
     print(" COLLECTION COMPLETE!")
     print("="*80 + "\n")
     
-    print(f"✅ Agent responses saved to: {output_path.absolute()}")
-    
+    print(f"✅ LLM-only responses saved to: {output_path.absolute()}")
 
 
 if __name__ == "__main__":

@@ -49,7 +49,7 @@ def load_resources():
     base_path = Path(__file__).parent.parent / "resources"
     with open(base_path / "queries.sql", "r") as f:
         sql_template = f.read()
-    with open(base_path / "prompts.yaml", "r") as f:
+    with open(base_path / "evaluation_promptnew.yaml", "r") as f:
         prompts = yaml.safe_load(f)
     return sql_template, prompts
 
