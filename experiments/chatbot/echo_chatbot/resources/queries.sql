@@ -13,7 +13,7 @@ WHERE true
 ORDER BY distance
 
 LIMIT LEAST(
-    3,
+    10,
     (
         SELECT COUNT(*) 
         FROM {texts_table} t2
