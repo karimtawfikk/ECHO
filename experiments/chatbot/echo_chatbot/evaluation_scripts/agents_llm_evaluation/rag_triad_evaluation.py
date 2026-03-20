@@ -19,6 +19,8 @@ import os
 from dotenv import load_dotenv
 warnings.filterwarnings("ignore")
 warnings.filterwarnings("ignore", category=DeprecationWarning)
+os.environ["LANGCHAIN_TRACING_V2"] = "false"
+os.environ["LANGCHAIN_API_KEY"] = ""
 
 load_dotenv()
 
@@ -898,7 +900,7 @@ def main():
     print("="*80 + "\n")
     
     # Input: Pre-collected agent responses CSV
-    responses_csv = r"C:\Uni\4th Year\GP\ECHO\data\chatbot\outputs\echo_agent_evaluation\agent_responses\agent_responses_pt2.csv"
+    responses_csv = r"C:\Uni\4th Year\GP\ECHO\data\chatbot\outputs\echo_agent_evaluation\agent_responses\agent_responses_pt1.csv"
     
     # Output directory
     output_dir = Path(r"C:\Uni\4th Year\GP\ECHO\data\chatbot\outputs\echo_agent_evaluation\ragas_evaluation_results\run3\pt2")
