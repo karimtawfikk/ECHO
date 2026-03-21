@@ -1,6 +1,6 @@
 import sys
 from pathlib import Path
-sys.path.append(str(Path(__file__).resolve().parents[3]))
+sys.path.append(str(Path(__file__).resolve().parents[4]))
 
 import warnings
 import os
@@ -41,10 +41,10 @@ load_dotenv()
 # ---------------------------------------------------------------------------
 
 def load_resources():
-    base_path = Path(__file__).parent / "resources"
+    base_path = Path(__file__).parent.parent / "resources"
     with open(base_path / "queries.sql", "r") as f:
         sql_query = f.read()
-    with open(base_path / "prompts.yaml", "r") as f:
+    with open(base_path / "prompts.yaml", "r",encoding="utf-8") as f:
         prompts = yaml.safe_load(f)
     return prompts, sql_query
 
@@ -131,9 +131,9 @@ generator_llm = ChatGroq(
 # Chains
 # ---------------------------------------------------------------------------
 
-rewrite_prompt_template = PromptTemplate.from_template(PROMPTS['rewrite_prompt'])
+rewrite_prompt_template = PromptTemplate.from_template(PROMPTS['rewrite_prompt']['pharaoh'])
 rewrite_chain           = rewrite_prompt_template | query_rewriter_llm | StrOutputParser()
-llm_prompt_template     = PromptTemplate.from_template(PROMPTS['assistant_persona'])
+llm_prompt_template     = PromptTemplate.from_template(PROMPTS['assistant_persona']['pharaoh'])
 
 
 # ---------------------------------------------------------------------------
@@ -175,13 +175,16 @@ def rewrite_node(state: AgentState) -> dict:
             dialogue.append(f"Search Query: {msg.content}")
 
     history_str = "\n".join(dialogue) if dialogue else "No history yet."
-
+    print("="*50)
+    print(history_str)
+    print("="*50)
+    
     search_q = rewrite_chain.invoke({
         "query":        state['query'],
         "pharaoh_name": ENTITY_NAME,
         "chat_history": history_str
     }).replace("Search Query:", "").strip()
-
+    print(f"[REWRITER]: {search_q}")
     return {
         "messages":     [AIMessage(content=search_q, name="search_query")],
         "search_query": search_q
