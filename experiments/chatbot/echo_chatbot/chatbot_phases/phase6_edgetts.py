@@ -49,7 +49,7 @@ def load_resources():
     base_path = Path(__file__).parent.parent / "resources"
     with open(base_path / "queries.sql", "r") as f:
         sql_template = f.read()
-    with open(base_path / "evaluation_promptnew.yaml", "r") as f:
+    with open(base_path / "evaluation_promptnew.yaml", "r", encoding="utf-8") as f:
         prompts = yaml.safe_load(f)
     return sql_template, prompts
 
@@ -218,7 +218,7 @@ def transcribe_audio(audio: np.ndarray) -> str:
     transcription = groq_client.audio.transcriptions.create(
         file=("audio.wav", buffer.read()),
         model=GROQ_STT_MODEL_NAME,
-        temperature=0.2
+        temperature=0
     )
     return transcription.text.strip()
 
@@ -242,11 +242,10 @@ def rewrite_node(state: AgentState) -> dict:
             dialogue.append(f"Search Query: {msg.content}")
 
     history_str = "\n".join(dialogue) if dialogue else "No history yet."
-    
-    
-
     name_key = ENTITY_CONFIG[ENTITY_TYPE]["name_key"]
-    
+    print("="*50)
+    print(history_str)
+    print("="*50)
     search_q = rewrite_chain.invoke({
         name_key:       ENTITY_NAME,
         "chat_history": history_str,
@@ -442,7 +441,7 @@ workflow.add_conditional_edges(
 workflow.add_edge("tts", END)
 
 memory = MemorySaver()
-graph  = workflow.compile()
+graph  = workflow.compile(checkpointer=memory)
 
 
 # ---------------------------------------------------------------------------
