@@ -30,7 +30,7 @@ print("📊 Fetching data from LangSmith...\n")
 
 # Get ONLY root runs first (efficiency optimization)
 all_root_runs = list(client.list_runs(
-    project_name="Ancient-Egypt-RAG",
+    project_name="Ancient-Egypt-RAG5",
     is_root=True  # Only get root-level runs
 ))
 
