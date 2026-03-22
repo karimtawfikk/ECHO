@@ -1,4 +1,4 @@
-from sqlalchemy import Column, Integer, String
+from sqlalchemy import Column, Integer, String,Index
 from pgvector.sqlalchemy import Vector
 from sqlalchemy.orm import relationship
 from src.db.session import Base
@@ -18,4 +18,6 @@ class Pharaoh(Base):
     texts = relationship("PharaohText", back_populates="pharaoh")
     scripts = relationship("PharaohScript", back_populates="pharaoh")
                  
-    
+    __table_args__ = (
+        Index('idx_pharaohs_name', 'name'),
+    )
