@@ -175,6 +175,7 @@ with Session(engine) as session:
             name=ph["name"],
             period=ph["period"],
             dynasty=ph["dynasty"],
+            type=ph["type"],
             description=ph["description"],
             composite_entity=ph["composite_entity"]
         )

@@ -21,15 +21,19 @@ client = session.client(
     aws_access_key_id=ACCESS_KEY,
     aws_secret_access_key=SECRET_KEY,
 )
-data_folder = Path("data/video_generation/outputs/pharaohs_descriptions") #src
+data_folder = Path("data/data/video_generation") #src
 
-
-files = [f for f in data_folder.rglob("*") if f.is_file()]
+#files = [f for f in data_folder.rglob("*") if f.is_file()]
+files = [
+    Path("data/data/video_generation/outputs/pharaohs.json"),
+    Path("data/data/video_generation/raw/pharaohs_with_type.xlsx"),
+]
 
 print(f"Found {len(files)} files to upload")
-DEST_PREFIX = "data/video_generation/outputs/"
+DEST_PREFIX = "data/video_generation/"
 for file_path in tqdm(files, desc="Uploading files"):
-    relative = file_path.relative_to(data_folder.parent)
+    #relative = file_path.relative_to(data_folder.parent)
+    relative = file_path.relative_to(data_folder)
     key = DEST_PREFIX + str(relative).replace('\\', '/')
 
     client.upload_file(str(file_path), BUCKET_NAME, key)
