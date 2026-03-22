@@ -1,6 +1,6 @@
 import sys
 from pathlib import Path
-sys.path.append(str(Path(__file__).resolve().parents[4]))
+sys.path.append(str(Path(__file__).resolve().parents[5]))
 
 import warnings
 import os
@@ -8,6 +8,7 @@ import re
 import io
 import asyncio
 import threading
+import time
 import numpy as np
 from groq import Groq
 from dotenv import load_dotenv
@@ -15,21 +16,19 @@ from typing import TypedDict, Annotated, List
 
 import edge_tts
 from langdetect import detect
-
+from sentence_transformers import SentenceTransformer
 
 from langgraph.graph import StateGraph, END
 from langgraph.checkpoint.memory import MemorySaver
 from langgraph.graph.message import add_messages
-from langgraph.prebuilt import ToolNode, tools_condition
 
-from langchain_core.messages import HumanMessage, AIMessage, ToolMessage
+from langchain_core.messages import HumanMessage, AIMessage
 from langchain_core.prompts import PromptTemplate
 from langchain_core.output_parsers import StrOutputParser
 from langchain_core.documents import Document
 from langchain_groq import ChatGroq
 from langchain_cloudflare import CloudflareWorkersAIEmbeddings
 from langchain_community.document_compressors.jina_rerank import JinaRerank
-from langchain_tavily import TavilySearch
 
 from sqlalchemy.orm import Session
 from sqlalchemy import text
@@ -46,8 +45,8 @@ load_dotenv()
 # ---------------------------------------------------------------------------
 
 def load_resources():
-    base_path = Path(__file__).parent.parent / "resources"
-    with open(base_path / "queries.sql", "r") as f:
+    base_path = Path(__file__).parent.parent.parent / "resources"
+    with open(base_path / "queries_optimized.sql", "r") as f:
         sql_template = f.read()
     with open(base_path / "evaluation_promptnew.yaml", "r") as f:
         prompts = yaml.safe_load(f)
@@ -79,7 +78,6 @@ EDGE_TTS_RATE                  = "+9%"
 EDGE_TTS_PITCH                 = "-10Hz"
 TOP_K                          = 3
 EMBEDDING_DIM                  = 768
-
 STT_SAMPLE_RATE                = 16000
 
 ENTITY_CONFIG = {
@@ -110,8 +108,10 @@ LANG_TO_VOICE = {
 }
 DEFAULT_VOICE = "en-US-ChristopherNeural"
 
+# Globals
 ENTITY_TYPE          = None
 ENTITY_NAME          = None
+ENTITY_ID            = None
 VECTOR_SQL           = None
 rewrite_chain        = None
 llm_prompt_template  = None
@@ -128,21 +128,23 @@ class AgentState(TypedDict):
 
 
 # Models & Tools
-embedding_model = CloudflareWorkersAIEmbeddings(
+"""embedding_model = CloudflareWorkersAIEmbeddings(
     account_id=CF_WORKERSAI_ACCOUNTID,
     api_token=CF_AI_API,
     model_name="@cf/qwen/qwen3-embedding-0.6b"
+)"""
+qwen_model = SentenceTransformer(
+    "Qwen/Qwen3-Embedding-0.6B",
+    device='cuda',
+    tokenizer_kwargs={"padding_side": "left"}
 )
+
 
 reranker = JinaRerank(
     model="jina-reranker-v3",
     top_n=3,
     jina_api_key=JINA_API_KEY
 )
-
-search_tool = TavilySearch(max_results=4, search_depth="advanced")
-tools       = [search_tool]
-tool_node   = ToolNode(tools=tools)
 
 groq_client = Groq(api_key=GROQ_API_KEY1)
 
@@ -151,7 +153,7 @@ query_rewriter_llm = ChatGroq(
     temperature=0.2,
     max_tokens=1024,
     api_key=GROQ_API_KEY1,
-    extra_body={"reasoning_effort": "default", "reasoning_format": "hidden"}
+    extra_body={"reasoning_effort": "none", "reasoning_format": "hidden"}
 )
 
 generator_llm = ChatGroq(
@@ -160,7 +162,7 @@ generator_llm = ChatGroq(
     max_tokens=4096,
     top_p=0.95,
     api_key=GROQ_API_KEY8,
-    extra_body={"reasoning_effort": "medium", "reasoning_format": "hidden"}
+    extra_body={"reasoning_effort": "low", "reasoning_format": "hidden"}
 )
 
 
@@ -169,10 +171,17 @@ generator_llm = ChatGroq(
 # ---------------------------------------------------------------------------
 
 def get_embedding(text: str):
-    embeddings = np.array(embedding_model.embed_query(text))
-    embeddings = embeddings / np.linalg.norm(embeddings)
-    sliced     = embeddings[:EMBEDDING_DIM]
-    norm       = np.linalg.norm(sliced)
+    embeddings = qwen_model.encode(
+        text,
+        normalize_embeddings=True,
+        show_progress_bar=False,
+        convert_to_numpy=True
+    )
+    
+    # Slice to 768 dims
+    sliced = embeddings[:EMBEDDING_DIM]
+    norm = np.linalg.norm(sliced)
+    
     return (sliced / norm if norm > 0 else sliced).tolist()
 
 
@@ -243,9 +252,6 @@ def rewrite_node(state: AgentState) -> dict:
             dialogue.append(f"Search Query: {msg.content}")
 
     history_str = "\n".join(dialogue) if dialogue else "No history yet."
-    
-    
-
     name_key = ENTITY_CONFIG[ENTITY_TYPE]["name_key"]
     
     search_q = rewrite_chain.invoke({
@@ -256,7 +262,7 @@ def rewrite_node(state: AgentState) -> dict:
 
     if not search_q:
         search_q = state["query"]
-    print(f"[REWRITER]: {search_q}")
+        
     return {
         "messages":     [AIMessage(content=search_q, name="search_query")],
         "search_query": search_q
@@ -264,16 +270,24 @@ def rewrite_node(state: AgentState) -> dict:
 
 
 def retrieve_node(state: AgentState) -> dict:
+    start = time.perf_counter()
     query_embedding = get_embedding(state['search_query'])
+    end = time.perf_counter()
+    print(f"[EMBEDDING TIME]: {end - start:.3f}s")
 
+    s = time.perf_counter()
     with Session(engine) as session:
         result = session.execute(
             text(VECTOR_SQL),
-            {"entity_name": ENTITY_NAME,
-             "embedding":   str(query_embedding)}
+            {
+                "entity_id": ENTITY_ID,  # Uses cached ID
+                "embedding": str(query_embedding)
+            }
         )
         context = [row[0] for row in result]
-
+    e = time.perf_counter()
+    print(f"[RETRIEVAL TIME]: {e - s:.3f}s")
+    
     return {"context": context}
 
 
@@ -284,10 +298,8 @@ def rerank_node(state: AgentState) -> dict:
 
 
 def generate_node(state: AgentState) -> dict:
-
     combined_context = state.get('context', [])
-    print("REREANKED CONTEXT:",len(combined_context))
-    # 3. Build Chat History for Persona Continuity
+    
     clean_dialogue = [
         msg for msg in state['messages']
         if isinstance(msg, HumanMessage) or getattr(msg, "name", None) == "generator_response"
@@ -302,12 +314,8 @@ def generate_node(state: AgentState) -> dict:
             dialogue.append(f"{ENTITY_NAME}: {msg.content}")
 
     history_str = "\n".join(dialogue) if dialogue else "No previous conversation."
-
-
-    
     name_key = ENTITY_CONFIG[ENTITY_TYPE]["name_key"]
 
-    # 5. Format the Final Prompt
     prompt = llm_prompt_template.format(**{
         name_key:       ENTITY_NAME,
         "context":      "\n\n".join(combined_context),
@@ -315,18 +323,11 @@ def generate_node(state: AgentState) -> dict:
         "chat_history": history_str,
     })
 
-    # 6. Stream the Response (No Tool Calls allowed)
-    print(f"\n{ENTITY_NAME}: ", end="", flush=True)
     full_content = ""
-
     for chunk in generator_llm.stream(prompt):
         if chunk.content:
-            print(chunk.content, end="", flush=True)
             full_content += chunk.content
-
-    print("\n🏛️ [SOURCE]: Final answer generated using RAG context ONLY.")
     
-    # 7. Return Final Response
     return {
         "messages": [AIMessage(content=full_content, name="generator_response")],
         "response": full_content
@@ -348,16 +349,14 @@ def tts_node(state: AgentState) -> dict:
     except Exception:
         voice = DEFAULT_VOICE
     
-    print(f"\n[TTS]: Generating speech via edge-tts ({voice})...")
     async def generate():
         communicate = edge_tts.Communicate(clean_text, voice, rate=EDGE_TTS_RATE, pitch=EDGE_TTS_PITCH)
         await communicate.save(output_path)
 
     try:
         asyncio.run(generate())
-        print(f"[TTS]: Saved → {output_path}")
-    except Exception as e:
-        print(f"[TTS]: Failed — {e}")
+    except Exception:
+        pass
 
     return {}
 
@@ -376,7 +375,6 @@ workflow.add_node("rewriter",   rewrite_node)
 workflow.add_node("retriever",  retrieve_node)
 workflow.add_node("reranker",   rerank_node)
 workflow.add_node("generator",  generate_node)
-workflow.add_node("tools",      tool_node)
 workflow.add_node("tts_router", lambda state: {})
 workflow.add_node("tts",        tts_node)
 
@@ -384,15 +382,7 @@ workflow.set_entry_point("rewriter")
 workflow.add_edge("rewriter",  "retriever")
 workflow.add_edge("retriever", "reranker")
 workflow.add_edge("reranker",  "generator")
-workflow.add_conditional_edges(
-    "generator",
-    tools_condition,
-    {
-        "tools": "tools",
-        END:     "tts_router"
-    }
-)
-workflow.add_edge("tools", "generator")
+workflow.add_edge("generator", "tts_router")
 workflow.add_conditional_edges(
     "tts_router",
     route_tts,
@@ -412,7 +402,7 @@ graph  = workflow.compile()
 # ---------------------------------------------------------------------------
 
 def main():
-    global ENTITY_TYPE, ENTITY_NAME, VECTOR_SQL, rewrite_chain, llm_prompt_template
+    global ENTITY_TYPE, ENTITY_NAME, ENTITY_ID, VECTOR_SQL, rewrite_chain, llm_prompt_template
 
     print("\n╔══════════════════════════════════╗")
     print("║        ANCIENT EGYPT RAG         ║")
@@ -426,21 +416,40 @@ def main():
 
     ENTITY_NAME = input(f"Enter the {ENTITY_TYPE} name: ").strip()
 
-    cfg         = ENTITY_CONFIG[ENTITY_TYPE]
-    VECTOR_SQL  = SQL_TEMPLATE.format(
+    cfg = ENTITY_CONFIG[ENTITY_TYPE]
+    
+    # Lookup entity ID once at conversation start
+    print(f"  🔍 Looking up {ENTITY_TYPE}...")
+    
+    table_name = "pharaohs" if ENTITY_TYPE == "pharaoh" else "landmarks"
+    
+    with Session(engine) as session:
+        result = session.execute(
+            text(f"SELECT id FROM {table_name} WHERE name = :name"),
+            {"name": ENTITY_NAME}
+        ).fetchone()
+        
+        if result:
+            ENTITY_ID = result[0]
+            print(f"  ✓ Found {ENTITY_TYPE} (ID: {ENTITY_ID})")
+        else:
+            print(f"  ✗ Error: '{ENTITY_NAME}' not found in database!")
+            return
+    
+    # Set up optimized SQL
+    VECTOR_SQL = SQL_TEMPLATE.format(
         texts_table=cfg["texts_table"],
-        entities_table=cfg["entities_table"],
         entity_id_col=cfg["entity_id_col"]
     )
 
-    prompt_key          = cfg["prompt_key"]
-    rewrite_chain       = PromptTemplate.from_template(PROMPTS["rewrite_prompt"][prompt_key]) | query_rewriter_llm | StrOutputParser()
+    prompt_key = cfg["prompt_key"]
+    rewrite_chain = PromptTemplate.from_template(PROMPTS["rewrite_prompt"][prompt_key]) | query_rewriter_llm | StrOutputParser()
     llm_prompt_template = PromptTemplate.from_template(PROMPTS["assistant_persona"][prompt_key])
 
     print(f"\nNow speaking with: {ENTITY_NAME} ({ENTITY_TYPE})")
     print("Commands: 'v' or 'voice' → toggle voice mode | 'q' → quit\n")
 
-    config     = {"configurable": {"thread_id": "1"}}
+    config = {"configurable": {"thread_id": "1"}}
     voice_mode = False
 
     while True:
@@ -457,9 +466,7 @@ def main():
                     audio      = record_audio()
                     user_input = transcribe_audio(audio)
                     print(f"[STT]: {user_input}")
-
                     if not user_input or len(user_input.strip()) < 2:
-                        print("[STT]: I didn't catch that. Please try again.")
                         continue
                 except Exception as e:
                     print(f"[STT]: Failed — {e}")
@@ -472,7 +479,7 @@ def main():
                 break
             if user_input.lower() in ['v', 'voice']:
                 voice_mode = True
-                print("[Voice Mode ON] — press Enter with empty input to start speaking")
+                print("[Voice Mode ON]")
                 continue
 
         graph.invoke(

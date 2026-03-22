@@ -10,34 +10,6 @@
       {chat_history}
 
       ### INSTRUCTIONS:
-      0. SCOPE CHECK:
-
-      First, classify the user's query into ONE of the following categories:
-
-      (A) CONVERSATIONAL / META:
-      - The query refers to the user themselves (e.g., "who am I", "my name")
-      - The query refers to the conversation or memory (e.g., "do you remember", "what did I say", "do you know my name")
-
-      (B) DOMAIN:
-      - The query is about {pharaoh_name}, their family, or ancient Egyptian history
-
-      (C) OUT-OF-DOMAIN:
-      - Anything else (modern people, general knowledge, unrelated topics)
-
-      ---
-
-      IF category = (A) CONVERSATIONAL:
-      - DO NOT mark as OUT_OF_SCOPE
-      - Rewrite it to reference the conversation if needed (e.g., "based on the conversation history")
-      - CONTINUE normally
-
-      ELSE IF category = (C) OUT-OF-DOMAIN:
-      - Rewrite into a 3rd-person factual question
-      - Append " : OUT_OF_SCOPE"
-      - STOP HERE
-
-      ELSE:
-      - Continue normally
       1. SUBJECT RESOLUTION: Use the "Query Expansion Dialogue History" to resolve pronouns (e.g., "he", "she", "it", "that") to the specific person or subject mentioned previously.
       2. LANGUAGE: If the User's query is in Arabic, French, or any other LANGUAGE, TRANSLATE the intent to ENGLISH for the search query.
       3. If the user asks about a secondary person (father, wife, official), the search question must prioritize that specific person.
@@ -92,34 +64,6 @@
       {chat_history}
 
       ### INSTRUCTIONS: 
-      0. SCOPE CHECK:
-
-      First, classify the user's query into ONE of the following categories:
-
-      (A) CONVERSATIONAL / META:
-      - The query refers to the user themselves (e.g., "who am I", "my name")
-      - The query refers to the conversation or memory (e.g., "do you remember", "what did I say", "do you know my name")
-
-      (B) DOMAIN:
-      - The query is about {landmark_name}, its associates, or ancient Egyptian history
-
-      (C) OUT-OF-DOMAIN:
-      - Anything else (modern people, general knowledge, unrelated topics)
-
-      ---
-
-      IF category = (A) CONVERSATIONAL:
-      - DO NOT mark as OUT_OF_SCOPE
-      - Rewrite it to reference the conversation if needed (e.g., "based on the conversation history")
-      - CONTINUE normally
-
-      ELSE IF category = (C) OUT-OF-DOMAIN:
-      - Rewrite into a 3rd-person factual question
-      - Append " : OUT_OF_SCOPE"
-      - STOP HERE
-
-      ELSE:
-      - Continue normally
       1. SUBJECT RESOLUTION: Use the "Query Expansion Dialogue History" to resolve pronouns (e.g., "it", "there", "that place") to the specific landmark or structure mentioned previously.
       2. LANGUAGE: If the User's query is in Arabic, French, or any other LANGUAGE, TRANSLATE the intent to ENGLISH for the search query.
       3. If the user asks about builders, pharaohs, architects, or civilizations related to the landmark, the search question must prioritize that specific subject.
@@ -187,14 +131,6 @@
       # DIALOGUE HISTORY:
       {chat_history}
 
-      # SEARCH TOOL
-      - If your MEMORIES (Context) do not contain the answer, you MUST use the search tool to find the truth from the modern world.
-      - You are permitted ONLY ONE search attempt per 1 user question.
-      -When calling the search tool:
-        - Only use the parameter "query"
-        - Do not include 'topic', 'type', or any other fields.
-
-
       User Query: {query}
 
 
@@ -225,14 +161,6 @@
 
       # DIALOGUE HISTORY:
       {chat_history}
-
-      # SEARCH TOOL
-      - If your MEMORIES (Context) do not contain the answer, you MUST use the search tool to find the truth from the modern world.
-      - You are permitted ONLY ONE search attempt per 1 user question.
-      -When calling the search tool:
-        - Only use the parameter "query"
-        - Do not include 'topic', 'type', or any other fields.
-
 
       User Query: {query}
 
