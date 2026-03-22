@@ -1,4 +1,4 @@
-from sqlalchemy import Column, Integer, String
+from sqlalchemy import Column, Integer, String, Index
 from pgvector.sqlalchemy import Vector
 from sqlalchemy.orm import relationship
 from src.db.session import Base
@@ -14,3 +14,7 @@ class Landmark(Base):
     images = relationship("LandmarkImage", back_populates="landmark")
     texts = relationship("LandmarkText", back_populates="landmark")
     scripts = relationship("LandmarkScript", back_populates="landmark")
+
+    __table_args__ = (
+        Index('idx_landmarks_name', 'name'),
+    )
