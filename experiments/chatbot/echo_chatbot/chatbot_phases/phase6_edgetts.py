@@ -8,6 +8,7 @@ import re
 import io
 import asyncio
 import threading
+import time
 import numpy as np
 from groq import Groq
 from dotenv import load_dotenv
@@ -47,7 +48,7 @@ load_dotenv()
 
 def load_resources():
     base_path = Path(__file__).parent.parent / "resources"
-    with open(base_path / "queries.sql", "r") as f:
+    with open(base_path / "queries_optimized.sql", "r") as f:
         sql_template = f.read()
     with open(base_path / "evaluation_promptnew.yaml", "r", encoding="utf-8") as f:
         prompts = yaml.safe_load(f)
@@ -111,6 +112,7 @@ DEFAULT_VOICE = "en-US-ChristopherNeural"
 
 ENTITY_TYPE          = None
 ENTITY_NAME          = None
+ENTITY_ID            = None
 VECTOR_SQL           = None
 rewrite_chain        = None
 llm_prompt_template  = None
@@ -150,7 +152,7 @@ query_rewriter_llm = ChatGroq(
     temperature=0.2,
     max_tokens=1024,
     api_key=GROQ_API_KEY1,
-    extra_body={"reasoning_effort": "default", "reasoning_format": "hidden"}
+    extra_body={"reasoning_effort": "none", "reasoning_format": "hidden"}
 )
 
 generator_llm = ChatGroq(
@@ -262,16 +264,22 @@ def rewrite_node(state: AgentState) -> dict:
 
 
 def retrieve_node(state: AgentState) -> dict:
+    start = time.perf_counter()
     query_embedding = get_embedding(state['search_query'])
-
+    
     with Session(engine) as session:
         result = session.execute(
             text(VECTOR_SQL),
-            {"entity_name": ENTITY_NAME,
-             "embedding":   str(query_embedding)}
+            {
+                "entity_id": ENTITY_ID,
+                "embedding": str(query_embedding)
+            }
         )
         context = [row[0] for row in result]
-
+    
+    end = time.perf_counter()
+    print(f"[RETRIEVAL TIME]: {end - start:.3f}s")
+    
     return {"context": context}
 
 
@@ -324,7 +332,7 @@ def generate_node(state: AgentState) -> dict:
         extra_instruction = (
             "\n\nIMPORTANT: You have already consulted the modern scrolls (Search Tool). "
             "Do not call the search tool again. Answer strictly from the context provided. "
-            "If the answer is still missing, say: 'The gods have veiled that specific moment from my sight for now.'"
+            "Only if the answer is still missing, say: 'The gods have veiled that specific moment from my sight for now.'"
         )
 
     name_key = ENTITY_CONFIG[ENTITY_TYPE]["name_key"]
@@ -380,8 +388,8 @@ def tts_node(state: AgentState) -> dict:
     output_path = str(output_dir / "response.mp3")
 
     try:
-        lang  = detect(clean_text)
-        voice = LANG_TO_VOICE.get(lang, DEFAULT_VOICE)
+        #lang  = detect(clean_text)
+        voice = LANG_TO_VOICE.get("en", DEFAULT_VOICE)
     except Exception:
         voice = DEFAULT_VOICE
     
@@ -449,7 +457,7 @@ graph  = workflow.compile(checkpointer=memory)
 # ---------------------------------------------------------------------------
 
 def main():
-    global ENTITY_TYPE, ENTITY_NAME, VECTOR_SQL, rewrite_chain, llm_prompt_template
+    global ENTITY_TYPE, ENTITY_NAME, ENTITY_ID, VECTOR_SQL, rewrite_chain, llm_prompt_template
 
     print("\n╔══════════════════════════════════╗")
     print("║        ANCIENT EGYPT RAG         ║")
@@ -463,21 +471,42 @@ def main():
 
     ENTITY_NAME = input(f"Enter the {ENTITY_TYPE} name: ").strip()
 
-    cfg         = ENTITY_CONFIG[ENTITY_TYPE]
-    VECTOR_SQL  = SQL_TEMPLATE.format(
+    cfg = ENTITY_CONFIG[ENTITY_TYPE]
+    
+    # NEW: Lookup entity ID ONCE at conversation start
+    print(f"  🔍 Looking up {ENTITY_TYPE}...")
+    
+    id_col = "pharaoh_id" if ENTITY_TYPE == "pharaoh" else "landmark_id"
+    table_name = "pharaohs" if ENTITY_TYPE == "pharaoh" else "landmarks"
+    
+    with Session(engine) as session:
+        result = session.execute(
+            text(f"SELECT id FROM {table_name} WHERE name = :name"),
+            {"name": ENTITY_NAME}
+        ).fetchone()
+        
+        if result:
+            ENTITY_ID = result[0]
+            print(f"  ✓ Found {ENTITY_TYPE} (ID: {ENTITY_ID})")
+        else:
+            print(f"  ✗ Error: '{ENTITY_NAME}' not found in database!")
+            print(f"  → Check spelling or verify {ENTITY_TYPE} exists in database.")
+            return
+    
+    # Set up SQL with optimized query
+    VECTOR_SQL = SQL_TEMPLATE.format(
         texts_table=cfg["texts_table"],
-        entities_table=cfg["entities_table"],
         entity_id_col=cfg["entity_id_col"]
     )
 
-    prompt_key          = cfg["prompt_key"]
-    rewrite_chain       = PromptTemplate.from_template(PROMPTS["rewrite_prompt"][prompt_key]) | query_rewriter_llm | StrOutputParser()
+    prompt_key = cfg["prompt_key"]
+    rewrite_chain = PromptTemplate.from_template(PROMPTS["rewrite_prompt"][prompt_key]) | query_rewriter_llm | StrOutputParser()
     llm_prompt_template = PromptTemplate.from_template(PROMPTS["assistant_persona"][prompt_key])
 
     print(f"\nNow speaking with: {ENTITY_NAME} ({ENTITY_TYPE})")
     print("Commands: 'v' or 'voice' → toggle voice mode | 'q' → quit\n")
 
-    config     = {"configurable": {"thread_id": "1"}}
+    config = {"configurable": {"thread_id": "1"}}
     voice_mode = False
 
     while True:
