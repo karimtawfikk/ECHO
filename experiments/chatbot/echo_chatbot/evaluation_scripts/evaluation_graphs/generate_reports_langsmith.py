@@ -1,5 +1,6 @@
 """
-Enhanced LangSmith Analysis with TTFT, Generator-Only Tokens, and Waterfall Chart
+Enhanced LangSmith Analysis with TTFT, Generator-Only Tokens, Waterfall Chart, and Deduplication
+Uses P95 instead of P90 for percentile analysis
 """
 
 import os
@@ -21,69 +22,68 @@ client = Client()
 print("📊 Fetching data from LangSmith...\n")
 
 # ============================================================================
-# Initialize LangSmith Client and Fetch Evaluation Runs Only
+# Get ROOT runs first
 # ============================================================================
 
-client = Client()
-
-print("📊 Fetching data from LangSmith...\n")
-
-# Get ONLY root runs first (efficiency optimization)
 all_root_runs = list(client.list_runs(
-    project_name="Ancient-Egypt-RAG5",
-    is_root=True  # Only get root-level runs
+    project_name="Ancient-Egypt-RAG9",
+    is_root=True  # Get ROOT runs first
 ))
 
 print(f"✅ Fetched {len(all_root_runs)} root runs from project")
 
 # ============================================================================
-# Filter to ONLY Efficiency Evaluation Runs (132 queries)
+# Filter and Deduplicate Evaluation Runs
 # ============================================================================
 
 filtered_root_runs = []
 
 for run in all_root_runs:
-    # Check if run has the evaluation metadata
     metadata = {}
     
-    # Extract metadata from different possible locations
     if hasattr(run, 'extra') and run.extra:
         metadata = run.extra.get('metadata', {})
     
-    # Method 1: Check evaluation_type
-    is_eval_run = metadata.get('evaluation_type') == 'efficiency'
-    
-    # Method 2: Check thread_id pattern
-    thread_id = metadata.get('thread_id', '')
-    if isinstance(thread_id, str) and 'efficiency-eval-' in thread_id:
-        is_eval_run = True
-    
-    # Method 3: Check run_name pattern (fallback)
-    run_name = metadata.get('run_name', '')
-    if isinstance(run_name, str) and 'efficiency' in run_name.lower():
-        is_eval_run = True
-    
-    # Method 4: Check query_id exists (evaluation runs have this)
-    if 'query_id' in metadata:
-        is_eval_run = True
+    # Check if this is an evaluation run
+    is_eval_run = (
+        metadata.get('evaluation_type') == 'efficiency_optimized' or
+        ('efficiency-eval-' in str(metadata.get('thread_id', ''))) or
+        ('query_id' in metadata)
+    )
     
     if is_eval_run:
         filtered_root_runs.append(run)
 
 print(f"  • Filtered to {len(filtered_root_runs)} efficiency evaluation runs")
 
-if len(filtered_root_runs) == 0:
-    print("\n❌ ERROR: No evaluation runs found!")
-    print("\nDEBUG: Showing first 5 root runs metadata:")
-    for i, run in enumerate(all_root_runs[:5]):
-        print(f"\nRun {i+1}:")
-        print(f"  ID: {run.id}")
-        print(f"  Name: {run.name}")
-        if hasattr(run, 'extra') and run.extra:
-            print(f"  Metadata: {run.extra.get('metadata', {})}")
+# Deduplicate by query_id (keep oldest run for each query_id)
+if len(filtered_root_runs) > 132:
+    print(f"  ⚠️  Found {len(filtered_root_runs)} runs, expected 132. Deduplicating...")
+    
+    query_id_to_runs = {}
+    
+    for run in filtered_root_runs:
+        metadata = run.extra.get('metadata', {}) if hasattr(run, 'extra') and run.extra else {}
+        query_id = metadata.get('query_id')
+        
+        if query_id is not None:
+            if query_id not in query_id_to_runs:
+                query_id_to_runs[query_id] = []
+            query_id_to_runs[query_id].append(run)
+    
+    deduplicated_runs = []
+    
+    for query_id, runs in query_id_to_runs.items():
+        if len(runs) > 1:
+            runs_sorted = sorted(runs, key=lambda r: r.start_time if r.start_time else 0)
+            oldest_run = runs_sorted[0]
+            print(f"    • query_id={query_id}: Found {len(runs)} duplicates, keeping oldest")
+            deduplicated_runs.append(oldest_run)
         else:
-            print(f"  No metadata found")
-    exit(1)
+            deduplicated_runs.append(runs[0])
+    
+    filtered_root_runs = deduplicated_runs
+    print(f"  ✅ Deduplicated to {len(filtered_root_runs)} unique runs")
 
 if len(filtered_root_runs) != 132:
     print(f"  ⚠️  Warning: Expected 132 root runs, found {len(filtered_root_runs)}")
@@ -97,7 +97,6 @@ print("📊 Fetching child runs for evaluation queries...")
 
 all_child_runs = []
 for root_run in filtered_root_runs:
-    # Get all children for this root run
     children = list(client.list_runs(
         trace_id=root_run.trace_id,
         is_root=False
@@ -106,7 +105,6 @@ for root_run in filtered_root_runs:
 
 print(f"  • Found {len(all_child_runs)} child runs (components)\n")
 
-# Assign for compatibility with rest of script
 root_runs = filtered_root_runs
 child_runs = all_child_runs
 
@@ -153,7 +151,6 @@ for run in root_runs:
             
             node_name = child.name.lower()
             
-            # Component timings
             if 'rewrite' in node_name:
                 row['rewrite_time'] = child.latency or 0
                 row['rewriter_tokens'] = child.total_tokens or 0
@@ -170,12 +167,10 @@ for run in root_runs:
     except Exception as e:
         print(f"⚠️  Could not extract children for {run.id}: {e}")
     
-    # Calculate TTFT (Time to First Token)
-    # TTFT = Rewrite + Retrieve + Rerank + (small delay for first token)
-    # We approximate first token delay as ~0.1-0.2s (typical for streaming)
+    # Calculate TTFT
     row['ttft'] = row['rewrite_time'] + row['retrieve_time'] + row['rerank_time'] + 0.15
     
-    # Calculate TPS (Tokens Per Second) - generator only
+    # Calculate TPS
     if row['generate_time'] > 0 and row['generator_completion_tokens'] > 0:
         row['tps'] = row['generator_completion_tokens'] / row['generate_time']
     else:
@@ -185,6 +180,13 @@ for run in root_runs:
 
 df = pd.DataFrame(data)
 
+# Fill missing node times
+for col in ['rewrite_time', 'retrieve_time', 'rerank_time', 'generate_time']:
+    if col not in df.columns:
+        df[col] = 0
+    else:
+        df[col] = df[col].fillna(0)
+
 # Save to CSV
 output_dir = Path("langsmith_analysis")
 output_dir.mkdir(exist_ok=True)
@@ -193,7 +195,7 @@ df.to_csv(output_dir / "efficiency_metrics_enhanced.csv", index=False)
 print(f"💾 Saved metrics to: {output_dir / 'efficiency_metrics_enhanced.csv'}\n")
 
 # ============================================================================
-# Calculate Statistics
+# Calculate Statistics (P95 instead of P90)
 # ============================================================================
 
 print("=" * 80)
@@ -211,17 +213,17 @@ print("⚡ TIME TO FIRST TOKEN (TTFT) - Primary UX Metric:")
 print(f"  • Mean:   {success_df['ttft'].mean():.2f}s")
 print(f"  • Median: {success_df['ttft'].median():.2f}s")
 print(f"  • P50:    {success_df['ttft'].quantile(0.50):.2f}s")
-print(f"  • P90:    {success_df['ttft'].quantile(0.90):.2f}s")
+print(f"  • P95:    {success_df['ttft'].quantile(0.95):.2f}s")
 print(f"  • P99:    {success_df['ttft'].quantile(0.99):.2f}s")
 print(f"  • Min:    {success_df['ttft'].min():.2f}s")
 print(f"  • Max:    {success_df['ttft'].max():.2f}s\n")
 
-# End-to-End Latency (SECONDARY - Total Time)
+# End-to-End Latency
 print("⏱️  END-TO-END LATENCY (Total Response Time):")
 print(f"  • Mean:   {success_df['total_latency'].mean():.2f}s")
 print(f"  • Median: {success_df['total_latency'].median():.2f}s")
 print(f"  • P50:    {success_df['total_latency'].quantile(0.50):.2f}s")
-print(f"  • P90:    {success_df['total_latency'].quantile(0.90):.2f}s")
+print(f"  • P95:    {success_df['total_latency'].quantile(0.95):.2f}s")
 print(f"  • P99:    {success_df['total_latency'].quantile(0.99):.2f}s")
 print(f"  • Min:    {success_df['total_latency'].min():.2f}s")
 print(f"  • Max:    {success_df['total_latency'].max():.2f}s\n")
@@ -248,7 +250,7 @@ print(f"  • Prompt tokens:     {success_df['generator_prompt_tokens'].sum():,}
 print(f"  • Completion tokens: {success_df['generator_completion_tokens'].sum():,}")
 print(f"  • Avg TPS:           {success_df[success_df['tps'] > 0]['tps'].mean():.1f} tokens/sec\n")
 
-# Rewriter Token Stats (for comparison)
+# Rewriter Token Stats
 print("📝 TOKEN METRICS (Rewriter LLM - Qwen-3-32B):")
 print(f"  • Total tokens:      {success_df['rewriter_tokens'].sum():,}")
 print(f"  • Avg per query:     {success_df['rewriter_tokens'].mean():.0f}\n")
@@ -267,7 +269,7 @@ print(f"  • Successful: {len(success_df)}/{len(df)} ({len(success_df)/len(df)*
 print("=" * 80 + "\n")
 
 # ============================================================================
-# Generate Enhanced Charts
+# Generate Enhanced Charts (P95 instead of P90)
 # ============================================================================
 
 sns.set_style("whitegrid")
@@ -276,34 +278,34 @@ plt.rcParams['figure.facecolor'] = 'white'
 fig = plt.figure(figsize=(16, 12))
 gs = fig.add_gridspec(3, 2, hspace=0.3, wspace=0.3)
 
-fig.suptitle('RAG System - Enhanced Efficiency Analysis', fontsize=18, fontweight='bold')
+fig.suptitle('RAG System - Enhanced Efficiency Analysis (P95)', fontsize=18, fontweight='bold')
 
 # Chart 1: TTFT Distribution (PRIMARY METRIC)
 ax1 = fig.add_subplot(gs[0, 0])
 ax1.hist(success_df['ttft'], bins=30, edgecolor='black', color='#3b82f6', alpha=0.7)
 ttft_p50 = success_df['ttft'].quantile(0.50)
-ttft_p90 = success_df['ttft'].quantile(0.90)
+ttft_p95 = success_df['ttft'].quantile(0.95)
 ttft_p99 = success_df['ttft'].quantile(0.99)
 ax1.axvline(ttft_p50, color='green', linestyle='--', linewidth=2, label=f'P50: {ttft_p50:.2f}s')
-ax1.axvline(ttft_p90, color='orange', linestyle='--', linewidth=2, label=f'P90: {ttft_p90:.2f}s')
+ax1.axvline(ttft_p95, color='orange', linestyle='--', linewidth=2, label=f'P95: {ttft_p95:.2f}s')
 ax1.axvline(ttft_p99, color='red', linestyle='--', linewidth=2, label=f'P99: {ttft_p99:.2f}s')
 ax1.set_xlabel('Time to First Token (seconds)', fontweight='bold')
 ax1.set_ylabel('Frequency', fontweight='bold')
-ax1.set_title(' TTFT Distribution (User Perceived Latency)', fontweight='bold')
+ax1.set_title('TTFT Distribution (User Perceived Latency)', fontweight='bold')
 ax1.legend()
 
 # Chart 2: End-to-End Latency Distribution
 ax2 = fig.add_subplot(gs[0, 1])
 ax2.hist(success_df['total_latency'], bins=30, edgecolor='black', color='skyblue', alpha=0.7)
 e2e_p50 = success_df['total_latency'].quantile(0.50)
-e2e_p90 = success_df['total_latency'].quantile(0.90)
+e2e_p95 = success_df['total_latency'].quantile(0.95)
 e2e_p99 = success_df['total_latency'].quantile(0.99)
 ax2.axvline(e2e_p50, color='green', linestyle='--', linewidth=2, label=f'P50: {e2e_p50:.2f}s')
-ax2.axvline(e2e_p90, color='orange', linestyle='--', linewidth=2, label=f'P90: {e2e_p90:.2f}s')
+ax2.axvline(e2e_p95, color='orange', linestyle='--', linewidth=2, label=f'P95: {e2e_p95:.2f}s')
 ax2.axvline(e2e_p99, color='red', linestyle='--', linewidth=2, label=f'P99: {e2e_p99:.2f}s')
 ax2.set_xlabel('Total Latency (seconds)', fontweight='bold')
 ax2.set_ylabel('Frequency', fontweight='bold')
-ax2.set_title('  End-to-End Latency Distribution', fontweight='bold')
+ax2.set_title('End-to-End Latency Distribution', fontweight='bold')
 ax2.legend()
 
 # Chart 3: Component Breakdown
@@ -311,14 +313,14 @@ ax3 = fig.add_subplot(gs[1, 0])
 component_avg = [success_df[c].mean() for c in components]
 ax3.bar(component_names, component_avg, color=['#3b82f6', '#f59e0b', '#10b981', '#ef4444'], edgecolor='black')
 ax3.set_ylabel('Average Time (seconds)', fontweight='bold')
-ax3.set_title(' Latency Breakdown by Component', fontweight='bold')
+ax3.set_title('Latency Breakdown by Component', fontweight='bold')
 ax3.tick_params(axis='x', rotation=15)
 
 for i, (name, val) in enumerate(zip(component_names, component_avg)):
     percentage = (val / sum(component_avg) * 100)
     ax3.text(i, val + 0.05, f'{percentage:.1f}%', ha='center', fontweight='bold')
 
-# Chart 4: Token Distribution (Generator vs Rewriter)
+# Chart 4: Token Distribution
 ax4 = fig.add_subplot(gs[1, 1])
 token_data = [
     success_df['generator_tokens'].sum(),
@@ -328,7 +330,7 @@ ax4.bar(['Generator\n(GPT-OSS-120B)', 'Rewriter\n(Qwen-3-32B)'],
         token_data,
         color=['#ef4444', '#3b82f6'], edgecolor='black')
 ax4.set_ylabel('Total Tokens', fontweight='bold')
-ax4.set_title(' Token Usage by LLM', fontweight='bold')
+ax4.set_title('Token Usage by LLM', fontweight='bold')
 
 for i, val in enumerate(token_data):
     percentage = (val / sum(token_data) * 100)
@@ -340,11 +342,11 @@ sorted_ttft = np.sort(success_df['ttft'])
 cumulative = np.arange(1, len(sorted_ttft) + 1) / len(sorted_ttft)
 ax5.plot(sorted_ttft, cumulative * 100, linewidth=2, color='#3b82f6')
 ax5.axhline(50, color='green', linestyle='--', alpha=0.7, label=f'P50: {ttft_p50:.2f}s')
-ax5.axhline(90, color='orange', linestyle='--', alpha=0.7, label=f'P90: {ttft_p90:.2f}s')
+ax5.axhline(95, color='orange', linestyle='--', alpha=0.7, label=f'P95: {ttft_p95:.2f}s')
 ax5.axhline(99, color='red', linestyle='--', alpha=0.7, label=f'P99: {ttft_p99:.2f}s')
 ax5.set_xlabel('Time to First Token (seconds)', fontweight='bold')
 ax5.set_ylabel('Cumulative Percentage (%)', fontweight='bold')
-ax5.set_title(' TTFT Cumulative Distribution', fontweight='bold')
+ax5.set_title('TTFT Cumulative Distribution', fontweight='bold')
 ax5.grid(True, alpha=0.3)
 ax5.legend()
 
@@ -355,17 +357,16 @@ mean_tps = success_df[success_df['tps'] > 0]['tps'].mean()
 ax6.axvline(mean_tps, color='red', linestyle='--', linewidth=2, label=f'Mean: {mean_tps:.1f}')
 ax6.set_xlabel('Tokens per Second', fontweight='bold')
 ax6.set_ylabel('Frequency', fontweight='bold')
-ax6.set_title(' Generation Speed (TPS)', fontweight='bold')
+ax6.set_title('Generation Speed (TPS)', fontweight='bold')
 ax6.legend()
 
 plt.savefig(output_dir / 'efficiency_analysis_enhanced.png', dpi=300, bbox_inches='tight')
 print(f"📊 Saved enhanced charts to: {output_dir / 'efficiency_analysis_enhanced.png'}\n")
 
 # ============================================================================
-# Generate Waterfall Chart (Integrated)
+# Generate Waterfall Chart
 # ============================================================================
 
-# Calculate average component times for waterfall
 avg_component_times = {
     'Rewriter': success_df['rewrite_time'].mean(),
     'Retriever': success_df['retrieve_time'].mean(),
@@ -509,11 +510,11 @@ plt.show()
 
 print("✅ Analysis complete!\n")
 print(f"📁 Results saved to: {output_dir.absolute()}")
-print("\n" + "=" * 80)
+print("\n" + "="*80)
 print("📌 KEY FINDINGS:")
-print("=" * 80)
-print(f"⚡ TTFT P90: {ttft_p90:.2f}s (90% of users see response start within this time)")
-print(f"⏱️  E2E P90:  {e2e_p90:.2f}s (90% of full responses complete within this time)")
+print("="*80)
+print(f"⚡ TTFT P95: {ttft_p95:.2f}s (95% of users see response start within this time)")
+print(f"⏱️  E2E P95:  {e2e_p95:.2f}s (95% of full responses complete within this time)")
 print(f"🔢 Generator tokens: {success_df['generator_tokens'].sum():,} ({success_df['generator_tokens'].sum() / total_all_tokens * 100:.1f}% of total)")
 print(f"📝 Rewriter tokens:  {success_df['rewriter_tokens'].sum():,} ({success_df['rewriter_tokens'].sum() / total_all_tokens * 100:.1f}% of total)")
-print("=" * 80)
+print("="*80)

@@ -13,9 +13,14 @@ import numpy as np
 from groq import Groq
 from dotenv import load_dotenv
 from typing import TypedDict, Annotated, List
+from urllib.parse import urlparse
+from rich.console import Console
+import json
 
 import edge_tts
 from langdetect import detect
+from sentence_transformers import SentenceTransformer
+
 
 
 from langgraph.graph import StateGraph, END
@@ -129,10 +134,16 @@ class AgentState(TypedDict):
 
 
 # Models & Tools
-embedding_model = CloudflareWorkersAIEmbeddings(
+"""embedding_model = CloudflareWorkersAIEmbeddings(
     account_id=CF_WORKERSAI_ACCOUNTID,
     api_token=CF_AI_API,
     model_name="@cf/qwen/qwen3-embedding-0.6b"
+)"""
+
+qwen_model = SentenceTransformer(
+    "Qwen/Qwen3-Embedding-0.6B",
+    device='cuda',
+    tokenizer_kwargs={"padding_side": "left"}
 )
 
 reranker = JinaRerank(
@@ -168,12 +179,26 @@ generator_llm = ChatGroq(
 # ---------------------------------------------------------------------------
 # Helpers
 # ---------------------------------------------------------------------------
-
+"""
 def get_embedding(text: str):
     embeddings = np.array(embedding_model.embed_query(text))
     embeddings = embeddings / np.linalg.norm(embeddings)
     sliced     = embeddings[:EMBEDDING_DIM]
     norm       = np.linalg.norm(sliced)
+    return (sliced / norm if norm > 0 else sliced).tolist()"""
+
+def get_embedding(text: str):
+    embeddings = qwen_model.encode(
+        text,
+        normalize_embeddings=True,
+        show_progress_bar=False,
+        convert_to_numpy=True
+    )
+    
+    # Slice to 768 dims
+    sliced = embeddings[:EMBEDDING_DIM]
+    norm = np.linalg.norm(sliced)
+    
     return (sliced / norm if norm > 0 else sliced).tolist()
 
 
@@ -224,12 +249,42 @@ def transcribe_audio(audio: np.ndarray) -> str:
     )
     return transcription.text.strip()
 
+def extract_search_sources(current_turn_messages: list) -> list:
+    """Extract URLs from Tavily search results in ToolMessages"""
+    search_sources = []
+    
+    for msg in current_turn_messages:
+        if isinstance(msg, ToolMessage):
+            try:
+                
+                data = json.loads(msg.content) if isinstance(msg.content, str) else msg.content
+                
+                # Tavily format: {"results": [{"url": "...", "title": "..."}, ...]}
+                if isinstance(data, dict) and 'results' in data:
+                    results = data['results']
+                    for result in results[:3]:  # Top 3 sources
+                        if isinstance(result, dict) and 'url' in result:
+                            search_sources.append(result['url'])
+                # Fallback: direct list
+                elif isinstance(data, list):
+                    for result in data[:3]:
+                        if isinstance(result, dict) and 'url' in result:
+                            search_sources.append(result['url'])
+            except Exception:
+                pass
+    
+    return search_sources
+
 
 # ---------------------------------------------------------------------------
 # Nodes
 # ---------------------------------------------------------------------------
+# Global variable to store user memory
+USER_MEMORY = []
 
 def rewrite_node(state: AgentState) -> dict:
+    global USER_MEMORY
+    
     clean_dialogue = [
         msg for msg in state['messages'][:-1]
         if isinstance(msg, HumanMessage) or getattr(msg, "name", None) == "search_query"
@@ -245,18 +300,39 @@ def rewrite_node(state: AgentState) -> dict:
 
     history_str = "\n".join(dialogue) if dialogue else "No history yet."
     name_key = ENTITY_CONFIG[ENTITY_TYPE]["name_key"]
-    print("="*50)
-    print(history_str)
-    print("="*50)
-    search_q = rewrite_chain.invoke({
+    
+    # Call rewriter
+    response = rewrite_chain.invoke({
         name_key:       ENTITY_NAME,
         "chat_history": history_str,
         "query":        state["query"]
-    }).replace("Search Query:", "").strip()
+    }).strip()
+    
+    # Check if [MEMORY] tag exists
+    if "[MEMORY]:" in response:
+        parts = response.split("[MEMORY]:")
+        search_q = parts[0].replace("Search Query:", "").strip()
+        memory_str = parts[1].strip()
+        
+        memory_items = [item.strip() for item in memory_str.split(',')]
+        
+        for item in memory_items:
+            if '=' in item:
+                key, value = item.split('=', 1)
+                memory_entry = f"{key.strip()}={value.strip()}"
 
+                if memory_entry in USER_MEMORY:
+                    continue
+            
+                USER_MEMORY = [m for m in USER_MEMORY if not m.startswith(f"{key.strip()}=")]
+                USER_MEMORY.append(memory_entry)
+                
+    else:
+        search_q = response.replace("Search Query:", "").strip()
+    
     if not search_q:
         search_q = state["query"]
-    print(f"[REWRITER]: {search_q}")
+    
     return {
         "messages":     [AIMessage(content=search_q, name="search_query")],
         "search_query": search_q
@@ -288,8 +364,8 @@ def rerank_node(state: AgentState) -> dict:
     reranked = reranker.compress_documents(docs, query=state['search_query'])
     return {"context": [doc.page_content for doc in reranked]}
 
-
 def generate_node(state: AgentState) -> dict:
+    global USER_MEMORY
     
     if "OUT_OF_SCOPE" in state.get('search_query', ''):
         response_text = "I'm sorry but you speak of a time that is not mine. My eyes see only the borders of my own reign." \
@@ -326,6 +402,14 @@ def generate_node(state: AgentState) -> dict:
 
     history_str = "\n".join(dialogue) if dialogue else "No previous conversation."
    
+    user_info_str = ""
+    if USER_MEMORY:
+        for item in USER_MEMORY:
+            if '=' in item:
+                key, value = item.split('=', 1)
+                user_info_str += f"\n- {key.strip()}: {value.strip()}"
+    else:
+        user_info_str = "No user information available yet."
 
     extra_instruction = ""
     if has_searched:
@@ -334,7 +418,7 @@ def generate_node(state: AgentState) -> dict:
             "Do not call the search tool again. Answer strictly from the context provided. "
             "Only if the answer is still missing, say: 'The gods have veiled that specific moment from my sight for now.'"
         )
-
+    
     name_key = ENTITY_CONFIG[ENTITY_TYPE]["name_key"]
 
     prompt = llm_prompt_template.format(**{
@@ -342,9 +426,13 @@ def generate_node(state: AgentState) -> dict:
         "context":      "\n\n".join(combined_context),
         "query":        state['query'],
         "chat_history": history_str,
+        "user_info":    user_info_str
     }) + extra_instruction
 
-    print(f"\n{ENTITY_NAME}: ", end="", flush=True)
+    # Only print name if we haven't searched yet
+    if not has_searched:
+        print(f"\n{ENTITY_NAME}: ", end="", flush=True)
+    
     full_content   = ""
     tool_calls_buf = None
 
@@ -355,28 +443,36 @@ def generate_node(state: AgentState) -> dict:
         if chunk.tool_calls:
             tool_calls_buf = chunk.tool_calls
 
-
-
-    if tool_calls_buf:
-        print(f"⚠️ [ATTENTION]: LLM is requesting a TOOL CALL: {tool_calls_buf[0]['name']}")
-    elif has_searched:
-        print("🌐 [SOURCE]: Final answer generated using WEB SEARCH + RAG context.")
-    else:
-        print("🏛️ [SOURCE]: Final answer generated using RAG context ONLY.")
-
-    
     print()
+    
     response = AIMessage(content=full_content, tool_calls=tool_calls_buf or [])
 
     if response.tool_calls and not has_searched:
-        print(f"\n[DECISION]: Consulting modern scrolls via {response.tool_calls[0]['name']}...")
+        print(f"[DECISION]: Consulting modern scrolls via {response.tool_calls[0]['name']}...")
         return {"messages": [response]}
+
+    # Add source attribution
+    if has_searched:
+        console = Console()
+        search_sources = extract_search_sources(current_turn_messages)
+        
+        if search_sources:
+            citation_text = " [Sources: "
+            citation_text += ", ".join([f"{i+1}" for i in range(len(search_sources))])
+            citation_text += "]"
+            
+            full_content += citation_text
+            
+            console.print("\n References:", style="bold cyan")
+            for idx, url in enumerate(search_sources, 1):
+                domain = urlparse(url).netloc.replace('www.', '')
+                console.print(f"  [{idx}] [link={url}]{domain}[/link]")        
+    
 
     return {
         "messages": [AIMessage(content=full_content, name="generator_response")],
         "response": full_content
     }
-
 
 def tts_node(state: AgentState) -> dict:
     if not state.get("response"):
@@ -388,8 +484,8 @@ def tts_node(state: AgentState) -> dict:
     output_path = str(output_dir / "response.mp3")
 
     try:
-        #lang  = detect(clean_text)
-        voice = LANG_TO_VOICE.get("en", DEFAULT_VOICE)
+        lang  = detect(clean_text)
+        voice = LANG_TO_VOICE.get(lang, DEFAULT_VOICE)
     except Exception:
         voice = DEFAULT_VOICE
     
