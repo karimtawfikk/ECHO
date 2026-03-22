@@ -9,6 +9,7 @@ class Pharaoh(Base):
     id = Column(Integer, primary_key=True, index=True)
     name = Column(String, nullable=False)                # e.g., "Ramesses II"
     dynasty = Column(String,nullable=True)                             # dynasty info
+    type = Column(String, nullable=False)  
     description = Column(String,nullable=True)                         # metadata
     period = Column(String,nullable=True)
     composite_entity = Column(String,nullable=True)   
