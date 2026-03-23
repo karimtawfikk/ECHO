@@ -250,7 +250,6 @@ def transcribe_audio(audio: np.ndarray) -> str:
     return transcription.text.strip()
 
 def extract_search_sources(current_turn_messages: list) -> list:
-    """Extract URLs from Tavily search results in ToolMessages"""
     search_sources = []
     
     for msg in current_turn_messages:
@@ -325,8 +324,7 @@ def rewrite_node(state: AgentState) -> dict:
                     continue
             
                 USER_MEMORY = [m for m in USER_MEMORY if not m.startswith(f"{key.strip()}=")]
-                USER_MEMORY.append(memory_entry)
-                
+                USER_MEMORY.append(memory_entry)               
     else:
         search_q = response.replace("Search Query:", "").strip()
     
@@ -338,9 +336,8 @@ def rewrite_node(state: AgentState) -> dict:
         "search_query": search_q
     }
 
-
 def retrieve_node(state: AgentState) -> dict:
-    start = time.perf_counter()
+
     query_embedding = get_embedding(state['search_query'])
     
     with Session(engine) as session:
@@ -352,10 +349,6 @@ def retrieve_node(state: AgentState) -> dict:
             }
         )
         context = [row[0] for row in result]
-    
-    end = time.perf_counter()
-    print(f"[RETRIEVAL TIME]: {end - start:.3f}s")
-    
     return {"context": context}
 
 
