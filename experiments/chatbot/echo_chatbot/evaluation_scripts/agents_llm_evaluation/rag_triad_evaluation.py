@@ -899,10 +899,10 @@ def main():
     print("="*80 + "\n")
     
     # Input: Pre-collected agent responses CSV
-    responses_csv = r"C:\Uni\4th Year\GP\ECHO\data\chatbot\outputs\echo_agent_evaluation\responses\agent_responses_baseline\agent_responses_pt1.csv"
+    responses_csv = r"C:\Uni\4th Year\GP\ECHO\data\chatbot\outputs\echo_agent_evaluation\responses\agent_responses_baseline\agent_responses_pt2.csv"
     
     # Output directory
-    output_dir = Path(r"C:\Uni\4th Year\GP\ECHO\data\chatbot\outputs\echo_agent_evaluation\ragas_evaluation_results\echo_agent_baseline\pt1")
+    output_dir = Path(r"C:\Uni\4th Year\GP\ECHO\data\chatbot\outputs\echo_agent_evaluation\ragas_evaluation_results\echo_agent_baseline\pt2")
     output_dir.mkdir(exist_ok=True)
     
     # Step 1: Load pre-collected responses
