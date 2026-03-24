@@ -1,7 +1,3 @@
-import time
-print("Starting timer")
-start = time.time()
-
 import sys
 from pathlib import Path
 sys.path.append(str(Path(__file__).resolve().parents[4]))
@@ -12,6 +8,7 @@ import re
 import io
 import asyncio
 import threading
+import time
 import numpy as np
 from groq import Groq
 from dotenv import load_dotenv
@@ -135,8 +132,6 @@ class AgentState(TypedDict):
     response:     str
     voice_mode:   bool
 
-print(f"Imports done: {time.time() - start:.1f}s")
-
 
 # Models & Tools
 """embedding_model = CloudflareWorkersAIEmbeddings(
@@ -150,9 +145,6 @@ qwen_model = SentenceTransformer(
     device='cuda',
     tokenizer_kwargs={"padding_side": "left"}
 )
-
-print(f"Model loaded: {time.time() - start:.1f}s")
-
 
 reranker = JinaRerank(
     model="jina-reranker-v3",
