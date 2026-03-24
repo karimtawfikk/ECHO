@@ -2,29 +2,23 @@ import time
 print("Starting timer")
 start = time.time()
 
-import sys
+from sys import path
 from pathlib import Path
-sys.path.append(str(Path(__file__).resolve().parents[4]))
+path.append(str(Path(__file__).resolve().parents[4]))
 
-import warnings
-import os
-import re
-import io
-import asyncio
-import threading
+from warnings import filterwarnings
+from os import getenv
+from re import sub
+from io import BytesIO
+from asyncio import run
+from threading import Event, Thread
 import numpy as np
 from groq import Groq
 from dotenv import load_dotenv
 from typing import TypedDict, Annotated, List
-from urllib.parse import urlparse
-from rich.console import Console
-import json
 
-import edge_tts
+from edge_tts import Communicate
 from langdetect import detect
-from sentence_transformers import SentenceTransformer
-
-
 
 from langgraph.graph import StateGraph, END
 from langgraph.checkpoint.memory import MemorySaver
@@ -36,7 +30,7 @@ from langchain_core.prompts import PromptTemplate
 from langchain_core.output_parsers import StrOutputParser
 from langchain_core.documents import Document
 from langchain_groq import ChatGroq
-from langchain_cloudflare import CloudflareWorkersAIEmbeddings
+#from langchain_cloudflare import CloudflareWorkersAIEmbeddings
 from langchain_community.document_compressors.jina_rerank import JinaRerank
 from langchain_tavily import TavilySearch
 
@@ -44,9 +38,9 @@ from sqlalchemy.orm import Session
 from sqlalchemy import text
 from src.db.session import engine
 
-import yaml
+from yaml import safe_load
 
-warnings.filterwarnings("ignore")
+filterwarnings("ignore")
 load_dotenv()
 
 
@@ -59,7 +53,7 @@ def load_resources():
     with open(base_path / "queries_optimized.sql", "r") as f:
         sql_template = f.read()
     with open(base_path / "evaluation_promptnew.yaml", "r", encoding="utf-8") as f:
-        prompts = yaml.safe_load(f)
+        prompts = safe_load(f)
     return sql_template, prompts
 
 SQL_TEMPLATE, PROMPTS = load_resources()
@@ -69,11 +63,11 @@ SQL_TEMPLATE, PROMPTS = load_resources()
 # Env
 # ---------------------------------------------------------------------------
 
-GROQ_API_KEY1          = os.getenv("GROQ_API_KEY1")
-GROQ_API_KEY2          = os.getenv("GROQ_API_KEY2")
-CF_WORKERSAI_ACCOUNTID = os.getenv("R2_ACCOUNT_ID")
-CF_AI_API              = os.getenv("CF_AI_API")
-JINA_API_KEY           = os.getenv("JINA_API_KEY")
+GROQ_API_KEY1          = getenv("GROQ_API_KEY1")
+GROQ_API_KEY2          = getenv("GROQ_API_KEY2")
+CF_WORKERSAI_ACCOUNTID = getenv("R2_ACCOUNT_ID")
+CF_AI_API              = getenv("CF_AI_API")
+JINA_API_KEY           = getenv("JINA_API_KEY")
 
 
 # ---------------------------------------------------------------------------
@@ -144,15 +138,17 @@ print(f"Imports done: {time.time() - start:.1f}s")
     api_token=CF_AI_API,
     model_name="@cf/qwen/qwen3-embedding-0.6b"
 )"""
-
-qwen_model = SentenceTransformer(
+qwen_model=None
+def load_model_background():
+    global qwen_model,start
+    from sentence_transformers import SentenceTransformer
+    qwen_model = SentenceTransformer(
     "Qwen/Qwen3-Embedding-0.6B",
     device='cuda',
     tokenizer_kwargs={"padding_side": "left"}
-)
-
-print(f"Model loaded: {time.time() - start:.1f}s")
-
+    )
+    print(f"Model loaded: {time.time() - start:.1f}s")
+    print("\n[System]: Scribes are ready. The Great Library is open.")
 
 reranker = JinaRerank(
     model="jina-reranker-v3",
@@ -211,10 +207,10 @@ def get_embedding(text: str):
 
 
 def clean_for_tts(text: str) -> str:
-    text = re.sub(r'\*\*(.+?)\*\*', r'\1', text)
-    text = re.sub(r'\*(.+?)\*',     r'\1', text)
-    text = re.sub(r'#{1,6}\s*',     '',    text)
-    text = re.sub(r'\n+',           ' ',   text).strip()
+    text = sub(r'\*\*(.+?)\*\*', r'\1', text)
+    text = sub(r'\*(.+?)\*',     r'\1', text)
+    text = sub(r'#{1,6}\s*',     '',    text)
+    text = sub(r'\n+',           ' ',   text).strip()
     return text
 
 
@@ -224,7 +220,7 @@ def record_audio() -> np.ndarray:
     print("[STT]: Recording... press Enter when done.")
 
     frames = []
-    stop   = threading.Event()
+    stop   = Event()
 
     def callback(indata, frame_count, time_info, status):
         frames.append(indata.copy())
@@ -233,7 +229,7 @@ def record_audio() -> np.ndarray:
         input()
         stop.set()
 
-    listener = threading.Thread(target=wait_for_enter, daemon=True)
+    listener = Thread(target=wait_for_enter, daemon=True)
     listener.start()
 
     with sd.InputStream(samplerate=STT_SAMPLE_RATE, channels=1, dtype='float32', callback=callback):
@@ -246,7 +242,7 @@ def transcribe_audio(audio: np.ndarray) -> str:
     from scipy.io.wavfile import write as wav_write
 
     audio_int16 = (audio * 32767).astype(np.int16)
-    buffer      = io.BytesIO()
+    buffer      = BytesIO()
     wav_write(buffer, STT_SAMPLE_RATE, audio_int16)
     buffer.seek(0)
 
@@ -256,32 +252,6 @@ def transcribe_audio(audio: np.ndarray) -> str:
         temperature=0
     )
     return transcription.text.strip()
-
-def extract_search_sources(current_turn_messages: list) -> list:
-    search_sources = []
-    
-    for msg in current_turn_messages:
-        if isinstance(msg, ToolMessage):
-            try:
-                
-                data = json.loads(msg.content) if isinstance(msg.content, str) else msg.content
-                
-                # Tavily format: {"results": [{"url": "...", "title": "..."}, ...]}
-                if isinstance(data, dict) and 'results' in data:
-                    results = data['results']
-                    for result in results[:3]:  # Top 3 sources
-                        if isinstance(result, dict) and 'url' in result:
-                            search_sources.append(result['url'])
-                # Fallback: direct list
-                elif isinstance(data, list):
-                    for result in data[:3]:
-                        if isinstance(result, dict) and 'url' in result:
-                            search_sources.append(result['url'])
-            except Exception:
-                pass
-    
-    return search_sources
-
 
 # ---------------------------------------------------------------------------
 # Nodes
@@ -430,9 +400,8 @@ def generate_node(state: AgentState) -> dict:
         "user_info":    user_info_str
     }) + extra_instruction
 
-    # Only print name if we haven't searched yet
-    if not has_searched:
-        print(f"\n{ENTITY_NAME}: ", end="", flush=True)
+    
+    print(f"\n{ENTITY_NAME}: ", end="", flush=True)
     
     full_content   = ""
     tool_calls_buf = None
@@ -451,24 +420,6 @@ def generate_node(state: AgentState) -> dict:
     if response.tool_calls and not has_searched:
         print(f"[DECISION]: Consulting modern scrolls via {response.tool_calls[0]['name']}...")
         return {"messages": [response]}
-
-    # Add source attribution
-    if has_searched:
-        console = Console()
-        search_sources = extract_search_sources(current_turn_messages)
-        
-        if search_sources:
-            citation_text = " [Sources: "
-            citation_text += ", ".join([f"{i+1}" for i in range(len(search_sources))])
-            citation_text += "]"
-            
-            full_content += citation_text
-            
-            console.print("\n References:", style="bold cyan")
-            for idx, url in enumerate(search_sources, 1):
-                domain = urlparse(url).netloc.replace('www.', '')
-                console.print(f"  [{idx}] [link={url}]{domain}[/link]")        
-    
 
     return {
         "messages": [AIMessage(content=full_content, name="generator_response")],
@@ -492,11 +443,11 @@ def tts_node(state: AgentState) -> dict:
     
     print(f"\n[TTS]: Generating speech via edge-tts ({voice})...")
     async def generate():
-        communicate = edge_tts.Communicate(clean_text, voice, rate=EDGE_TTS_RATE, pitch=EDGE_TTS_PITCH)
+        communicate = Communicate(clean_text, voice, rate=EDGE_TTS_RATE, pitch=EDGE_TTS_PITCH)
         await communicate.save(output_path)
 
     try:
-        asyncio.run(generate())
+        run(generate())
         print(f"[TTS]: Saved → {output_path}")
     except Exception as e:
         print(f"[TTS]: Failed — {e}")
@@ -555,6 +506,7 @@ graph  = workflow.compile(checkpointer=memory)
 
 def main():
     global ENTITY_TYPE, ENTITY_NAME, ENTITY_ID, VECTOR_SQL, rewrite_chain, llm_prompt_template
+    Thread(target=load_model_background, daemon=True).start()
 
     print("\n╔══════════════════════════════════╗")
     print("║        ANCIENT EGYPT RAG         ║")
