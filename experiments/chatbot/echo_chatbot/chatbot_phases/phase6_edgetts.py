@@ -302,7 +302,8 @@ def rewrite_node(state: AgentState) -> dict:
                     continue
             
                 USER_MEMORY = [m for m in USER_MEMORY if not m.startswith(f"{key.strip()}=")]
-                USER_MEMORY.append(memory_entry)               
+                USER_MEMORY.append(memory_entry) 
+                print("User memory: ", USER_MEMORY)              
     else:
         search_q = response.replace("Search Query:", "").strip()
     
