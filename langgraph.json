@@ -1,7 +1,0 @@
-{
-  "dependencies": ["."],
-  "graphs": {
-    "echo_agent": "./experiments/chatbot/echo_chatbot/phase6-langsmith.py:graph"
-  },
-  "env": ".env"
-}
