@@ -12,7 +12,9 @@ class Pharaoh(Base):
     type = Column(String, nullable=True)  
     description = Column(String,nullable=True)                         # metadata
     period = Column(String,nullable=True)
-    composite_entity = Column(String,nullable=True)   
+    composite_entity = Column(String,nullable=True)
+    gender = Column(String, nullable=True)   
+
    
     images = relationship("PharaohImage", back_populates="pharaoh")
     texts = relationship("PharaohText", back_populates="pharaoh")

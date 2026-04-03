@@ -1,7 +1,3 @@
-import time
-print("Starting timer")
-start = time.time()
-
 from sys import path
 from pathlib import Path
 path.append(str(Path(__file__).resolve().parents[4]))
@@ -129,8 +125,6 @@ class AgentState(TypedDict):
     response:     str
     voice_mode:   bool
 
-print(f"Imports done: {time.time() - start:.1f}s")
-
 
 # Models & Tools
 """embedding_model = CloudflareWorkersAIEmbeddings(
@@ -147,8 +141,7 @@ def load_model_background():
     device='cuda',
     tokenizer_kwargs={"padding_side": "left"}
     )
-    print(f"Model loaded: {time.time() - start:.1f}s")
-    print("\n[System]: Scribes are ready. The Great Library is open.")
+    
 
 reranker = JinaRerank(
     model="jina-reranker-v3",
@@ -199,7 +192,6 @@ def get_embedding(text: str):
         convert_to_numpy=True
     )
     
-    # Slice to 768 dims
     sliced = embeddings[:EMBEDDING_DIM]
     norm = np.linalg.norm(sliced)
     
@@ -284,6 +276,7 @@ def rewrite_node(state: AgentState) -> dict:
         "chat_history": history_str,
         "query":        state["query"]
     }).strip()
+    
     
     # Check if [MEMORY] tag exists
     if "[MEMORY]:" in response:
@@ -530,13 +523,21 @@ def main():
     table_name = "pharaohs" if ENTITY_TYPE == "pharaoh" else "landmarks"
     
     with Session(engine) as session:
-        result = session.execute(
-            text(f"SELECT id FROM {table_name} WHERE name = :name"),
-            {"name": ENTITY_NAME}
-        ).fetchone()
-        
+        result = None
+        if table_name=="pharaohs":
+            result = session.execute(
+                text(f"SELECT id, type FROM {table_name} WHERE name = :name"),
+                {"name": ENTITY_NAME}
+            ).fetchone()
+        else:
+            result = session.execute(
+                text(f"SELECT id FROM {table_name} WHERE name = :name"),
+                {"name": ENTITY_NAME}
+            ).fetchone()
+
         if result:
             ENTITY_ID = result[0]
+            ENTITY_TYPE = result[1] if table_name == "pharaohs" else None
             print(f"  ✓ Found {ENTITY_TYPE} (ID: {ENTITY_ID})")
         else:
             print(f"  ✗ Error: '{ENTITY_NAME}' not found in database!")
