@@ -28,7 +28,7 @@ from langchain_core.output_parsers import StrOutputParser
 from langchain_groq import ChatGroq
 from sqlalchemy.orm import Session
 from sqlalchemy import text
-from src.db.session import engine
+from src.db import engine
 
 
 # ============================================================================

@@ -5,7 +5,6 @@ from fastapi.responses import StreamingResponse
 
 from .schemas import (
     ChatRequest,
-    ChatResponse,
     HealthResponse,
     SpeechRequest,
     TranscriptionResponse,
@@ -21,10 +20,14 @@ def healthcheck() -> HealthResponse:
     return HealthResponse(status="ok")
 
 
-@app.post("/chat", response_model=ChatResponse)
-def chat(request: ChatRequest) -> ChatResponse:
+@app.post("/chat")
+def chat(request: ChatRequest) -> StreamingResponse:
     try:
-        return chatbot_service.chat(request)
+        return StreamingResponse(
+            chatbot_service.stream_chat(request),
+            media_type="text/event-stream",
+            headers={"Cache-Control": "no-cache", "X-Accel-Buffering": "no"},
+        )
     except ValueError as exc:
         raise HTTPException(status_code=404, detail=str(exc)) from exc
     except Exception as exc:

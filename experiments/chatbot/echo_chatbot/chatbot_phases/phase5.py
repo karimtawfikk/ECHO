@@ -27,7 +27,7 @@ from langchain_tavily import TavilySearch
 
 from sqlalchemy.orm import Session
 from sqlalchemy import text
-from src.db.session import engine
+from src.db import engine
 
 import yaml
 import numpy as np

@@ -16,7 +16,7 @@ from langchain_cloudflare import CloudflareWorkersAIEmbeddings
 from langchain_community.document_compressors.jina_rerank import JinaRerank
 from langchain_core.documents import Document
 from sqlalchemy.orm import Session
-from src.db.session import engine
+from src.db import engine
 from sqlalchemy import text
 import yaml
 import numpy as np

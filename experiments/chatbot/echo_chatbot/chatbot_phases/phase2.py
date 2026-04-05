@@ -16,7 +16,7 @@ from langchain_cloudflare import CloudflareWorkersAIEmbeddings
 from pathlib import Path
 import numpy as np
 from sqlalchemy.orm import Session
-from src.db.session import engine
+from src.db import engine
 from sqlalchemy import text
 import yaml
 warnings.filterwarnings("ignore")
