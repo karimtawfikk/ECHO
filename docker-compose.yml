@@ -1,11 +1,11 @@
 version: "3.8"
 
 services:
-  app:
+  chatbot:
     build:
       context: .
-      dockerfile: DockerFile
-    container_name: "${APP_CONTAINER_NAME:-echo-chatbot-api}"
+      dockerfile: Dockerfile.chatbot
+    container_name: "${CHATBOT_CONTAINER_NAME:-echo-chatbot-api}"
     environment:
       APP_ENV: "production"
       DATABASE_URL: "postgresql://${POSTGRES_USER}:${POSTGRES_PASSWORD}@host.docker.internal:5432/${POSTGRES_DB}"
