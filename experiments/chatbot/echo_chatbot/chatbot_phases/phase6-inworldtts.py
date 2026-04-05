@@ -73,7 +73,7 @@ EMBEDDING_DIM                  = 768
 INWORLD_API_KEY       = os.getenv("INWORLD_API_KEY")
 INWORLD_VOICE_ID      = "default-1ocgrlw5u8sovko4eeeqnw__ancient_egyptian_pharaoh"
 INWORLD_MODEL         = "inworld-tts-1.5-mini"
-INWORLD_SPEAKING_RATE = 2
+INWORLD_SPEAKING_RATE = 5
 INWORLD_TEMPERATURE   = 1.3
 
 STT_SAMPLE_RATE                = 16000
@@ -255,17 +255,18 @@ def rewrite_node(state: AgentState) -> dict:
 
 
 def retrieve_node(state: AgentState) -> dict:
-    print("\n[NODE]: retriever")
-    query_embedding = get_embedding(state['search_query'])
 
+    query_embedding = get_embedding(state['search_query'])
+    
     with Session(engine) as session:
         result = session.execute(
             text(VECTOR_SQL),
-            {"entity_name": ENTITY_NAME,
-             "embedding":   str(query_embedding)}
+            {
+                "entity_id": 64,
+                "embedding": str(query_embedding)
+            }
         )
         context = [row[0] for row in result]
-
     return {"context": context}
 
 
