@@ -5,8 +5,8 @@ ENV PYTHONUNBUFFERED=1
 
 WORKDIR /app
 
-COPY requirements.txt .
-RUN pip install --no-cache-dir --upgrade pip && pip install --no-cache-dir -r requirements.txt
+COPY requirements.chatbot.txt .
+RUN pip install --no-cache-dir --upgrade pip && pip install --no-cache-dir -r requirements.chatbot.txt
 
 COPY src/main.py src/main.py
 COPY src/chatbot_api src/chatbot_api

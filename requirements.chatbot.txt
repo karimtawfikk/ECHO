@@ -1,0 +1,28 @@
+# API
+fastapi
+uvicorn[standard]
+python-multipart
+pydantic
+
+# Database
+sqlalchemy
+psycopg2-binary
+pgvector
+
+# Environment / config
+python-dotenv
+pyyaml
+
+# Chatbot runtime
+numpy
+groq
+edge-tts
+langdetect
+sentence-transformers
+transformers
+torch
+langgraph
+langchain-core
+langchain-community
+langchain-groq
+langchain-tavily
