@@ -1104,9 +1104,4 @@ if __name__ == "__main__":
     parser.add_argument("--landmark", action="store_true", help="Use landmarks tables instead of pharaohs tables.")
     args = parser.parse_args()
 
-    start_time = time.time()
     build_final_video(entity_name=args.entity_name, is_landmark=args.landmark)
-    end_time = time.time()
-
-    elapsed = end_time - start_time
-    print(f"Total runtime: {elapsed:.2f} seconds ({elapsed/60:.2f} minutes)")
