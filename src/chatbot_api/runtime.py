@@ -21,7 +21,6 @@ from langchain_core.documents import Document
 from langchain_core.messages import AIMessage, HumanMessage, ToolMessage
 from langchain_core.output_parsers import StrOutputParser
 from langchain_core.prompts import PromptTemplate
-from langchain_core.runnables import RunnableConfig
 from langchain_groq import ChatGroq
 from langchain_tavily import TavilySearch
 from sqlalchemy import text
@@ -34,6 +33,7 @@ load_dotenv()
 
 
 class AgentState(TypedDict):
+    session_id: str
     query: str
     search_query: str
     messages: Annotated[list, add_messages]
@@ -224,11 +224,6 @@ class EchoChatbotRuntime:
             entity_id_col=cfg["entity_id_col"],
         )
 
-    def _get_session_id(self, config: RunnableConfig | None) -> str:
-        if config and config.get("configurable", {}).get("thread_id"):
-            return str(config["configurable"]["thread_id"])
-        raise RuntimeError("Missing session/thread id in graph config.")
-
     def _get_session_context(self, session_id: str) -> dict[str, object]:
         session_context = self.sessions.get(session_id)
         if not session_context:
@@ -246,8 +241,8 @@ class EchoChatbotRuntime:
             return user_info_str
         return "No user information available yet."
 
-    def rewrite_node(self, state: AgentState, config: RunnableConfig | None = None) -> dict:
-        session_id = self._get_session_id(config)
+    def rewrite_node(self, state: AgentState) -> dict:
+        session_id = state["session_id"]
         session_context = self._get_session_context(session_id)
         entity_type = str(session_context["entity_type"])
         entity_name = str(session_context["entity_name"])
@@ -302,8 +297,8 @@ class EchoChatbotRuntime:
             "search_query": search_query,
         }
 
-    def retrieve_node(self, state: AgentState, config: RunnableConfig | None = None) -> dict:
-        session_id = self._get_session_id(config)
+    def retrieve_node(self, state: AgentState) -> dict:
+        session_id = state["session_id"]
         session_context = self._get_session_context(session_id)
         query_embedding = self.get_embedding(state["search_query"])
         vector_sql = self.get_vector_sql(str(session_context["entity_type"]))
@@ -322,22 +317,28 @@ class EchoChatbotRuntime:
         reranked = self.reranker.compress_documents(docs, query=state["search_query"])
         return {"context": [doc.page_content for doc in reranked]}
 
-    def generate_node(self, state: AgentState, config: RunnableConfig | None = None) -> dict:
-        session_id = self._get_session_id(config)
+    def generate_node(self, state: AgentState) -> dict:
+        response_text, tool_calls = self._generate_response(state)
+        if tool_calls:
+            return {"messages": [AIMessage(content=response_text, tool_calls=tool_calls)]}
+        return {
+            "messages": [AIMessage(content=response_text, name="generator_response")],
+            "response": response_text,
+        }
+
+    def _build_generation_payload(self, state: AgentState) -> tuple[str | None, str, bool]:
+        session_id = state["session_id"]
         session_context = self._get_session_context(session_id)
         entity_type = str(session_context["entity_type"])
         entity_name = str(session_context["entity_name"])
 
         if "OUT_OF_SCOPE" in state.get("search_query", ""):
-            response_text = (
+            out_of_scope = (
                 "I'm sorry but you speak of a time that is not mine. My eyes see only the borders of my own reign."
                 if entity_type == "pharaoh"
                 else "I'm sorry, that lies beyond what my stones remember."
             )
-            return {
-                "messages": [AIMessage(content=response_text, name="irrelevant_query")],
-                "response": response_text,
-            }
+            return out_of_scope, "", False
 
         last_human_index = -1
         for index, message in enumerate(state["messages"]):
@@ -388,14 +389,128 @@ class EchoChatbotRuntime:
             }
         ) + extra_instruction
 
+        return None, prompt, has_searched
+
+    def _generate_response(self, state: AgentState) -> tuple[str, list]:
+        out_of_scope_text, prompt, has_searched = self._build_generation_payload(state)
+        if out_of_scope_text is not None:
+            return out_of_scope_text, []
+
         response = self.generator_llm.invoke(prompt)
         if response.tool_calls and not has_searched:
-            return {"messages": [response]}
+            return response.content, response.tool_calls
 
-        return {
-            "messages": [AIMessage(content=response.content, name="generator_response")],
-            "response": response.content,
+        return response.content, []
+
+    def _stream_generation(self, state: AgentState) -> tuple[str, list]:
+        out_of_scope_text, prompt, has_searched = self._build_generation_payload(state)
+        if out_of_scope_text is not None:
+            return out_of_scope_text, []
+
+        full_content = ""
+        tool_calls_buf = None
+
+        for chunk in self.generator_llm.stream(prompt):
+            if chunk.content:
+                full_content += chunk.content
+                yield chunk.content
+            if chunk.tool_calls:
+                tool_calls_buf = chunk.tool_calls
+
+        if tool_calls_buf and not has_searched:
+            return full_content, tool_calls_buf
+        return full_content, []
+
+    def _invoke_search_tool(self, tool_call: dict) -> ToolMessage:
+        result = self.search_tool.invoke(tool_call["args"])
+        return ToolMessage(
+            content=str(result),
+            tool_call_id=tool_call["id"],
+            name=tool_call["name"],
+        )
+
+    def _persist_session_messages(self, session_id: str, messages: list) -> None:
+        session_context = self._get_session_context(session_id)
+        session_context["messages"] = messages
+
+    def stream_chat(
+        self,
+        *,
+        session_id: str,
+        entity_type: str,
+        entity_name: str,
+        message: str,
+    ):
+        entity_id, gender = self.resolve_entity(entity_type, entity_name)
+        session_context = self.sessions.get(session_id)
+        if (
+            session_context is None
+            or session_context.get("entity_type") != entity_type
+            or session_context.get("entity_name") != entity_name
+        ):
+            self.sessions[session_id] = {
+                "entity_type": entity_type,
+                "entity_name": entity_name,
+                "entity_id": entity_id,
+                "gender": gender,
+                "user_memory": [],
+                "messages": [],
+            }
+        else:
+            session_context["entity_id"] = entity_id
+            session_context["gender"] = gender
+
+        session_context = self._get_session_context(session_id)
+        messages = list(session_context.get("messages", []))
+        messages.append(HumanMessage(content=message))
+
+        state: AgentState = {
+            "session_id": session_id,
+            "messages": messages,
+            "query": message,
+            "search_query": "",
+            "context": [],
+            "response": "",
         }
+
+        rewrite_result = self.rewrite_node(state)
+        state["messages"] = state["messages"] + rewrite_result["messages"]
+        state["search_query"] = rewrite_result["search_query"]
+
+        retrieve_result = self.retrieve_node(state)
+        state["context"] = retrieve_result["context"]
+
+        rerank_result = self.rerank_node(state)
+        state["context"] = rerank_result["context"]
+
+        preview_text, tool_calls = self._generate_response(state)
+        if tool_calls:
+            tool_message = self._invoke_search_tool(tool_calls[0])
+            state["messages"] = state["messages"] + [
+                AIMessage(content=preview_text, tool_calls=tool_calls),
+                tool_message,
+            ]
+
+        final_chunks = []
+        stream_result = yield from self._stream_generation(state)
+        if isinstance(stream_result, tuple):
+            final_text, streamed_tool_calls = stream_result
+        else:
+            final_text, streamed_tool_calls = "", []
+
+        if streamed_tool_calls:
+            tool_message = self._invoke_search_tool(streamed_tool_calls[0])
+            state["messages"] = state["messages"] + [
+                AIMessage(content=final_text, tool_calls=streamed_tool_calls),
+                tool_message,
+            ]
+            stream_result = yield from self._stream_generation(state)
+            if isinstance(stream_result, tuple):
+                final_text, _ = stream_result
+
+        state["messages"] = state["messages"] + [AIMessage(content=final_text, name="generator_response")]
+        self._persist_session_messages(session_id, state["messages"])
+        yield "\n"
 
     def chat(
         self,
@@ -425,6 +540,7 @@ class EchoChatbotRuntime:
 
         result = self.graph.invoke(
             {
+                "session_id": session_id,
                 "messages": [("user", message)],
                 "query": message,
                 "search_query": "",
