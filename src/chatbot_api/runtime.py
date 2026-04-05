@@ -5,6 +5,7 @@ from io import BytesIO
 from os import getenv
 from pathlib import Path
 from re import sub
+from time import perf_counter
 from typing import Annotated, TypedDict
 
 import numpy as np
@@ -86,6 +87,7 @@ class EchoChatbotRuntime:
         self.sql_template, self.prompts = self._load_resources()
         self.sessions: dict[str, dict[str, object]] = {}
         self.qwen_model = None
+        self.hf_token = getenv("HF_TOKEN")
 
         self.groq_client = Groq(api_key=getenv("GROQ_API_KEY1"))
         self.query_rewriter_llm = ChatGroq(
@@ -144,12 +146,16 @@ class EchoChatbotRuntime:
         from sentence_transformers import SentenceTransformer
         import torch
 
+        start = perf_counter()
         device = "cuda" if torch.cuda.is_available() else "cpu"
+        print(f"[chatbot] Loading embedding model on device={device}...", flush=True)
         self.qwen_model = SentenceTransformer(
             "Qwen/Qwen3-Embedding-0.6B",
             device=device,
             tokenizer_kwargs={"padding_side": "left"},
+            token=self.hf_token,
         )
+        print(f"[chatbot] Embedding model ready in {perf_counter() - start:.2f}s", flush=True)
 
     def get_embedding(self, text_value: str) -> list[float]:
         self.ensure_models_loaded()
@@ -399,12 +405,12 @@ class EchoChatbotRuntime:
         response = self.generator_llm.invoke(prompt)
         if response.tool_calls and not has_searched:
             return response.content, response.tool_calls
-
         return response.content, []
 
-    def _stream_generation(self, state: AgentState) -> tuple[str, list]:
+    def _stream_generation(self, state: AgentState):
         out_of_scope_text, prompt, has_searched = self._build_generation_payload(state)
         if out_of_scope_text is not None:
+            yield {"type": "token", "content": out_of_scope_text}
             return out_of_scope_text, []
 
         full_content = ""
@@ -413,7 +419,7 @@ class EchoChatbotRuntime:
         for chunk in self.generator_llm.stream(prompt):
             if chunk.content:
                 full_content += chunk.content
-                yield chunk.content
+                yield {"type": "token", "content": chunk.content}
             if chunk.tool_calls:
                 tool_calls_buf = chunk.tool_calls
 
@@ -441,7 +447,16 @@ class EchoChatbotRuntime:
         entity_name: str,
         message: str,
     ):
+        total_start = perf_counter()
+        print(
+            f"[chatbot] /chat start session={session_id} entity_type={entity_type} entity_name={entity_name}",
+            flush=True,
+        )
+
+        step_start = perf_counter()
         entity_id, gender = self.resolve_entity(entity_type, entity_name)
+        print(f"[chatbot] resolve_entity: {perf_counter() - step_start:.2f}s", flush=True)
+
         session_context = self.sessions.get(session_id)
         if (
             session_context is None
@@ -473,44 +488,65 @@ class EchoChatbotRuntime:
             "response": "",
         }
 
+        step_start = perf_counter()
         rewrite_result = self.rewrite_node(state)
+        print(f"[chatbot] rewrite_node: {perf_counter() - step_start:.2f}s", flush=True)
         state["messages"] = state["messages"] + rewrite_result["messages"]
         state["search_query"] = rewrite_result["search_query"]
 
+        step_start = perf_counter()
         retrieve_result = self.retrieve_node(state)
+        print(f"[chatbot] retrieve_node: {perf_counter() - step_start:.2f}s", flush=True)
         state["context"] = retrieve_result["context"]
 
+        step_start = perf_counter()
         rerank_result = self.rerank_node(state)
+        print(f"[chatbot] rerank_node: {perf_counter() - step_start:.2f}s", flush=True)
         state["context"] = rerank_result["context"]
 
-        preview_text, tool_calls = self._generate_response(state)
-        if tool_calls:
-            tool_message = self._invoke_search_tool(tool_calls[0])
-            state["messages"] = state["messages"] + [
-                AIMessage(content=preview_text, tool_calls=tool_calls),
-                tool_message,
-            ]
-
-        final_chunks = []
-        stream_result = yield from self._stream_generation(state)
+        print("[chatbot] generation stream starting...", flush=True)
+        stream_start = perf_counter()
+        stream_generator = self._stream_generation(state)
+        try:
+            while True:
+                event = next(stream_generator)
+                if event["type"] == "token":
+                    yield f"data: {event['content']}\n\n"
+        except StopIteration as stop:
+            stream_result = stop.value
+        print(f"[chatbot] generation stream pass: {perf_counter() - stream_start:.2f}s", flush=True)
         if isinstance(stream_result, tuple):
             final_text, streamed_tool_calls = stream_result
         else:
             final_text, streamed_tool_calls = "", []
 
         if streamed_tool_calls:
+            print("[chatbot] streamed generation requested tool call", flush=True)
             tool_message = self._invoke_search_tool(streamed_tool_calls[0])
             state["messages"] = state["messages"] + [
                 AIMessage(content=final_text, tool_calls=streamed_tool_calls),
                 tool_message,
             ]
-            stream_result = yield from self._stream_generation(state)
+            stream_start = perf_counter()
+            stream_generator = self._stream_generation(state)
+            try:
+                while True:
+                    event = next(stream_generator)
+                    if event["type"] == "token":
+                        yield f"data: {event['content']}\n\n"
+            except StopIteration as stop:
+                stream_result = stop.value
+            print(
+                f"[chatbot] generation stream second pass: {perf_counter() - stream_start:.2f}s",
+                flush=True,
+            )
             if isinstance(stream_result, tuple):
                 final_text, _ = stream_result
 
         state["messages"] = state["messages"] + [AIMessage(content=final_text, name="generator_response")]
         self._persist_session_messages(session_id, state["messages"])
-        yield "\n"
+        print(f"[chatbot] /chat done in {perf_counter() - total_start:.2f}s", flush=True)
+        yield "event: done\ndata: [DONE]\n\n"
 
     def chat(
         self,
