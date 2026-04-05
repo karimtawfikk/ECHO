@@ -1,7 +1,7 @@
 from sqlalchemy import Column, ForeignKey, Index, Integer, Text
 from pgvector.sqlalchemy import Vector
 from sqlalchemy.orm import relationship
-from src.db.session import Base
+from src.db import Base
 
 class LandmarkScript(Base):
     __tablename__ = "landmarks_scripts"

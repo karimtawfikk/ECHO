@@ -7,6 +7,8 @@
 !src/chatbot_api/**
 !src/db/
 !src/db/**
+!src/models/
+!src/models/**
 !experiments/
 !experiments/chatbot/
 !experiments/chatbot/echo_chatbot/

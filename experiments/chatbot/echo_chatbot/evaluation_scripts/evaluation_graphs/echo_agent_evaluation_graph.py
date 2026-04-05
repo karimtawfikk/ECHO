@@ -32,7 +32,7 @@ from langchain_community.document_compressors.jina_rerank import JinaRerank
 
 from sqlalchemy.orm import Session
 from sqlalchemy import text
-from src.db.session import engine
+from src.db import engine
 
 import yaml
 

@@ -5,7 +5,7 @@ sys.path.append(str(Path(__file__).resolve().parents[1]))
 import json
 import chromadb
 from sqlalchemy.orm import Session
-from src.db.session import engine, Base
+from src.db import engine, Base
 from src.models.landmarks import Landmark
 from src.models.landmarks_images import LandmarkImage
 from src.models.landmarks_text import LandmarkText
