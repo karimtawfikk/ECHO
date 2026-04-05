@@ -1,7 +1,7 @@
 from __future__ import annotations
 
 import asyncio
-import hashlib
+import hashlib 
 import json
 import os
 import re
@@ -16,14 +16,14 @@ import time
 from pathlib import Path
 from typing import List, Sequence
 
-from boto3.session import Session as Boto3Session
-from edge_tts import Communicate
-from librosa import effects, load
+import boto3
+import edge_tts
+import librosa
 import numpy as np
-from open_clip import create_model_and_transforms, get_tokenizer
+import open_clip
 import pillow_avif  
 import soundfile as sf
-from torch import cuda, no_grad
+import torch
 from dotenv import load_dotenv
 from PIL import Image
 from scipy.io import wavfile
@@ -77,19 +77,19 @@ class VideoPipelineConfig:
 # -----------------------------------------------------------------------------
 _CLIP_MODEL = None
 _CLIP_TOKENIZER = None
-_CLIP_DEVICE = "cuda" if cuda.is_available() else "cpu"
+_CLIP_DEVICE = "cuda" if torch.cuda.is_available() else "cpu"
 
 
 def get_clip_model():
     global _CLIP_MODEL, _CLIP_TOKENIZER
     if _CLIP_MODEL is None or _CLIP_TOKENIZER is None:
-        model, _, _ = create_model_and_transforms(
+        model, _, _ = open_clip.create_model_and_transforms(
             "ViT-H-14",
             pretrained="laion2b_s32b_b79k",
         )
         model = model.to(_CLIP_DEVICE)
         model.eval()
-        tokenizer = get_tokenizer("ViT-H-14")
+        tokenizer = open_clip.get_tokenizer("ViT-H-14")
 
         _CLIP_MODEL = model
         _CLIP_TOKENIZER = tokenizer
@@ -144,12 +144,12 @@ def split_script_into_paragraph_sentences(script: str) -> tuple[List[str], List[
 # Audio generation
 # -----------------------------------------------------------------------------
 async def edge_tts_save(text: str, out_path: str | Path, voice: str, rate: str) -> None:
-    communicate = Communicate(text=text, voice=voice, rate=rate)
+    communicate = edge_tts.Communicate(text=text, voice=voice, rate=rate)
     await communicate.save(str(out_path))
 
 def trim_trailing_silence(audio_path: str | Path, top_db: int = 20) -> None:
-    y, sr = load(str(audio_path), sr=None)
-    yt, _ = effects.trim(y, top_db=top_db)
+    y, sr = librosa.load(str(audio_path), sr=None)
+    yt, _ = librosa.effects.trim(y, top_db=top_db)
     sf.write(str(audio_path), yt, sr)
 
 async def generate_tts_audio(
@@ -338,7 +338,7 @@ def retrieve_images_semantic(
         desc_emb = None
         if (not is_landmark) and (not image_description):
             tokens = tokenizer([image_description]).to(device)
-            with no_grad():
+            with torch.no_grad():
                 desc_emb = model.encode_text(tokens)
                 desc_emb /= desc_emb.norm(dim=-1, keepdim=True)
             desc_emb = desc_emb.cpu().numpy()[0]
@@ -355,7 +355,7 @@ def retrieve_images_semantic(
     for paragraph_chunks in image_text_chunks:
         for chunk in paragraph_chunks:
             text_tokens = tokenizer([chunk]).to(device)
-            with no_grad():
+            with torch.no_grad():
                 emb = model.encode_text(text_tokens)
                 emb /= emb.norm(dim=-1, keepdim=True)
             scene_emb = emb.cpu().numpy()[0]
@@ -412,7 +412,7 @@ def _build_r2_client():
     if not all([account_id, access_key, secret_key]):
         raise ValueError("Missing one or more Cloudflare R2 environment variables.")
 
-    session = Boto3Session()
+    session = boto3.session.Session()
     return session.client(
         "s3",
         region_name="auto",
