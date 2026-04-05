@@ -24,6 +24,7 @@ alembic/versions/__pycache__/
 
 # folder
 data/
+tts_Outputs/
 
 .vscode/
 .idea/
