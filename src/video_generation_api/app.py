@@ -18,6 +18,10 @@ def healthcheck() -> HealthResponse:
 @app.post("/generate", responses={200: {"content": {"video/mp4": {}}}})
 def generate_video(request: VideoGenerationRequest) -> FileResponse:
     try:
+        print(
+            f"[video_api] Received /generate request entity_name={request.entity_name!r} "
+            f"is_landmark={request.is_landmark}"
+        )
         output_path, metadata = video_generation_service.generate(request)
         if not output_path.exists():
             raise HTTPException(status_code=500, detail="Video generation completed but no file was found.")
