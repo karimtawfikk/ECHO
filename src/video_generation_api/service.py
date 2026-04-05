@@ -15,6 +15,10 @@ class VideoGenerationService:
         entity_type = "landmark" if request.is_landmark else "pharaoh"
 
         with self._lock:
+            print(
+                f"[video_service] Starting generation entity_name={request.entity_name!r} "
+                f"entity_type={entity_type}"
+            )
             output_path = video_generation_runtime.generate_video(
                 entity_name=request.entity_name,
                 is_landmark=request.is_landmark,
