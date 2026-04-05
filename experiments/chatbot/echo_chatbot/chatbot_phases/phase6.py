@@ -39,36 +39,21 @@ from yaml import safe_load
 filterwarnings("ignore")
 load_dotenv()
 
-
-# ---------------------------------------------------------------------------
-# Resources
-# ---------------------------------------------------------------------------
-
 def load_resources():
     base_path = Path(__file__).parent.parent / "resources"
-    with open(base_path / "queries_optimized.sql", "r") as f:
+    with open(base_path / "queries.sql", "r") as f:
         sql_template = f.read()
-    with open(base_path / "evaluation_promptnew.yaml", "r", encoding="utf-8") as f:
+    with open(base_path / "prompts.yaml", "r", encoding="utf-8") as f:
         prompts = safe_load(f)
     return sql_template, prompts
 
 SQL_TEMPLATE, PROMPTS = load_resources()
-
-
-# ---------------------------------------------------------------------------
-# Env
-# ---------------------------------------------------------------------------
 
 GROQ_API_KEY1          = getenv("GROQ_API_KEY1")
 GROQ_API_KEY2          = getenv("GROQ_API_KEY2")
 CF_WORKERSAI_ACCOUNTID = getenv("R2_ACCOUNT_ID")
 CF_AI_API              = getenv("CF_AI_API")
 JINA_API_KEY           = getenv("JINA_API_KEY")
-
-
-# ---------------------------------------------------------------------------
-# Config
-# ---------------------------------------------------------------------------
 
 GROQ_GENERATOR_MODEL_NAME      = "openai/gpt-oss-120b"
 GROQ_QUERY_REWRITER_MODEL_NAME = "qwen/qwen3-32b"
@@ -98,20 +83,43 @@ ENTITY_CONFIG = {
 }
 
 LANG_TO_VOICE = {
-    "en": "en-US-ChristopherNeural",
-    "es": "es-ES-AlvaroNeural",
-    "fr": "fr-FR-HenriNeural",
-    "ar": "ar-EG-ShakirNeural",
-    "de": "de-DE-ConradNeural",
-    "it": "it-IT-DiegoNeural",
-    "pt": "pt-BR-AntonioNeural",
+    "en": {
+        "male": "en-CA-LiamNeural",
+        "female": "en-US-JennyNeural"
+    },
+    "es": {
+        "male": "es-ES-AlvaroNeural",
+        "female": "es-ES-ElviraNeural"
+    },
+    "fr": {
+        "male": "fr-FR-HenriNeural",
+        "female": "fr-FR-DeniseNeural"
+    },
+    "ar": {
+        "male": "ar-EG-ShakirNeural",
+        "female": "ar-BH-LailaNeural"
+    },
+    "de": {
+        "male": "de-DE-ConradNeural",
+        "female": "de-DE-KatjaNeural"
+    },
+    "it": {
+        "male": "it-IT-DiegoNeural",
+        "female": "it-IT-ElsaNeural"
+    },
+    "pt": {
+        "male": "pt-BR-AntonioNeural",
+        "female": "pt-BR-FranciscaNeural"
+    }
 }
+
 DEFAULT_VOICE = "en-US-ChristopherNeural"
 
 ENTITY_TYPE          = None
 ENTITY_NAME          = None
 ENTITY_ID            = None
 VECTOR_SQL           = None
+PHARAOH_GENDER       = None
 rewrite_chain        = None
 llm_prompt_template  = None
 
@@ -296,7 +304,7 @@ def rewrite_node(state: AgentState) -> dict:
             
                 USER_MEMORY = [m for m in USER_MEMORY if not m.startswith(f"{key.strip()}=")]
                 USER_MEMORY.append(memory_entry) 
-                print("User memory: ", USER_MEMORY)              
+                           
     else:
         search_q = response.replace("Search Query:", "").strip()
     
@@ -425,13 +433,14 @@ def tts_node(state: AgentState) -> dict:
         return {}
 
     clean_text = clean_for_tts(state["response"])
-    output_dir = Path(__file__).parent / "audio"
+    output_dir = Path(__file__).parent.parent / "audio"
     output_dir.mkdir(exist_ok=True)
     output_path = str(output_dir / "response.mp3")
 
     try:
-        lang  = detect(clean_text)
-        voice = LANG_TO_VOICE.get(lang, DEFAULT_VOICE)
+        lang = detect(clean_text)
+        lang_voices = LANG_TO_VOICE.get(lang, LANG_TO_VOICE["en"])
+        voice = lang_voices.get(PHARAOH_GENDER, LANG_TO_VOICE["en"]["male"])
     except Exception:
         voice = DEFAULT_VOICE
     
@@ -447,6 +456,7 @@ def tts_node(state: AgentState) -> dict:
         print(f"[TTS]: Failed — {e}")
 
     return {}
+
 
 
 def route_tts(state: AgentState) -> str:
@@ -499,7 +509,7 @@ graph  = workflow.compile(checkpointer=memory)
 # ---------------------------------------------------------------------------
 
 def main():
-    global ENTITY_TYPE, ENTITY_NAME, ENTITY_ID, VECTOR_SQL, rewrite_chain, llm_prompt_template
+    global ENTITY_TYPE, ENTITY_NAME, ENTITY_ID, VECTOR_SQL,PHARAOH_GENDER, rewrite_chain, llm_prompt_template
     Thread(target=load_model_background, daemon=True).start()
 
     print("\n╔══════════════════════════════════╗")
@@ -526,7 +536,7 @@ def main():
         result = None
         if table_name=="pharaohs":
             result = session.execute(
-                text(f"SELECT id, type FROM {table_name} WHERE name = :name"),
+                text(f"SELECT id, gender FROM {table_name} WHERE name = :name"),
                 {"name": ENTITY_NAME}
             ).fetchone()
         else:
@@ -537,7 +547,7 @@ def main():
 
         if result:
             ENTITY_ID = result[0]
-            ENTITY_TYPE = result[1] if table_name == "pharaohs" else None
+            PHARAOH_GENDER = result[1] if table_name == "pharaohs" else "male"
             print(f"  ✓ Found {ENTITY_TYPE} (ID: {ENTITY_ID})")
         else:
             print(f"  ✗ Error: '{ENTITY_NAME}' not found in database!")

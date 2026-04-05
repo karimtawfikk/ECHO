@@ -1,6 +1,7 @@
 # Web framework (for later API phase)
 fastapi
 uvicorn[standard]
+python-multipart
 
 # Database
 sqlalchemy
@@ -15,6 +16,7 @@ pgvector
 
 # Environment variables
 python-dotenv
+pyyaml
 
 # Data processing and utilities
 pandas
@@ -22,21 +24,33 @@ requests
 tqdm
 pillow
 boto3
+scipy
+sounddevice
 
 # Vector/embedding and local DB tooling
 chromadb
 
 # Generative AI / LLM integrations
 google-genai
+groq
+edge-tts
 
 # NLP and evaluation tooling (used in notebooks)
 numpy
 scikit-learn
 spacy
 textstat
+langdetect
 sentence-transformers
 transformers
 torch
+
+# LangGraph / LangChain stack for chatbot phases
+langgraph
+langchain-core
+langchain-community
+langchain-groq
+langchain-tavily
 
 # Jupyter for experimentation
 notebook
