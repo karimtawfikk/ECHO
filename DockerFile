@@ -1,22 +1,18 @@
 FROM python:3.11-slim
 
-# Set working directory to /app, could be any name, but /app is common convention
-WORKDIR /app 
+ENV PYTHONDONTWRITEBYTECODE=1
+ENV PYTHONUNBUFFERED=1
 
-# Copy your code
-COPY . .
+WORKDIR /app
 
-# Install dependencies
-RUN pip install -r requirements.txt
+COPY requirements.txt .
+RUN pip install --no-cache-dir --upgrade pip && pip install --no-cache-dir -r requirements.txt
 
-ENV APP_ENV=production 
-#todo add missing env vars
+COPY src/main.py src/main.py
+COPY src/chatbot_api src/chatbot_api
+COPY src/db src/db
+COPY experiments/chatbot/echo_chatbot/resources experiments/chatbot/echo_chatbot/resources
 
-CMD ["python", "src/main.py"]
+EXPOSE 8000
 
-#for later.
-#dockerfile -(build)> docker image -(run)> docker container -> running application
-#To build the Docker image, run:
-#docker build -t echo-app .
-# once the image is built, you can run a container using:
-#docker run -d -p 8000:8000 --name echo-container echo-app or docker run --name echo-app -p 8000:8000 echo-app
+CMD ["uvicorn", "src.main:app", "--host", "0.0.0.0", "--port", "8000"]
