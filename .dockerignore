@@ -1,10 +1,14 @@
 *
 !Dockerfile.chatbot
+!Dockerfile.video
 !requirements.txt
 !requirements.chatbot.txt
+!requirements.video.txt
 !src/
 !src/chatbot_api/
 !src/chatbot_api/**
+!src/video_generation_api/
+!src/video_generation_api/**
 !src/db/
 !src/db/**
 !experiments/

@@ -336,7 +336,7 @@ def retrieve_images_semantic(
         image_embedding = image_embedding / np.linalg.norm(image_embedding)
 
         desc_emb = None
-        if (not is_landmark) and (not image_description):
+        if (not is_landmark) and image_description:
             tokens = tokenizer([image_description]).to(device)
             with no_grad():
                 desc_emb = model.encode_text(tokens)
@@ -1104,4 +1104,4 @@ if __name__ == "__main__":
     parser.add_argument("--landmark", action="store_true", help="Use landmarks tables instead of pharaohs tables.")
     args = parser.parse_args()
 
-    build_final_video(entity_name=args.entity_name, is_landmark=args.landmark)
+    build_final_video(entity_name=args.entity_name, is_landmark=args.landmark)  
