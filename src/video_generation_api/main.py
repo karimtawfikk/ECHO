@@ -1,0 +1,1 @@
+from src.video_generation_api.app import app
