@@ -8,14 +8,6 @@ class ChatRequest(BaseModel):
     message: str = Field(..., min_length=1)
 
 
-class ChatResponse(BaseModel):
-    session_id: str
-    entity_type: str
-    entity_name: str
-    entity_id: int
-    reply_text: str
-
-
 class HealthResponse(BaseModel):
     status: str
 
