@@ -38,7 +38,7 @@ while root != root.parent and not (root / "src").exists():
     root = root.parent
 
 sys.path.append(str(root))
-from src.db.session import engine 
+from src.db import engine 
 
 
 # -----------------------------------------------------------------------------

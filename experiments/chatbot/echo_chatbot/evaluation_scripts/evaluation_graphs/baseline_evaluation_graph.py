@@ -20,7 +20,7 @@ from langchain_cloudflare import CloudflareWorkersAIEmbeddings
 
 from sqlalchemy.orm import Session
 from sqlalchemy import text
-from src.db.session import engine
+from src.db import engine
 import yaml
 
 warnings.filterwarnings("ignore")
