@@ -1,0 +1,441 @@
+@import "tailwindcss";
+@import "tw-animate-css";
+@import "shadcn/tailwind.css";
+
+@custom-variant dark (&:is(.dark *));
+
+@theme inline {
+  --color-background: var(--background);
+  --color-foreground: var(--foreground);
+  --font-sans: var(--font-jakarta);
+  --font-mono: var(--font-geist-mono);
+  --color-sidebar-ring: var(--sidebar-ring);
+  --color-sidebar-border: var(--sidebar-border);
+  --color-sidebar-accent-foreground: var(--sidebar-accent-foreground);
+  --color-sidebar-accent: var(--sidebar-accent);
+  --color-sidebar-primary-foreground: var(--sidebar-primary-foreground);
+  --color-sidebar-primary: var(--sidebar-primary);
+  --color-sidebar-foreground: var(--sidebar-foreground);
+  --color-sidebar: var(--sidebar);
+  --color-chart-5: var(--chart-5);
+  --color-chart-4: var(--chart-4);
+  --color-chart-3: var(--chart-3);
+  --color-chart-2: var(--chart-2);
+  --color-chart-1: var(--chart-1);
+  --color-ring: var(--ring);
+  --color-input: var(--input);
+  --color-border: var(--border);
+  --color-destructive: var(--destructive);
+  --color-accent-foreground: var(--accent-foreground);
+  --color-accent: var(--accent);
+  --color-muted-foreground: var(--muted-foreground);
+  --color-muted: var(--muted);
+  --color-secondary-foreground: var(--secondary-foreground);
+  --color-secondary: var(--secondary);
+  --color-primary-foreground: var(--primary-foreground);
+  --color-primary: var(--primary);
+  --color-popover-foreground: var(--popover-foreground);
+  --color-popover: var(--popover);
+  --color-card-foreground: var(--card-foreground);
+  --color-card: var(--card);
+  --radius-sm: calc(var(--radius) - 4px);
+  --radius-md: calc(var(--radius) - 2px);
+  --radius-lg: var(--radius);
+  --radius-xl: calc(var(--radius) + 4px);
+  --radius-2xl: calc(var(--radius) + 8px);
+  --radius-3xl: calc(var(--radius) + 12px);
+  --radius-4xl: calc(var(--radius) + 16px);
+}
+
+/* ========== WARM EGYPTIAN PALETTE ========== */
+:root {
+  --radius: 1rem;
+  --background: #0D0A07;
+  --foreground: #F5E6D0;
+  --card: rgba(30, 22, 14, 0.85);
+  --card-foreground: #F5E6D0;
+  --popover: #1A1208;
+  --popover-foreground: #F5E6D0;
+  --primary: #E6B23C;
+  --primary-foreground: #0D0A07;
+  --secondary: #1E160E;
+  --secondary-foreground: #FFD369;
+  --muted: #1A1208;
+  --muted-foreground: #A08E70;
+  --accent: #1E160E;
+  --accent-foreground: #E6B23C;
+  --destructive: #C44536;
+  --border: rgba(230, 178, 60, 0.12);
+  --input: rgba(230, 178, 60, 0.08);
+  --ring: rgba(230, 178, 60, 0.4);
+}
+
+/* ========== BASE ========== */
+@layer base {
+  * {
+    @apply border-border outline-ring/50;
+  }
+
+  body {
+    font-family: var(--font-jakarta), ui-sans-serif, system-ui, sans-serif;
+    background: #0D0A07;
+    color: #F5E6D0;
+    min-height: 100vh;
+    overflow-x: hidden;
+    -webkit-font-smoothing: antialiased;
+  }
+
+  ::selection {
+    background: rgba(230, 178, 60, 0.3);
+    color: #fff;
+  }
+}
+
+/* ========== RICH ANIMATED BACKGROUND ========== */
+.cinematic-bg {
+  position: fixed;
+  inset: 0;
+  z-index: 0;
+  overflow: hidden;
+  /* Warm deep gradient instead of flat black */
+  background:
+    radial-gradient(ellipse 80% 60% at 50% 0%, rgba(139, 90, 30, 0.12) 0%, transparent 60%),
+    radial-gradient(ellipse 60% 80% at 80% 100%, rgba(100, 60, 15, 0.08) 0%, transparent 50%),
+    radial-gradient(ellipse 50% 50% at 20% 80%, rgba(60, 40, 15, 0.06) 0%, transparent 50%),
+    linear-gradient(180deg, #0D0A07 0%, #12100B 40%, #0F0C08 100%);
+}
+
+/* Egyptian temple wall pattern — warm and visible */
+.egyptian-pattern {
+  position: absolute;
+  inset: 0;
+  opacity: 0.04;
+  background-image: url("data:image/svg+xml,%3Csvg width='80' height='80' viewBox='0 0 80 80' xmlns='http://www.w3.org/2000/svg'%3E%3Cg fill='%23E6B23C'%3E%3Cpath d='M40 5l8 16H32l8-16zm0 54l8 16H32l8-16zM5 40l16-8v16L5 40zm54 0l16-8v16L59 40z'/%3E%3Ccircle cx='40' cy='40' r='3'/%3E%3Cpath d='M20 20h4v4h-4zm36 0h4v4h-4zm0 36h4v4h-4zm-36 0h4v4h-4z'/%3E%3C/g%3E%3C/svg%3E");
+  background-size: 80px 80px;
+  animation: patternDrift 60s linear infinite;
+}
+
+@keyframes patternDrift {
+  0% {
+    transform: translate(0, 0);
+  }
+
+  100% {
+    transform: translate(80px, 80px);
+  }
+}
+
+/* Warm golden atmospheric light */
+.golden-atmosphere {
+  position: absolute;
+  inset: 0;
+  background:
+    radial-gradient(circle 600px at 50% 10%, rgba(230, 178, 60, 0.06) 0%, transparent 70%),
+    radial-gradient(circle 400px at 80% 60%, rgba(200, 140, 30, 0.03) 0%, transparent 60%),
+    radial-gradient(circle 500px at 15% 80%, rgba(180, 120, 40, 0.03) 0%, transparent 60%);
+  pointer-events: none;
+  animation: atmospherePulse 8s ease-in-out infinite;
+}
+
+@keyframes atmospherePulse {
+
+  0%,
+  100% {
+    opacity: 1;
+  }
+
+  50% {
+    opacity: 0.7;
+  }
+}
+
+/* Warm vignette */
+.warm-vignette {
+  position: absolute;
+  inset: 0;
+  background: radial-gradient(ellipse 75% 65% at 50% 50%, transparent 0%, rgba(13, 10, 7, 0.4) 55%, rgba(13, 10, 7, 0.95) 100%);
+  pointer-events: none;
+}
+
+/* Film grain */
+.film-grain {
+  position: fixed;
+  inset: 0;
+  z-index: 1;
+  pointer-events: none;
+  opacity: 0.02;
+  background-image: url("data:image/svg+xml,%3Csvg viewBox='0 0 256 256' xmlns='http://www.w3.org/2000/svg'%3E%3Cfilter id='n'%3E%3CfeTurbulence type='fractalNoise' baseFrequency='0.8' numOctaves='4' stitchTiles='stitch'/%3E%3C/filter%3E%3Crect width='100%25' height='100%25' filter='url(%23n)'/%3E%3C/svg%3E");
+}
+
+/* ========== GLASS SURFACE (warm) ========== */
+.glass-surface {
+  background: linear-gradient(135deg, rgba(30, 22, 14, 0.9) 0%, rgba(20, 15, 8, 0.85) 100%);
+  backdrop-filter: blur(24px);
+  -webkit-backdrop-filter: blur(24px);
+  border: 1px solid rgba(230, 178, 60, 0.08);
+  box-shadow:
+    0 8px 40px rgba(0, 0, 0, 0.5),
+    inset 0 1px 0 rgba(230, 178, 60, 0.05);
+}
+
+.glass-card {
+  background: linear-gradient(135deg, rgba(30, 22, 14, 0.9) 0%, rgba(20, 15, 8, 0.85) 100%);
+  backdrop-filter: blur(24px);
+  -webkit-backdrop-filter: blur(24px);
+  border: 1px solid rgba(230, 178, 60, 0.08);
+  box-shadow:
+    0 8px 40px rgba(0, 0, 0, 0.5),
+    inset 0 1px 0 rgba(230, 178, 60, 0.05);
+}
+
+/* ========== GOLD EFFECTS ========== */
+.gold-glow {
+  text-shadow: 0 0 20px rgba(230, 178, 60, 0.5), 0 0 60px rgba(230, 178, 60, 0.15);
+}
+
+.gold-border-glow {
+  box-shadow: 0 0 25px rgba(230, 178, 60, 0.15), 0 0 60px rgba(230, 178, 60, 0.05);
+}
+
+/* Egyptian decorative border */
+.egyptian-border {
+  position: relative;
+}
+
+.egyptian-border::before {
+  content: "";
+  position: absolute;
+  top: 0;
+  left: 50%;
+  transform: translateX(-50%);
+  width: 60%;
+  height: 2px;
+  background: linear-gradient(90deg, transparent, rgba(230, 178, 60, 0.4), #E6B23C, rgba(230, 178, 60, 0.4), transparent);
+}
+
+/* Nav link active */
+.nav-link-active {
+  color: #E6B23C;
+  font-weight: 700;
+  position: relative;
+}
+
+.nav-link-active::after {
+  content: "";
+  position: absolute;
+  bottom: -4px;
+  left: 0;
+  width: 100%;
+  height: 2px;
+  background: #E6B23C;
+  box-shadow: 0 0 10px rgba(230, 178, 60, 0.6);
+  border-radius: 2px;
+}
+
+/* ========== PAPYRUS MATERIAL ========== */
+.papyrus-paper {
+  position: relative;
+  padding: 3.5rem;
+  color: #1A1005;
+  border-radius: 4px;
+}
+
+.papyrus-paper::before {
+  content: "";
+  position: absolute;
+  inset: 0;
+  z-index: -1;
+  background-color: #D8C09A;
+  background-image:
+    repeating-linear-gradient(90deg, transparent 0, transparent 45px, rgba(26, 16, 5, 0.025) 46px),
+    repeating-linear-gradient(0deg, transparent 0, transparent 45px, rgba(26, 16, 5, 0.025) 46px),
+    radial-gradient(circle at 25% 35%, rgba(139, 105, 63, 0.07) 0%, transparent 40%),
+    radial-gradient(circle at 75% 65%, rgba(139, 105, 63, 0.09) 0%, transparent 50%),
+    linear-gradient(to bottom, transparent, rgba(26, 16, 5, 0.025));
+  filter: url(#rough-edge) drop-shadow(12px 16px 30px rgba(0, 0, 0, 0.55));
+  transform: rotate(-0.4deg);
+  border-radius: 4px;
+}
+
+.papyrus-paper h2 {
+  font-family: var(--font-cinzel-dec), serif;
+  letter-spacing: 0.08em;
+  border-bottom: 1px dashed rgba(26, 16, 5, 0.12);
+  padding-bottom: 1rem;
+  margin-bottom: 1.8rem;
+  font-weight: 700;
+  color: #1A1005;
+  text-transform: uppercase;
+}
+
+.papyrus-paper p {
+  font-family: var(--font-garamond), serif;
+  line-height: 2;
+  font-size: 1.3rem;
+  text-align: justify;
+  font-weight: 450;
+  color: #1A1005;
+}
+
+/* ========== NETFLIX PAGE TRANSITION ========== */
+@keyframes fadeSlideUp {
+  from {
+    opacity: 0;
+    transform: translateY(24px);
+  }
+
+  to {
+    opacity: 1;
+    transform: translateY(0);
+  }
+}
+
+@keyframes scaleIn {
+  from {
+    opacity: 0;
+    transform: scale(0.92);
+  }
+
+  to {
+    opacity: 1;
+    transform: scale(1);
+  }
+}
+
+@keyframes shimmerGold {
+  0% {
+    background-position: -200% 0;
+  }
+
+  100% {
+    background-position: 200% 0;
+  }
+}
+
+.animate-fade-up {
+  animation: fadeSlideUp 0.6s cubic-bezier(0.16, 1, 0.3, 1) forwards;
+}
+
+.animate-scale-in {
+  animation: scaleIn 0.5s cubic-bezier(0.16, 1, 0.3, 1) forwards;
+}
+
+/* Gold shimmer loading */
+.shimmer-gold {
+  background: linear-gradient(90deg, rgba(230, 178, 60, 0.03) 25%, rgba(230, 178, 60, 0.08) 50%, rgba(230, 178, 60, 0.03) 75%);
+  background-size: 200% 100%;
+  animation: shimmerGold 2s ease-in-out infinite;
+}
+
+/* ========== TRENDING CARD EFFECTS ========== */
+@keyframes shineSweep {
+  0% {
+    transform: translateX(-100%) skewX(-15deg);
+  }
+
+  100% {
+    transform: translateX(300%) skewX(-15deg);
+  }
+}
+
+.trending-card-shine::after {
+  content: "";
+  position: absolute;
+  top: 0;
+  left: 0;
+  width: 40%;
+  height: 100%;
+  background: linear-gradient(90deg,
+      transparent,
+      rgba(230, 178, 60, 0.06),
+      transparent);
+  transform: translateX(-100%) skewX(-15deg);
+  pointer-events: none;
+}
+
+.group:hover .trending-card-shine::after {
+  animation: shineSweep 0.8s ease-out forwards;
+}
+
+.trending-scrollbar-hide {
+  scrollbar-width: none;
+  -ms-overflow-style: none;
+}
+
+.trending-scrollbar-hide::-webkit-scrollbar {
+  display: none;
+}
+
+/* ========== SNAPCHAT CHAT BUBBLES ========== */
+.bubble-assistant {
+  background: linear-gradient(135deg, #1E160E 0%, #251C10 100%);
+  border: 1px solid rgba(230, 178, 60, 0.1);
+  border-radius: 20px 20px 20px 4px;
+  color: #F5E6D0;
+}
+
+.bubble-user {
+  background: linear-gradient(135deg, #E6B23C 0%, #D4A030 100%);
+  border-radius: 20px 20px 4px 20px;
+  color: #0D0A07;
+}
+
+/* ========== TYPOGRAPHY ========== */
+.font-display {
+  font-family: var(--font-cinzel-dec), serif;
+}
+
+.font-heading {
+  font-family: var(--font-playfair), serif;
+}
+
+/* ========== DESIGN TOKENS — Transitions (ui-ux-pro-max) ========== */
+:root {
+  --transition-fast: 150ms cubic-bezier(0.4, 0, 0.2, 1);
+  --transition-normal: 200ms cubic-bezier(0.4, 0, 0.2, 1);
+  --transition-slow: 350ms cubic-bezier(0.4, 0, 0.2, 1);
+}
+
+/* ========== ACCESSIBILITY — Reduced Motion ========== */
+@media (prefers-reduced-motion: reduce) {
+  *,
+  *::before,
+  *::after {
+    animation-duration: 0.01ms !important;
+    animation-iteration-count: 1 !important;
+    transition-duration: 0.01ms !important;
+    scroll-behavior: auto !important;
+  }
+
+  .egyptian-pattern {
+    animation: none !important;
+  }
+
+  .cinematic-bg::before {
+    animation: none !important;
+  }
+}
+
+/* ========== INTERACTIVE POLISH ========== */
+button:not(:disabled),
+a,
+[role="button"] {
+  cursor: pointer;
+}
+
+/* Skeleton loading shimmer */
+@keyframes echo-shimmer {
+  0% { background-position: 200% 0; }
+  100% { background-position: -200% 0; }
+}
+
+.echo-skeleton {
+  background: linear-gradient(
+    90deg,
+    rgba(230, 178, 60, 0.04) 25%,
+    rgba(230, 178, 60, 0.10) 50%,
+    rgba(230, 178, 60, 0.04) 75%
+  );
+  background-size: 200% 100%;
+  animation: echo-shimmer 1.8s ease-in-out infinite;
+}
