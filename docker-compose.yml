@@ -14,6 +14,8 @@ services:
       TAVILY_API_KEY: "${TAVILY_API_KEY}"
       R2_ACCOUNT_ID: "${R2_ACCOUNT_ID}"
       CF_AI_API: "${CF_AI_API}"
+    volumes:
+      - hf_cache_chatbot:/root/.cache/huggingface
     ports:
       - "8000:8000"
     gpus: all
@@ -40,5 +42,6 @@ services:
 
 volumes:
   hf_cache_video:
+  hf_cache_chatbot:
 
 # Run with: docker compose up --build
