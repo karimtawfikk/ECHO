@@ -8,11 +8,11 @@ WORKDIR /app
 COPY requirements.chatbot.txt .
 RUN pip install --no-cache-dir --upgrade pip && pip install --no-cache-dir -r requirements.chatbot.txt
 
-COPY src/main.py src/main.py
 COPY src/chatbot_api src/chatbot_api
 COPY src/db src/db
 COPY experiments/chatbot/echo_chatbot/resources experiments/chatbot/echo_chatbot/resources
 
 EXPOSE 8000
 
-CMD ["uvicorn", "src.main:app", "--host", "0.0.0.0", "--port", "8000"]
+CMD ["uvicorn", "src.chatbot_api.main:app", "--host", "0.0.0.0", "--port", "8000"]
+

@@ -1,9 +1,8 @@
 *
-!DockerFile
+!Dockerfile.chatbot
 !requirements.txt
 !requirements.chatbot.txt
 !src/
-!src/main.py
 !src/chatbot_api/
 !src/chatbot_api/**
 !src/db/
