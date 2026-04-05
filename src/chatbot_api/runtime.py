@@ -28,7 +28,7 @@ from sqlalchemy import text
 from sqlalchemy.orm import Session
 from yaml import safe_load
 
-from src.db.session import engine
+from src.db import engine
 
 load_dotenv()
 

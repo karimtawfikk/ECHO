@@ -1,7 +1,7 @@
 from sqlalchemy import Column, Integer, ForeignKey, String, Index, Text
 from sqlalchemy.orm import relationship
 from pgvector.sqlalchemy import Vector
-from src.db.session import Base
+from src.db import Base
 
 class LandmarkText(Base):
     __tablename__ = "landmarks_texts"
