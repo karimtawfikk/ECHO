@@ -43,5 +43,6 @@ services:
 
 volumes:
   hf_cache_video:
+  hf_cache_chatbot:
 
 # Run with: docker compose up --build
