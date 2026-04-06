@@ -3,6 +3,8 @@ services:
     build:
       context: .
       dockerfile: Dockerfile.chatbot
+      args:
+        HF_TOKEN: "${HF_TOKEN}"
     container_name: "${CHATBOT_CONTAINER_NAME:-echo-chatbot-api}"
     environment:
       APP_ENV: "production"
