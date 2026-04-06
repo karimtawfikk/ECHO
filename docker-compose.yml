@@ -3,11 +3,14 @@ services:
     build:
       context: .
       dockerfile: Dockerfile.chatbot
+      args:
+        HF_TOKEN: "${HF_TOKEN}"
     container_name: "${CHATBOT_CONTAINER_NAME:-echo-chatbot-api}"
     environment:
       APP_ENV: "production"
       DATABASE_URL: "postgresql://${POSTGRES_USER}:${POSTGRES_PASSWORD}@host.docker.internal:5432/${POSTGRES_DB}"
       HF_TOKEN: "${HF_TOKEN}"
+      HF_HOME: "/root/.cache/huggingface"
       GROQ_API_KEY1: "${GROQ_API_KEY1}"
       GROQ_API_KEY2: "${GROQ_API_KEY2}"
       JINA_API_KEY: "${JINA_API_KEY}"
