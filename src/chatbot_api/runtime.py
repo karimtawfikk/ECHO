@@ -78,6 +78,9 @@ class EchoChatbotRuntime:
     EDGE_TTS_PITCH = "-10Hz"
     TOP_K = 3
     EMBEDDING_DIM = 768
+    EMBEDDING_WARMUP_TEXT = (
+        "Tell me about Ramesses II, his reign, military campaigns, monuments, and legacy in ancient Egypt."
+    )
 
     def __init__(self) -> None:
         self.repo_root = Path(__file__).resolve().parents[2]
@@ -160,9 +163,9 @@ class EchoChatbotRuntime:
     def warmup_embedding(self) -> None:
         warmup_start = perf_counter()
         self.ensure_models_loaded()
-        print("[chatbot] Running embedding warmup...", flush=True)
+        print("[chatbot] Running embedding warmup with realistic query...", flush=True)
         _ = self.qwen_model.encode(
-            "warmup",
+            self.EMBEDDING_WARMUP_TEXT,
             normalize_embeddings=True,
             show_progress_bar=False,
             convert_to_numpy=True,
