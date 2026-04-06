@@ -144,11 +144,10 @@ class EchoChatbotRuntime:
             return
 
         from sentence_transformers import SentenceTransformer
-        from torch import cuda
 
         start = perf_counter()
-        device = "cuda" if cuda.is_available() else "cpu"
-        print(f"[chatbot] Loading embedding model on device={device}...", flush=True)
+        
+        
         self.qwen_model = SentenceTransformer(
             "Qwen/Qwen3-Embedding-0.6B",
             device="cuda",
