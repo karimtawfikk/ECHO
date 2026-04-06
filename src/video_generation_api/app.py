@@ -4,10 +4,16 @@ from fastapi import FastAPI, HTTPException
 from fastapi.responses import FileResponse
 
 from .schemas import HealthResponse, VideoGenerationRequest
+from .runtime import video_generation_runtime
 from .service import video_generation_service
 
 
 app = FastAPI(title="ECHO Video Generation API", version="0.1.0")
+
+
+@app.on_event("startup")
+def preload_models() -> None:
+    video_generation_runtime.ensure_models_loaded()
 
 
 @app.get("/health", response_model=HealthResponse)
