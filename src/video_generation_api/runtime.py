@@ -991,14 +991,12 @@ class VideoGenerationRuntime:
         stage_times: dict[str, float] = {}
         total_start = time.time()
 
-        print(f"[video_runtime] Loading script for entity_name={entity_name!r} is_landmark={is_landmark}")
         script = self.get_script_by_name(entity_name, is_landmark=is_landmark)
         if not script:
             raise ValueError(f"No script found for entity: {entity_name}")
 
         paragraphs, sentence_groups = self.split_script_into_paragraph_sentences(script)
 
-        print("[video_runtime] Starting TTS stage")
         tts_start = time.time()
         asyncio.run(
             self.generate_tts_audio(
@@ -1018,9 +1016,7 @@ class VideoGenerationRuntime:
             delete_sentence_files=True,
         )
         stage_times["TTS"] = time.time() - tts_start
-        print(f"[video_runtime] Finished TTS stage in {self.format_stage_time(stage_times['TTS'])}")
 
-        print("[video_runtime] Starting retrieval stage")
         retrieval_start = time.time()
         image_text_chunks, seconds_for_chunk = self.create_image_chunks(
             sentence_groups=sentence_groups,
@@ -1042,9 +1038,7 @@ class VideoGenerationRuntime:
         )
         image_files = self.normalize_images_to_jpeg(image_files)
         stage_times["Retrieval"] = time.time() - retrieval_start
-        print(f"[video_runtime] Finished retrieval stage in {self.format_stage_time(stage_times['Retrieval'])}")
 
-        print("[video_runtime] Starting subtitles stage")
         subtitles_start = time.time()
         srt_path = self.generate_srt(
             paragraphs=paragraphs,
@@ -1055,9 +1049,7 @@ class VideoGenerationRuntime:
             min_duration=config.min_subtitle_duration,
         )
         stage_times["Subtitles"] = time.time() - subtitles_start
-        print(f"[video_runtime] Finished subtitles stage in {self.format_stage_time(stage_times['Subtitles'])}")
 
-        print("[video_runtime] Starting motion stage")
         motion_start = time.time()
         seconds = self.distribute_durations_exact(
             seconds_for_chunk,
@@ -1074,12 +1066,9 @@ class VideoGenerationRuntime:
             use_nvenc=config.use_nvenc,
         )
         stage_times["Motion"] = time.time() - motion_start
-        print(f"[video_runtime] Finished motion stage in {self.format_stage_time(stage_times['Motion'])}")
 
-        print("[video_runtime] Starting rendering stage")
         rendering_start = time.time()
         combined_video = output_dir / "combined.mp4"
-        print("[video_runtime] Concatenating clips")
         self.concatenate_clips(
             clips=clips,
             output_path=combined_video,
@@ -1087,11 +1076,9 @@ class VideoGenerationRuntime:
         )
 
         with_audio = output_dir / "with_audio.mp4"
-        print("[video_runtime] Adding audio")
         self.add_audio(combined_video, final_audio_path, with_audio)
 
         final_output = output_dir / f"{entity_name.replace(' ', '_')}_final_video.mp4"
-        print("[video_runtime] Adding subtitles")
         self.add_subtitles(
             video_path=with_audio,
             srt_path=srt_path,
@@ -1099,10 +1086,8 @@ class VideoGenerationRuntime:
         )
         stage_times["Rendering"] = time.time() - rendering_start
         stage_times["Total"] = time.time() - total_start
-        print(f"[video_runtime] Finished rendering stage in {self.format_stage_time(stage_times['Rendering'])}")
 
         if config.cleanup_intermediate:
-            print("[video_runtime] Cleaning up intermediate files")
             self.cleanup_files(
                 output_dir=config.output_dir,
                 temp_clips_dir=config.temp_clips_dir,
