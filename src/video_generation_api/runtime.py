@@ -81,6 +81,9 @@ class VideoGenerationRuntime:
 
         return self.clip_model, self.clip_tokenizer, self.clip_device
 
+    def ensure_models_loaded(self) -> None:
+        self.get_clip_model()
+
     def get_script_by_name(self, name: str, is_landmark: bool = False) -> str | None:
         with Session(engine) as session:
             if is_landmark:

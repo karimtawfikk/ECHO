@@ -13,6 +13,8 @@
 !src/db/**
 !src/models/
 !src/models/**
+!scripts/
+!scripts/preload_video_models.py
 !experiments/
 !experiments/chatbot/
 !experiments/chatbot/echo_chatbot/
