@@ -173,7 +173,7 @@ class EchoChatbotRuntime:
         print(f"[chatbot] Embedding warmup done in {perf_counter() - warmup_start:.2f}s", flush=True)
 
     def get_embedding(self, text_value: str) -> list[float]:
-        self.ensure_models_loaded()
+        if self.qwen_model is None: raise RuntimeError("Embedding model is not loaded. Startup preload did not complete.")
         embeddings = self.qwen_model.encode(
             text_value,
             normalize_embeddings=True,
@@ -536,15 +536,26 @@ class EchoChatbotRuntime:
 
         print("[chatbot] generation stream starting...", flush=True)
         stream_start = perf_counter()
+        first_token_logged = False
         stream_generator = self._stream_generation(state)
         try:
             while True:
                 event = next(stream_generator)
                 if event["type"] == "token":
+                    if not first_token_logged:
+                        print(
+                            f"[chatbot] generation first token: {perf_counter() - stream_start:.2f}s",
+                            flush=True,
+                        )
+                        first_token_logged = True
                     yield f"data: {event['content']}\n\n"
         except StopIteration as stop:
             stream_result = stop.value
-        print(f"[chatbot] generation stream pass: {perf_counter() - stream_start:.2f}s", flush=True)
+        if not first_token_logged:
+            print(
+                f"[chatbot] generation first token: {perf_counter() - stream_start:.2f}s (no streamed content)",
+                flush=True,
+            )
         if isinstance(stream_result, tuple):
             final_text, streamed_tool_calls = stream_result
         else:
@@ -558,18 +569,26 @@ class EchoChatbotRuntime:
                 tool_message,
             ]
             stream_start = perf_counter()
+            first_token_logged = False
             stream_generator = self._stream_generation(state)
             try:
                 while True:
                     event = next(stream_generator)
                     if event["type"] == "token":
+                        if not first_token_logged:
+                            print(
+                                f"[chatbot] generation second pass first token: {perf_counter() - stream_start:.2f}s",
+                                flush=True,
+                            )
+                            first_token_logged = True
                         yield f"data: {event['content']}\n\n"
             except StopIteration as stop:
                 stream_result = stop.value
-            print(
-                f"[chatbot] generation stream second pass: {perf_counter() - stream_start:.2f}s",
-                flush=True,
-            )
+            if not first_token_logged:
+                print(
+                    f"[chatbot] generation second pass first token: {perf_counter() - stream_start:.2f}s (no streamed content)",
+                    flush=True,
+                )
             if isinstance(stream_result, tuple):
                 final_text, _ = stream_result
 
