@@ -16,11 +16,12 @@ RUN apt-get update \
 COPY requirements.video.txt .
 RUN pip install --no-cache-dir --upgrade pip && pip install --no-cache-dir -r requirements.video.txt
 
-COPY src/video_generation_api src/video_generation_api
-COPY src/db src/db
 COPY scripts/preload_video_models.py scripts/preload_video_models.py
 
 RUN python scripts/preload_video_models.py
+
+COPY src/video_generation_api src/video_generation_api
+COPY src/db src/db
 
 EXPOSE 8001
 
