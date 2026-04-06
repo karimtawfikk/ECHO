@@ -147,7 +147,6 @@ class EchoChatbotRuntime:
 
         start = perf_counter()
         
-        
         self.qwen_model = SentenceTransformer(
             "Qwen/Qwen3-Embedding-0.6B",
             device="cuda",
@@ -155,6 +154,18 @@ class EchoChatbotRuntime:
             token=self.hf_token,
         )
         print(f"[chatbot] Embedding model ready in {perf_counter() - start:.2f}s", flush=True)
+
+    def warmup_embedding(self) -> None:
+        warmup_start = perf_counter()
+        self.ensure_models_loaded()
+        print("[chatbot] Running embedding warmup...", flush=True)
+        _ = self.qwen_model.encode(
+            "warmup",
+            normalize_embeddings=True,
+            show_progress_bar=False,
+            convert_to_numpy=True,
+        )
+        print(f"[chatbot] Embedding warmup done in {perf_counter() - warmup_start:.2f}s", flush=True)
 
     def get_embedding(self, text_value: str) -> list[float]:
         self.ensure_models_loaded()
@@ -305,15 +316,21 @@ class EchoChatbotRuntime:
     def retrieve_node(self, state: AgentState) -> dict:
         session_id = state["session_id"]
         session_context = self._get_session_context(session_id)
+
+        embed_start = perf_counter()
         query_embedding = self.get_embedding(state["search_query"])
+        print(f"[chatbot] embedding: {perf_counter() - embed_start:.2f}s", flush=True)
+
         vector_sql = self.get_vector_sql(str(session_context["entity_type"]))
 
+        sql_start = perf_counter()
         with Session(engine) as session:
             result = session.execute(
                 text(vector_sql),
                 {"entity_id": int(session_context["entity_id"]), "embedding": str(query_embedding)},
             )
             context = [row[0] for row in result]
+        print(f"[chatbot] vector_sql_query: {perf_counter() - sql_start:.2f}s", flush=True)
 
         return {"context": context}
 
@@ -427,7 +444,9 @@ class EchoChatbotRuntime:
         return full_content, []
 
     def _invoke_search_tool(self, tool_call: dict) -> ToolMessage:
+        tool_start = perf_counter()
         result = self.search_tool.invoke(tool_call["args"])
+        print(f"[chatbot] search_tool: {perf_counter() - tool_start:.2f}s", flush=True)
         return ToolMessage(
             content=str(result),
             tool_call_id=tool_call["id"],
@@ -452,16 +471,11 @@ class EchoChatbotRuntime:
             flush=True,
         )
 
-        step_start = perf_counter()
-        entity_id, gender = self.resolve_entity(entity_type, entity_name)
-        print(f"[chatbot] resolve_entity: {perf_counter() - step_start:.2f}s", flush=True)
-
         session_context = self.sessions.get(session_id)
-        if (
-            session_context is None
-            or session_context.get("entity_type") != entity_type
-            or session_context.get("entity_name") != entity_name
-        ):
+        if session_context is None:
+            step_start = perf_counter()
+            entity_id, gender = self.resolve_entity(entity_type, entity_name)
+            print(f"[chatbot] resolve_entity: {perf_counter() - step_start:.2f}s", flush=True)
             self.sessions[session_id] = {
                 "entity_type": entity_type,
                 "entity_name": entity_name,
@@ -470,9 +484,21 @@ class EchoChatbotRuntime:
                 "user_memory": [],
                 "messages": [],
             }
-        else:
+        elif (
+            session_context.get("entity_type") != entity_type
+            or session_context.get("entity_name") != entity_name
+        ):
+            step_start = perf_counter()
+            entity_id, gender = self.resolve_entity(entity_type, entity_name)
+            print(f"[chatbot] resolve_entity: {perf_counter() - step_start:.2f}s", flush=True)
+            session_context["entity_type"] = entity_type
+            session_context["entity_name"] = entity_name
             session_context["entity_id"] = entity_id
             session_context["gender"] = gender
+            session_context["user_memory"] = []
+            session_context["messages"] = []
+        else:
+            print("[chatbot] resolve_entity: 0.00s (cached)", flush=True)
 
         session_context = self._get_session_context(session_id)
         messages = list(session_context.get("messages", []))
@@ -555,13 +581,9 @@ class EchoChatbotRuntime:
         entity_name: str,
         message: str,
     ) -> tuple[int, str]:
-        entity_id, gender = self.resolve_entity(entity_type, entity_name)
         session_context = self.sessions.get(session_id)
-        if (
-            session_context is None
-            or session_context.get("entity_type") != entity_type
-            or session_context.get("entity_name") != entity_name
-        ):
+        if session_context is None:
+            entity_id, gender = self.resolve_entity(entity_type, entity_name)
             self.sessions[session_id] = {
                 "entity_type": entity_type,
                 "entity_name": entity_name,
@@ -569,9 +591,18 @@ class EchoChatbotRuntime:
                 "gender": gender,
                 "user_memory": [],
             }
-        else:
+        elif (
+            session_context.get("entity_type") != entity_type
+            or session_context.get("entity_name") != entity_name
+        ):
+            entity_id, gender = self.resolve_entity(entity_type, entity_name)
+            session_context["entity_type"] = entity_type
+            session_context["entity_name"] = entity_name
             session_context["entity_id"] = entity_id
             session_context["gender"] = gender
+            session_context["user_memory"] = []
+        else:
+            entity_id = int(session_context["entity_id"])
 
         result = self.graph.invoke(
             {
