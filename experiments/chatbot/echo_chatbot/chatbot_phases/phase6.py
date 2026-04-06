@@ -8,6 +8,7 @@ from re import sub
 from io import BytesIO
 from asyncio import run
 from threading import Event, Thread
+from time import perf_counter
 import numpy as np
 from groq import Groq
 from dotenv import load_dotenv
@@ -144,11 +145,14 @@ qwen_model=None
 def load_model_background():
     global qwen_model,start
     from sentence_transformers import SentenceTransformer
+    model_start = perf_counter()
+    print("[TIMING] Loading embedding model...", flush=True)
     qwen_model = SentenceTransformer(
     "Qwen/Qwen3-Embedding-0.6B",
     device='cuda',
     tokenizer_kwargs={"padding_side": "left"}
     )
+    print(f"[TIMING] Embedding model ready in {perf_counter() - model_start:.2f}s", flush=True)
     
 
 reranker = JinaRerank(
@@ -261,6 +265,7 @@ USER_MEMORY = []
 
 def rewrite_node(state: AgentState) -> dict:
     global USER_MEMORY
+    node_start = perf_counter()
     
     clean_dialogue = [
         msg for msg in state['messages'][:-1]
@@ -311,12 +316,14 @@ def rewrite_node(state: AgentState) -> dict:
     if not search_q:
         search_q = state["query"]
     
+    print(f"[TIMING] rewrite_node: {perf_counter() - node_start:.2f}s", flush=True)
     return {
         "messages":     [AIMessage(content=search_q, name="search_query")],
         "search_query": search_q
     }
 
 def retrieve_node(state: AgentState) -> dict:
+    node_start = perf_counter()
 
     query_embedding = get_embedding(state['search_query'])
     
@@ -329,22 +336,27 @@ def retrieve_node(state: AgentState) -> dict:
             }
         )
         context = [row[0] for row in result]
+    print(f"[TIMING] retrieve_node: {perf_counter() - node_start:.2f}s", flush=True)
     return {"context": context}
 
 
 def rerank_node(state: AgentState) -> dict:
+    node_start = perf_counter()
     docs     = [Document(page_content=chunk) for chunk in state['context']]
     reranked = reranker.compress_documents(docs, query=state['search_query'])
+    print(f"[TIMING] rerank_node: {perf_counter() - node_start:.2f}s", flush=True)
     return {"context": [doc.page_content for doc in reranked]}
 
 def generate_node(state: AgentState) -> dict:
     global USER_MEMORY
+    node_start = perf_counter()
     
     if "OUT_OF_SCOPE" in state.get('search_query', ''):
         response_text = "I'm sorry but you speak of a time that is not mine. My eyes see only the borders of my own reign." \
             if ENTITY_TYPE == "pharaoh" else \
             "I'm sorry, that lies beyond what my stones remember."
         print(f"\n{ENTITY_NAME}: {response_text}")
+        print(f"[TIMING] generate_node: {perf_counter() - node_start:.2f}s", flush=True)
         return {
             "messages": [AIMessage(content=response_text, name="irrelevant_query")],
             "response": response_text
@@ -421,8 +433,10 @@ def generate_node(state: AgentState) -> dict:
 
     if response.tool_calls and not has_searched:
         print(f"[DECISION]: Consulting modern scrolls via {response.tool_calls[0]['name']}...")
+        print(f"[TIMING] generate_node: {perf_counter() - node_start:.2f}s", flush=True)
         return {"messages": [response]}
 
+    print(f"[TIMING] generate_node: {perf_counter() - node_start:.2f}s", flush=True)
     return {
         "messages": [AIMessage(content=full_content, name="generator_response")],
         "response": full_content
@@ -602,6 +616,7 @@ def main():
                 print("[Voice Mode ON] — press Enter with empty input to start speaking")
                 continue
 
+        turn_start = perf_counter()
         graph.invoke(
             {"messages":   [("user", user_input)],
              "query":      user_input,
@@ -609,6 +624,7 @@ def main():
              "voice_mode": voice_mode},
             config=config
         )
+        print(f"[TIMING] total_turn: {perf_counter() - turn_start:.2f}s", flush=True)
 
 
 if __name__ == "__main__":
