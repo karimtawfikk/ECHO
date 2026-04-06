@@ -10,9 +10,15 @@ from .schemas import (
     TranscriptionResponse,
 )
 from .service import chatbot_service
+from .runtime import chatbot_runtime
 
 
 app = FastAPI(title="ECHO Chatbot API", version="0.1.0")
+
+
+@app.on_event("startup")
+def preload_models() -> None:
+    chatbot_runtime.ensure_models_loaded()
 
 
 @app.get("/health", response_model=HealthResponse)
