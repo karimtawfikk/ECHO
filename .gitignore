@@ -29,3 +29,9 @@ tts_Outputs/
 .vscode/
 .idea/
 .langgraph_api/
+
+# Local generated/test files
+request.json
+
+# Local recognition model artifacts
+Backend/recognition_models/
