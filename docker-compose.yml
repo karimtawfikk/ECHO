@@ -32,6 +32,7 @@ services:
       R2_BUCKET_NAME: "${R2_BUCKET_NAME}"
       HF_TOKEN: "${HF_TOKEN}"
       HF_HOME: /root/.cache/huggingface
+      NVIDIA_DRIVER_CAPABILITIES: compute,utility,video
     volumes:
       - hf_cache_video:/root/.cache/huggingface
     ports:
