@@ -68,6 +68,8 @@ class VideoGenerationRuntime:
 
     def get_clip_model(self):
         if self.clip_model is None or self.clip_tokenizer is None:
+            print(f"[video] Loading CLIP model on device={self.clip_device}...", flush=True)
+            load_start = time.time()
             model, _, _ = create_model_and_transforms(
                 self.CLIP_MODEL_NAME,
                 pretrained=self.CLIP_PRETRAINED,
@@ -78,6 +80,8 @@ class VideoGenerationRuntime:
 
             self.clip_model = model
             self.clip_tokenizer = tokenizer
+            elapsed = time.time() - load_start
+            print(f"[video] CLIP model ready in {elapsed:.2f}s", flush=True)
 
         return self.clip_model, self.clip_tokenizer, self.clip_device
 
