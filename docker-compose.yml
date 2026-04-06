@@ -9,6 +9,7 @@ services:
     environment:
       APP_ENV: "production"
       DATABASE_URL: "postgresql://${POSTGRES_USER}:${POSTGRES_PASSWORD}@host.docker.internal:5432/${POSTGRES_DB}"
+      NVIDIA_DRIVER_CAPABILITIES: "compute,video,utility"
       HF_TOKEN: "${HF_TOKEN}"
       GROQ_API_KEY1: "${GROQ_API_KEY1}"
       GROQ_API_KEY2: "${GROQ_API_KEY2}"
@@ -33,6 +34,7 @@ services:
     environment:
       APP_ENV: "production"
       DATABASE_URL: "postgresql://${POSTGRES_USER}:${POSTGRES_PASSWORD}@host.docker.internal:5432/${POSTGRES_DB}"
+      NVIDIA_DRIVER_CAPABILITIES: "compute,video,utility"
       R2_ACCOUNT_ID: "${R2_ACCOUNT_ID}"
       R2_ACCESS_KEY: "${R2_ACCESS_KEY}"
       R2_SECRET_KEY: "${R2_SECRET_KEY}"
