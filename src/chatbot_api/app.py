@@ -9,6 +9,7 @@ from .schemas import (
     SpeechRequest,
     TranscriptionResponse,
 )
+from .runtime import chatbot_runtime
 from .service import chatbot_service
 
 
@@ -17,7 +18,7 @@ app = FastAPI(title="ECHO Chatbot API", version="0.1.0")
 
 @app.on_event("startup")
 def preload_models() -> None:
-    chatbot_runtime.ensure_models_loaded()
+    chatbot_runtime.warmup_embedding()
 
 
 @app.get("/health", response_model=HealthResponse)

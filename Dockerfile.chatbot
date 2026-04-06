@@ -3,10 +3,14 @@ FROM python:3.11-slim
 ENV PYTHONDONTWRITEBYTECODE=1
 ENV PYTHONUNBUFFERED=1
 
+ARG HF_TOKEN
+
 WORKDIR /app
 
 COPY requirements.chatbot.txt .
 RUN pip install --no-cache-dir --upgrade pip && pip install --no-cache-dir -r requirements.chatbot.txt
+RUN test -n "$HF_TOKEN"
+RUN HF_TOKEN="$HF_TOKEN" python -c "from os import getenv; from sentence_transformers import SentenceTransformer; SentenceTransformer('Qwen/Qwen3-Embedding-0.6B', device='cpu', token=getenv('HF_TOKEN'), tokenizer_kwargs={'padding_side': 'left'})"
 
 COPY src/chatbot_api src/chatbot_api
 COPY src/models src/models
