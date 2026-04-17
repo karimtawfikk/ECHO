@@ -1,4 +1,4 @@
-import PageShell from "@/components/feature/PageShell";
+import PageShell from "@/components/layout/PageShell";
 
 export default function ChatLoading() {
   return (

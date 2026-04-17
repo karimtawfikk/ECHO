@@ -2,7 +2,7 @@
 
 import { useEffect, useRef, useState } from "react";
 import Link from "next/link";
-import PageShell from "../../components/feature/PageShell";
+import PageShell from "../../components/layout/PageShell";
 import { Button } from "../../components/ui/button";
 import { motion, AnimatePresence } from "framer-motion";
 import { Camera, Languages, Trash2, Upload, Scroll, Zap, BookOpen, Search, Image as ImageIcon } from "lucide-react";

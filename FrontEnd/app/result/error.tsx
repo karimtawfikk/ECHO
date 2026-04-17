@@ -1,7 +1,7 @@
 "use client";
 
 import { useEffect } from "react";
-import PageShell from "@/components/feature/PageShell";
+import PageShell from "@/components/layout/PageShell";
 
 export default function ResultError({
   error,

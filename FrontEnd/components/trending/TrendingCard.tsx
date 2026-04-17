@@ -15,7 +15,7 @@ import {
     Navigation,
 } from "lucide-react";
 import type { RecognitionEntity } from "@/lib/types";
-import { saveResultToSession } from "@/lib/recognition";
+import { saveResultToSession } from "@/lib/services/recognition";
 import type { RecognitionResult } from "@/lib/types";
 
 /* ── Consistent icon pools (cycled by index) ──────────────────────────── */

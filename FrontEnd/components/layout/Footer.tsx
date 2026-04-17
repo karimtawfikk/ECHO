@@ -29,8 +29,7 @@ export default function Footer() {
                         </Link>
                         <p className="max-w-md text-[#A08E70] leading-relaxed text-sm lg:text-base">
                             Every Capture Has Origins — an AI-powered interactive
-                            exploration of Ancient Egypt through computer vision and
-                            conversational agents.
+                            exploration of Ancient Egypt through captured moments, stories, and dialogue.
                         </p>
                     </div>
 

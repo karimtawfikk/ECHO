@@ -3,11 +3,11 @@
 import Link from "next/link";
 import { useRef, useState, useEffect } from "react";
 import { useRouter } from "next/navigation";
-import PageShell from "../../components/feature/PageShell";
+import PageShell from "../../components/layout/PageShell";
 import { Button } from "../../components/ui/button";
 import { motion, AnimatePresence } from "framer-motion";
 import { Image, Upload, Camera, X, ArrowRight, Loader2, AlertCircle } from "lucide-react";
-import { recognizeImage, saveResultToSession } from "../../lib/recognition";
+import { recognizeImage, saveResultToSession } from "../../lib/services/recognition";
 
 export default function UploadPage() {
   const router = useRouter();
