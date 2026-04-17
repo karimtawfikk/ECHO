@@ -55,6 +55,7 @@ GROQ_API_KEY2          = getenv("GROQ_API_KEY2")
 CF_WORKERSAI_ACCOUNTID = getenv("R2_ACCOUNT_ID")
 CF_AI_API              = getenv("CF_AI_API")
 JINA_API_KEY           = getenv("JINA_API_KEY")
+HF_TOKEN               = getenv("HF_TOKEN")
 
 GROQ_GENERATOR_MODEL_NAME      = "openai/gpt-oss-120b"
 GROQ_QUERY_REWRITER_MODEL_NAME = "qwen/qwen3-32b"
@@ -142,17 +143,30 @@ class AgentState(TypedDict):
     model_name="@cf/qwen/qwen3-embedding-0.6b"
 )"""
 qwen_model=None
+model_ready_event = Event()
+model_load_error = None
 def load_model_background():
-    global qwen_model,start
+    global qwen_model, model_load_error
     from sentence_transformers import SentenceTransformer
+    import torch
+
     model_start = perf_counter()
-    print("[TIMING] Loading embedding model...", flush=True)
-    qwen_model = SentenceTransformer(
-    "Qwen/Qwen3-Embedding-0.6B",
-    device='cuda',
-    tokenizer_kwargs={"padding_side": "left"}
-    )
-    print(f"[TIMING] Embedding model ready in {perf_counter() - model_start:.2f}s", flush=True)
+    device = "cuda" if torch.cuda.is_available() else "cpu"
+    print(f"[TIMING] Loading embedding model on {device}...", flush=True)
+
+    try:
+        qwen_model = SentenceTransformer(
+            "Qwen/Qwen3-Embedding-0.6B",
+            device=device,
+            tokenizer_kwargs={"padding_side": "left"},
+            token=HF_TOKEN
+        )
+        print(f"[TIMING] Embedding model ready in {perf_counter() - model_start:.2f}s", flush=True)
+    except Exception as exc:
+        model_load_error = exc
+        print(f"[ERROR] Failed to load embedding model: {exc}", flush=True)
+    finally:
+        model_ready_event.set()
     
 
 reranker = JinaRerank(
@@ -197,6 +211,13 @@ def get_embedding(text: str):
     return (sliced / norm if norm > 0 else sliced).tolist()"""
 
 def get_embedding(text: str):
+    model_ready_event.wait()
+
+    if model_load_error is not None:
+        raise RuntimeError(f"Embedding model failed to load: {model_load_error}") from model_load_error
+    if qwen_model is None:
+        raise RuntimeError("Embedding model is not loaded.")
+
     embeddings = qwen_model.encode(
         text,
         normalize_embeddings=True,
