@@ -4,13 +4,13 @@ import { motion } from "framer-motion";
 import { useRouter, useSearchParams } from "next/navigation";
 import PageShell from "@/components/feature/PageShell";
 import { Button } from "@/components/ui/button";
-import { Video, MessageSquare, ChevronLeft, Scroll, Crown, MapPin, Sparkles } from "lucide-react";
+import { Video, MessageSquare, ChevronLeft, Scroll, Crown, MapPin, Sparkles, Hourglass } from "lucide-react";
 import Link from "next/link";
 import { Suspense, useState, useEffect, useMemo } from "react";
 import { PHARAOHS, LANDMARKS } from "@/lib/mock-trending";
 import { loadResultFromSession } from "@/lib/recognition";
 import { formatTitle } from "@/lib/recognition";
-import type { RecognitionResult } from "@/lib/types";
+import type { RecognitionResult, SubEntity } from "@/lib/types";
 
 /* ── Manual / Quick-link flow (from home/trending cards) ────────────────── */
 function findMockDescription(type: string | null, name: string): string {
@@ -89,7 +89,43 @@ function ResultContent() {
   const rawType = isApiFlow ? (sessionResult?.entity?.type ?? null) : (mockMatch?.type === "pharaoh" && 'type' in mockMatch.item ? (mockMatch.item as any).type : null);
   const dbType: string = rawType || "Unknown";
 
+  // ── Composite entity data (with per-entity metadata from DB) ──────────
+  const compositeEntitiesData: SubEntity[] = useMemo(() => {
+    if (!isApiFlow) return [];
+    return sessionResult?.entity?.composite_entities_data ?? [];
+  }, [isApiFlow, sessionResult]);
+
   const typeLabel = displayType === "pharaoh" ? "PHARAOH" : "LANDMARK";
+
+  const getAssumedImageUrl = (name: string, isPharaoh: boolean) => {
+    const baseUrl = process.env.NEXT_PUBLIC_API_BASE_URL ?? "http://localhost:8010";
+    if (isPharaoh) {
+      if (name === "Akhenaton") return `${baseUrl}/static/images/pharaohs/Akhenaton.JPG`;
+      if (name === "Cleopatra VII Philopator") return `${baseUrl}/static/images/pharaohs/Cleopatra%20VII%20Philopator.jpg`;
+      if (name === "Hatshepsut") return `${baseUrl}/static/images/pharaohs/Hatshepsut.JPG`;
+      if (name === "Ramesses II") return `${baseUrl}/static/images/pharaohs/Ramesses%20II.jpg`;
+      if (name === "Tutankhamun") return `${baseUrl}/static/images/pharaohs/Tutankhamun.jpg`;
+    } else {
+      if (name === "Pyramids of Giza") return `${baseUrl}/static/images/landmarks/Pyramids%20of%20Giza.webp`;
+      if (name === "Sphinx") return `${baseUrl}/static/images/landmarks/Sphinx.jpg`;
+      if (name === "Temple of Karnak") return `${baseUrl}/static/images/landmarks/Temple%20of%20Karnak.jpg`;
+      if (name === "Temple of Luxor") return `${baseUrl}/static/images/landmarks/Temple%20of%20Luxor.jpg`;
+      if (name === "The Great Temple of Ramesses II at Abu Simbel") return `${baseUrl}/static/images/landmarks/The%20Great%20Temple%20of%20Ramesses%20II%20at%20Abu%20Simbel.webp`;
+    }
+    return null;
+  };
+
+  const assumedUrl = getAssumedImageUrl(cleanDisplayName, displayType === "pharaoh");
+  let finalImageUrl: string | null = null;
+  if (uploadedImageUrl) {
+    finalImageUrl = uploadedImageUrl;
+  } else if (assumedUrl) {
+    finalImageUrl = assumedUrl;
+  } else if (sessionResult?.entity?.images && sessionResult.entity.images.length > 0 && sessionResult.entity.images[0].url) {
+    finalImageUrl = sessionResult.entity.images[0].url.startsWith("/static")
+      ? `${process.env.NEXT_PUBLIC_API_BASE_URL ?? "http://localhost:8010"}${sessionResult.entity.images[0].url}`
+      : sessionResult.entity.images[0].url;
+  }
 
   if (!mounted) {
     return <div className="min-h-screen" style={{ background: "#0D0A07" }} />;
@@ -98,6 +134,14 @@ function ResultContent() {
   return (
     <PageShell>
       <motion.div initial={{ opacity: 0 }} animate={{ opacity: 1 }} className="max-w-6xl mx-auto">
+        {/* Breadcrumb */}
+        <motion.div initial={{ opacity: 0, x: -20 }} animate={{ opacity: 1, x: 0 }} className="mb-8">
+          <Link href="/upload" className="group inline-flex items-center gap-2 text-xs font-semibold tracking-[0.15em] uppercase text-[#A08E70] hover:text-[#E6B23C] transition-colors">
+            <span className="group-hover:-translate-x-1 transition-transform">←</span>
+            Return
+          </Link>
+        </motion.div>
+
         <div className="grid lg:grid-cols-[0.75fr_1.25fr] gap-12 items-start">
 
           {/* ── Left: Image card ──────────────────────────────────────── */}
@@ -108,27 +152,21 @@ function ResultContent() {
             className="relative group lg:max-w-sm"
           >
             <div className={`aspect-[4/5] rounded-3xl overflow-hidden border relative shadow-[0_20px_60px_rgba(0,0,0,0.5)]
-              ${displayType === "pharaoh" ? "border-[#E6B23C]/10" : "border-[#A08E70]/10"}`}>
+              ${displayType === "pharaoh" ? "border-[#E6B23C]/10 bg-[#1E160E]" : "border-[#A08E70]/10 bg-[#12150E]"}`}>
 
-              <div className="absolute inset-0 bg-gradient-to-t from-[#0D0A07] via-transparent to-transparent z-10" />
+              <div className="absolute inset-0 bg-gradient-to-t from-[#0D0A07] via-[#0D0A07]/10 to-transparent z-10" />
 
-              {uploadedImageUrl ? (
+              {finalImageUrl ? (
                 <img
-                  src={uploadedImageUrl}
+                  src={finalImageUrl}
                   alt={cleanDisplayName}
                   className="absolute inset-0 w-full h-full object-cover transition-transform duration-700 group-hover:scale-110"
-                />
-              ) : (sessionResult?.entity?.images && sessionResult.entity.images.length > 0 && sessionResult.entity.images[0].url) ? (
-                <img
-                  src={sessionResult.entity.images[0].url.startsWith("/static")
-                    ? `${process.env.NEXT_PUBLIC_API_BASE_URL ?? "http://localhost:8010"}${sessionResult.entity.images[0].url}`
-                    : sessionResult.entity.images[0].url
-                  }
-                  alt={cleanDisplayName}
-                  className="absolute inset-0 w-full h-full object-cover transition-transform duration-700 group-hover:scale-110"
+                  onError={(e) => {
+                    (e.target as HTMLImageElement).style.opacity = '0';
+                  }}
                 />
               ) : (
-                <div className={`absolute inset-0 flex items-center justify-center ${displayType === "pharaoh" ? "bg-[#1E160E]" : "bg-[#12150E]"}`}>
+                <div className="absolute inset-0 flex items-center justify-center">
                   <motion.div
                     animate={{ rotate: [0, 5, -5, 0], scale: [1, 1.05, 1] }}
                     transition={{ duration: 6, repeat: Infinity, ease: "easeInOut" }}
@@ -191,47 +229,47 @@ function ResultContent() {
               {/* Entity name heading */}
               <h2
                 className="text-3xl md:text-4xl font-bold text-[#1A1005] uppercase tracking-[0.06em] mb-5 border-b border-[#1A1005]/10 pb-4"
-                style={{ fontFamily: "var(--font-cinzel-dec), serif" }}
+                style={{ fontFamily: "var(--font-cormorant), serif" }}
               >
                 {cleanDisplayName}
               </h2>
 
               {/* Description */}
               <p
-                className="text-[#1A1005] leading-[1.8] text-lg font-medium text-justify italic"
-                style={{ fontFamily: "var(--font-garamond), serif" }}
+                className="text-[#1A1005] leading-[1.8] text-lg font-medium text-justify"
+                style={{ fontFamily: "var(--font-cormorant), serif" }}
               >
                 &quot;{displayDescription}&quot;
               </p>
 
               {/* Metadata rows — Only rendered when values are non-null */}
               {(dynasty || period || location || displayType === "pharaoh") && (
-                <div className="mt-6 pt-4 border-t border-[#1A1005]/10 flex flex-col gap-2">
+                <div className="mt-6 pt-4 border-t border-[#1A1005]/10 flex flex-col gap-3 font-cormorant">
                   {displayType === "pharaoh" && (
-                    <div className="flex items-center gap-3 text-sm text-[#1A1005]/70">
-                      <Crown size={13} className="text-[#B8860B] shrink-0" />
-                      <span className="font-semibold uppercase tracking-wide text-[10px] text-[#1A1005]/50 w-16">Type</span>
+                    <div className="flex items-center gap-3 text-base text-[#1A1005]/70">
+                      <Crown size={15} className="text-[#B8860B] shrink-0" />
+                      <span className="font-semibold uppercase tracking-wide text-xs text-[#1A1005]/50 w-20">Type</span>
                       <span className="font-medium capitalize">{dbType}</span>
                     </div>
                   )}
                   {dynasty && (
-                    <div className="flex items-center gap-3 text-sm text-[#1A1005]/70">
-                      <Crown size={13} className="text-[#B8860B] shrink-0" />
-                      <span className="font-semibold uppercase tracking-wide text-[10px] text-[#1A1005]/50 w-16">Dynasty</span>
+                    <div className="flex items-center gap-3 text-base text-[#1A1005]/70">
+                      <Scroll size={15} className="text-[#B8860B] shrink-0" />
+                      <span className="font-semibold uppercase tracking-wide text-xs text-[#1A1005]/50 w-20">Dynasty</span>
                       <span className="font-medium">{dynasty}</span>
                     </div>
                   )}
                   {period && (
-                    <div className="flex items-center gap-3 text-sm text-[#1A1005]/70">
-                      <Scroll size={13} className="text-[#B8860B] shrink-0" />
-                      <span className="font-semibold uppercase tracking-wide text-[10px] text-[#1A1005]/50 w-16">Period</span>
+                    <div className="flex items-center gap-3 text-base text-[#1A1005]/70">
+                      <Hourglass size={15} className="text-[#B8860B] shrink-0" />
+                      <span className="font-semibold uppercase tracking-wide text-xs text-[#1A1005]/50 w-20">Period</span>
                       <span className="font-medium">{period}</span>
                     </div>
                   )}
                   {location && (
-                    <div className="flex items-center gap-3 text-sm text-[#1A1005]/70">
-                      <MapPin size={13} className="text-[#B8860B] shrink-0" />
-                      <span className="font-semibold uppercase tracking-wide text-[10px] text-[#1A1005]/50 w-16">Location</span>
+                    <div className="flex items-center gap-3 text-base text-[#1A1005]/70">
+                      <MapPin size={15} className="text-[#B8860B] shrink-0" />
+                      <span className="font-semibold uppercase tracking-wide text-xs text-[#1A1005]/50 w-20">Location</span>
                       <span className="font-medium">{location}</span>
                     </div>
                   )}
@@ -244,25 +282,51 @@ function ResultContent() {
               </div>
             </motion.div>
 
-            {/* Actions: Video & Chat first, then Recognize Another */}
+            {/* Actions: Video & Chat — per sub-entity when composite */}
             <div className="flex flex-col gap-5">
-              <div className="grid sm:grid-cols-2 gap-5">
-                <Button
-                  onClick={() => router.push(`/video?entity=${encodeURIComponent(displayName)}`)}
-                  className="h-14 rounded-2xl bg-[#E6B23C]/10 border border-[#E6B23C]/20 hover:bg-[#E6B23C]/20 text-[#E6B23C] font-bold text-base transition-all hover:scale-[1.02]"
-                >
-                  <Video className="mr-3" size={20} />
-                  Generate Video
-                </Button>
-                <Button
-                  onClick={() => router.push(`/chat?entity=${encodeURIComponent(displayName)}`)}
-                  variant="outline"
-                  className="h-14 rounded-2xl border-[#E6B23C]/12 bg-[#E6B23C]/[0.04] hover:bg-[#E6B23C]/[0.08] text-[#F5E6D0] font-semibold text-base transition-all hover:scale-[1.02]"
-                >
-                  <MessageSquare className="mr-3" size={20} />
-                  Chat with History
-                </Button>
-              </div>
+              {compositeEntitiesData.length > 0 ? (
+                /* ── Composite: one row per sub-entity ────────── */
+                <div className="flex flex-col gap-4">
+                  {compositeEntitiesData.map((sub) => (
+                    <div key={sub.name} className="grid sm:grid-cols-2 gap-4">
+                      <Button
+                        onClick={() => router.push(`/video?entity=${encodeURIComponent(sub.name)}&type=${displayType}&dynasty=${encodeURIComponent(sub.dynasty || '')}&period=${encodeURIComponent(sub.period || '')}&dbType=${encodeURIComponent(sub.type || '')}&location=${encodeURIComponent(location || '')}`)}
+                        className="h-14 rounded-2xl bg-[#E6B23C]/10 border border-[#E6B23C]/20 hover:bg-[#E6B23C]/20 text-[#E6B23C] font-bold text-base transition-all hover:scale-[1.02]"
+                      >
+                        <Video className="mr-3" size={20} />
+                        Generate {sub.name} Video
+                      </Button>
+                      <Button
+                        onClick={() => router.push(`/chat?entity=${encodeURIComponent(sub.name)}&type=${displayType}`)}
+                        variant="outline"
+                        className="h-14 rounded-2xl border-[#E6B23C]/12 bg-[#E6B23C]/[0.04] hover:bg-[#E6B23C]/[0.08] text-[#F5E6D0] font-semibold text-base transition-all hover:scale-[1.02]"
+                      >
+                        <MessageSquare className="mr-3" size={20} />
+                        Chat with {sub.name}
+                      </Button>
+                    </div>
+                  ))}
+                </div>
+              ) : (
+                /* ── Normal: single row ───────────────────────── */
+                <div className="grid sm:grid-cols-2 gap-5">
+                  <Button
+                    onClick={() => router.push(`/video?entity=${encodeURIComponent(displayName)}&type=${displayType}&dynasty=${encodeURIComponent(dynasty || '')}&period=${encodeURIComponent(period || '')}&dbType=${encodeURIComponent(dbType || '')}&location=${encodeURIComponent(location || '')}`)}
+                    className="h-14 rounded-2xl bg-[#E6B23C]/10 border border-[#E6B23C]/20 hover:bg-[#E6B23C]/20 text-[#E6B23C] font-bold text-base transition-all hover:scale-[1.02]"
+                  >
+                    <Video className="mr-3" size={20} />
+                    Generate Video
+                  </Button>
+                  <Button
+                    onClick={() => router.push(`/chat?entity=${encodeURIComponent(displayName)}&type=${displayType}`)}
+                    variant="outline"
+                    className="h-14 rounded-2xl border-[#E6B23C]/12 bg-[#E6B23C]/[0.04] hover:bg-[#E6B23C]/[0.08] text-[#F5E6D0] font-semibold text-base transition-all hover:scale-[1.02]"
+                  >
+                    <MessageSquare className="mr-3" size={20} />
+                    Chat with History
+                  </Button>
+                </div>
+              )}
 
               <Button
                 onClick={() => router.push("/upload")}
@@ -273,11 +337,6 @@ function ResultContent() {
               </Button>
             </div>
 
-            <div className="flex justify-center pt-4">
-              <Link href="/" className="text-[10px] font-bold tracking-[0.25em] text-[#A08E70] hover:text-[#E6B23C] transition-colors flex items-center gap-2 uppercase">
-                <ChevronLeft size={14} /> Escape to Portal Home
-              </Link>
-            </div>
           </motion.div>
 
         </div>
