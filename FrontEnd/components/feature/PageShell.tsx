@@ -40,11 +40,11 @@ export default function PageShell({ children, fullScreen = false }: { children: 
           {/* Logo */}
           <Link href="/" className="flex items-center gap-3 group relative">
             <div className="h-10 w-10 rounded-xl bg-gradient-to-br from-[#E6B23C] to-[#D4A030] flex items-center justify-center shadow-[0_0_25px_rgba(230,178,60,0.3)] group-hover:shadow-[0_0_35px_rgba(230,178,60,0.5)] transition-shadow">
-              <Sparkles size={18} className="text-[#0D0A07]" />
+              <span className="text-[#0D0A07] text-2xl leading-none">☥</span>
             </div>
             <span
-              className="text-xl font-bold tracking-[0.25em] text-[#E6B23C] gold-glow group-hover:text-[#FFD369] transition-colors"
-              style={{ fontFamily: "var(--font-cinzel-dec), serif" }}
+              className="text-2xl font-bold tracking-[0.25em] text-[#E6B23C] gold-glow group-hover:text-[#FFD369] transition-colors"
+              style={{ fontFamily: 'var(--font-cormorant), serif' }}
             >
               ECHO
             </span>
@@ -78,12 +78,6 @@ export default function PageShell({ children, fullScreen = false }: { children: 
                 </Link>
               );
             })}
-          </div>
-
-          {/* Status */}
-          <div className="flex items-center gap-2 bg-[#E6B23C]/[0.06] border border-[#E6B23C]/10 rounded-full px-4 py-2">
-            <div className="h-2 w-2 rounded-full bg-[#E6B23C] animate-pulse shadow-[0_0_8px_rgba(230,178,60,0.6)]" />
-            <span className="text-[10px] font-bold tracking-[0.2em] text-[#E6B23C] uppercase hidden sm:inline">Neural Active</span>
           </div>
         </div>
       </nav>

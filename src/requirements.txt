@@ -1,0 +1,38 @@
+# Web framework
+fastapi
+uvicorn[standard]
+python-multipart
+httpx
+
+# Database
+sqlalchemy
+psycopg2-binary
+pgvector
+
+# Migrations
+alembic
+
+# ML (Keras pipeline)
+tensorflow
+joblib
+scikit-learn
+pillow
+numpy
+
+# Production Config & Services
+python-dotenv
+boto3
+chromadb
+pydantic
+
+# Chatbot & LangGraph
+langgraph
+langchain
+langchain-core
+langchain-groq
+langchain-cloudflare
+langchain-community
+langchain-tavily
+groq
+edge-tts
+pyyaml

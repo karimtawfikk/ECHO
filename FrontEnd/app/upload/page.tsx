@@ -6,7 +6,7 @@ import { useRouter } from "next/navigation";
 import PageShell from "../../components/feature/PageShell";
 import { Button } from "../../components/ui/button";
 import { motion, AnimatePresence } from "framer-motion";
-import { Upload, Camera, X, ArrowRight, Loader2, AlertCircle } from "lucide-react";
+import { Image, Upload, Camera, X, ArrowRight, Loader2, AlertCircle } from "lucide-react";
 import { recognizeImage, saveResultToSession } from "../../lib/recognition";
 
 export default function UploadPage() {
@@ -88,7 +88,7 @@ export default function UploadPage() {
       <motion.div initial={{ opacity: 0, x: -20 }} animate={{ opacity: 1, x: 0 }} className="mb-8">
         <Link href="/" className="group inline-flex items-center gap-2 text-xs font-semibold tracking-[0.15em] uppercase text-[#A08E70] hover:text-[#E6B23C] transition-colors">
           <span className="group-hover:-translate-x-1 transition-transform">←</span>
-          Return to Portal
+          Return
         </Link>
       </motion.div>
 
@@ -148,6 +148,7 @@ export default function UploadPage() {
               animate={{ opacity: 1, y: 0 }}
               transition={{ delay: 0.4 }}
               className="font-display text-4xl md:text-5xl font-bold text-[#F5E6D0] tracking-[0.05em] uppercase mb-4"
+              style={{ fontFamily: 'var(--font-cormorant), serif' }}
             >
               Unveil the <span className="text-[#E6B23C] gold-glow">Past</span>
             </motion.h1>
@@ -166,7 +167,7 @@ export default function UploadPage() {
               transition={{ delay: 0.7 }}
               className="text-[#A08E70] text-base max-w-md mx-auto"
             >
-              Place your artifact before the Eye, and uncover its origins and the story it holds
+              place your artifact before the Eye, and uncover its origins and the story it holds
             </motion.p>
           </div>
 
@@ -209,7 +210,7 @@ export default function UploadPage() {
                       <img
                         src={previewUrl}
                         alt="Preview"
-                        className="relative w-48 h-48 md:w-60 md:h-60 object-cover rounded-2xl border-2 border-[#E6B23C]/25 shadow-[0_20px_60px_rgba(0,0,0,0.5)]"
+                        className="relative w-64 h-64 md:w-80 md:h-80 object-cover rounded-2xl border-2 border-[#E6B23C]/25 shadow-[0_20px_60px_rgba(0,0,0,0.5)]"
                       />
                       <button
                         onClick={clearFile}
@@ -227,8 +228,6 @@ export default function UploadPage() {
                       transition={{ duration: 1.5, delay: 0.3 }}
                       className="h-[2px] max-w-[200px] bg-gradient-to-r from-transparent via-[#E6B23C] to-transparent my-4"
                     />
-
-                    <p className="text-xs font-bold tracking-[0.25em] text-[#E6B23C] uppercase">The Eye Awaits Your Command</p>
                   </motion.div>
                 ) : (
                   <motion.div
@@ -246,15 +245,15 @@ export default function UploadPage() {
                     >
                       <div className="absolute inset-0 bg-[#E6B23C]/8 blur-2xl rounded-full scale-150" />
                       <div className="relative w-20 h-20 rounded-full bg-gradient-to-br from-[#E6B23C]/15 to-[#E6B23C]/5 border border-[#E6B23C]/20 flex items-center justify-center text-[#E6B23C] shadow-[0_0_30px_rgba(230,178,60,0.1)]">
-                        <Upload size={30} />
+                        <Image size={30} />
                       </div>
                     </motion.div>
 
                     <h3 className="font-heading text-2xl font-bold text-[#F5E6D0] mb-2">
-                      Place Your Relic
+                      Place Your Image
                     </h3>
                     <p className="text-sm text-[#A08E70] mb-2 max-w-sm mx-auto">
-                      Drag and drop your artifact, or summon the ancient scanner
+                      Drop an image or Use your camera
                     </p>
 
                     {/* Decorative hieroglyph row */}
@@ -293,18 +292,10 @@ export default function UploadPage() {
             transition={{ delay: 0.7 }}
             className="flex flex-col sm:flex-row gap-4 justify-center mt-10"
           >
-            <Button
-              onClick={openFilePicker}
-              disabled={isLoading}
-              className="h-14 px-12 rounded-2xl bg-gradient-to-r from-[#E6B23C] to-[#D4A030] hover:from-[#FFD369] hover:to-[#E6B23C] text-[#0D0A07] font-bold text-base transition-all hover:scale-105 shadow-[0_4px_30px_rgba(230,178,60,0.2)] disabled:opacity-50 disabled:cursor-not-allowed"
-            >
-              Upload
-            </Button>
-
-            {/* Recognize button — only shows when a file is selected */}
-            <AnimatePresence>
-              {selectedFile && (
+            <AnimatePresence mode="wait">
+              {selectedFile ? (
                 <motion.div
+                  key="recognize"
                   initial={{ opacity: 0, scale: 0.9 }}
                   animate={{ opacity: 1, scale: 1 }}
                   exit={{ opacity: 0, scale: 0.9 }}
@@ -317,7 +308,7 @@ export default function UploadPage() {
                     {isLoading ? (
                       <>
                         <Loader2 size={20} className="animate-spin" />
-                        Consulting the Oracle…
+                        Consulting History
                       </>
                     ) : (
                       <>
@@ -327,18 +318,35 @@ export default function UploadPage() {
                     )}
                   </Button>
                 </motion.div>
+              ) : (
+                <motion.div
+                  key="upload-capture"
+                  initial={{ opacity: 0, scale: 0.9 }}
+                  animate={{ opacity: 1, scale: 1 }}
+                  exit={{ opacity: 0, scale: 0.9 }}
+                  className="flex flex-col sm:flex-row gap-4"
+                >
+                  <Button
+                    onClick={openFilePicker}
+                    disabled={isLoading}
+                    className="h-14 px-12 rounded-2xl bg-gradient-to-r from-[#E6B23C] to-[#D4A030] hover:from-[#FFD369] hover:to-[#E6B23C] text-[#0D0A07] font-bold text-base transition-all hover:scale-105 shadow-[0_4px_30px_rgba(230,178,60,0.2)] disabled:opacity-50 disabled:cursor-not-allowed"
+                  >
+                    <Upload className="mr-3" size={20} />
+                    Upload
+                  </Button>
+
+                  <Button
+                    variant="outline"
+                    className="h-14 px-12 rounded-2xl border-[#E6B23C]/12 bg-[#E6B23C]/[0.03] hover:bg-[#E6B23C]/[0.08] text-[#F5E6D0] font-semibold text-base transition-all hover:scale-105"
+                    onClick={() => alert("Initializing Ancient Scanner...")}
+                    disabled={isLoading}
+                  >
+                    <Camera className="mr-3" size={20} />
+                    Capture
+                  </Button>
+                </motion.div>
               )}
             </AnimatePresence>
-
-            <Button
-              variant="outline"
-              className="h-14 px-12 rounded-2xl border-[#E6B23C]/12 bg-[#E6B23C]/[0.03] hover:bg-[#E6B23C]/[0.08] text-[#F5E6D0] font-semibold text-base transition-all hover:scale-105"
-              onClick={() => alert("Initializing Ancient Scanner...")}
-              disabled={isLoading}
-            >
-              <Camera className="mr-3" size={20} />
-              Capture
-            </Button>
           </motion.div>
 
           <input ref={inputRef} type="file" accept="image/*" className="hidden" onChange={onPickFile} />
@@ -350,9 +358,6 @@ export default function UploadPage() {
               transition={{ duration: 5, repeat: Infinity }}
               className="text-[10px] font-semibold tracking-[0.15em] text-[#E6B23C]/30 uppercase text-center md:text-left flex items-center gap-3"
             >
-              <span className="text-lg">𓊝</span>
-              Protected by the Seal of Thoth
-              <span className="text-lg">𓊝</span>
             </motion.div>
             <div className="flex-1" />
           </div>
