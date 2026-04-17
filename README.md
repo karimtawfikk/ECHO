@@ -1,5 +1,4 @@
-Echo – AI-Powered Ancient Egypt Explorer
-========================================
+# Echo – AI-Powered Ancient Egypt Explorer
 
 Echo is a multimodal AI system designed to explore Ancient Egypt through computer vision, natural language processing, and generative AI.
 
@@ -7,280 +6,125 @@ The system allows users to upload images of Egyptian landmarks, statues, or hier
 
 This project was developed as a Graduation Project in Artificial Intelligence.
 
-Project Overview
-================
+## Project Overview
 
 Ancient Egyptian history is rich but often difficult to explore interactively. Echo bridges this gap by combining:
 
-*   Image recognition
-    
-*   Large Language Models
-    
-*   Embedding-based retrieval
-    
-*   Video generation
-    
-*   Hieroglyph translation
-    
+* Image recognition
+* Large Language Models
+* Embedding-based retrieval
+* Video generation
+* Hieroglyph translation
 
 The system transforms static historical content into an intelligent interactive experience.
 
-Core Modules
-============
+## System Architecture
 
-1\. Landmark & Statue Recognition
----------------------------------
+Echo uses a modern **Microservices Architecture** to separate lightweight routing/CRUD operations from heavy AI model inferences.
 
-Users upload an image of a historical landmark or statue.
-
-The system:
-
-*   Extracts visual embeddings
-    
-*   Searches a vector database
-    
-*   Identifies the most relevant historical entity
-    
-*   Retrieves structured metadata from the database
-    
-
-Example entities:
-
-*   Great Pyramid of Giza
-    
-*   Temple of Karnak
-    
-*   Ramesses II
-    
-
-2\. Historical Video Generation
--------------------------------
-
-After recognition, the system generates:
-
-*   A structured historical narration
-    
-*   Scene descriptions derived strictly from verified data
-    
-*   AI-generated visual sequences
-    
-
-This module converts historical text into short educational videos.
-
-3\. Conversational Historical Chatbot
--------------------------------------
-
-Users can interact with the recognized entity through a conversational interface.
-
-The chatbot:
-
-*   Uses Retrieval-Augmented Generation (RAG)
-    
-*   Grounds responses in stored metadata
-    
-*   Maintains historical accuracy
-    
-*   Avoids hallucinated content
-    
-
-Example:A user can chat with a simulated persona of Tutankhamun and ask about his reign, tomb, or historical impact.
-
-4\. Hieroglyph Translation
---------------------------
-
-Users upload an image containing hieroglyphs.
-
-The system:
-
-*   Detects symbols
-    
-*   Extracts textual representation
-    
-*   Generates structured translation
-    
-*   Provides contextual explanation
-    
-
-System Architecture
-===================
-
-Echo follows a modular backend architecture:
-
-Frontend→ FastAPI Backend→ Database Layer→ Vector Database→ AI Models
-
-Main components:
-
-*   Backend Framework: FastAPI
-    
-*   Database: PostgreSQL
-    
-*   ORM & Migrations: SQLAlchemy + Alembic
-    
-*   Vector Database: ChromaDB
-    
-*   Embeddings: Multimodal embedding models
-    
-*   Language Model: GPT-based model
-    
-*   Video Generation: Diffusion-based pipelines
-    
-*   Deployment: Local / Cloud-ready
-    
-
-Project Structure
-=================
-
+```mermaid
+graph TD
+    Client[Next.js Frontend] -->|API Requests| Gateway[API Gateway & Main Server<br/>Port: 8010]
+    Gateway -->|HTTP stream| Chatbot[Chatbot Microservice<br/>Port: 8000]
+    Gateway -->|HTTP POST| Video[Video Generation API<br/>Port: 800x]
+    Gateway -->|CRUD| DB[(PostgreSQL)]
+    Chatbot -->|RAG| Chroma[(ChromaDB Vectors)]
+    Gateway -->|Vision| Recognition[Recognition Models]
 ```
+
+### Main Components:
+* **API Gateway (`src/app`)**: Built with FastAPI. Handles frontend authentication, database CRUD operations, and forwards AI-heavy requests to the dedicated microservices.
+* **Chatbot API (`src/chatbot_api`)**: Dedicated microservice for RAG, Groq LLM streaming, and Text-To-Speech generation.
+* **Video Generation API (`src/video_generation_api`)**: Dedicated pipeline for automated historical video compilation.
+* **Databases**: PostgreSQL (Relational) + ChromaDB (Vector).
+
+## Project Structure
+
+```text
 ECHO/
-|-- src/
-|   |-- main.py
-|   |-- db/
-|   |   |-- __init__.py
-|   |   `-- session.py
-|   `-- models/
-|       |-- landmarks.py
-|       |-- landmarks_images.py
-|       |-- pharaohs.py
-|       `-- pharaohs_images.py
-|-- scripts/
-|   |-- create_info_json.py
-|   |-- seed_db.py
-|   |-- r2_data_uploader.py
-|   `-- r2_data_deleter.py
-|-- alembic/
-|   |-- env.py
-|   `-- versions/
-|-- notebooks/
-|   |-- recognition/
-|   `-- video_generation/
-|-- data/
-|-- utils/
-|   `-- data_sync_verfication.py
-|-- DockerFile
-|-- docker-compose.yml
-|-- alembic.ini
-|-- requirements.txt
-`-- README.md
+|-- frontend/                  # Next.js Application
+|-- src/                       # Microservices Workspace
+|   |-- app/                   # 🚀 API Gateway & Orchestrator
+|   |-- chatbot_api/           # 🤖 Chatbot & Voice Microservice
+|   |-- video_generation_api/  # 🎥 Video Compiler Microservice
+|   |-- db/                    # PostgreSQL Models & Sessions
+|-- infra/                     # Code for Dockerizing services
+|-- alembic/                   # Database Migrations
+|-- README.md
 ```
 
-Installation
-============
+## Installation & Running
 
-1\. Clone the repository
-------------------------
+### 1. Clone the repository
+```bash
+git clone https://github.com/karimtawfikk/ECHO.git
+cd ECHO
+```
 
-Plain textANTLR4BashCC#CSSCoffeeScriptCMakeDartDjangoDockerEJSErlangGitGoGraphQLGroovyHTMLJavaJavaScriptJSONJSXKotlinLaTeXLessLuaMakefileMarkdownMATLABMarkupObjective-CPerlPHPPowerShell.propertiesProtocol BuffersPythonRRubySass (Sass)Sass (Scss)SchemeSQLShellSwiftSVGTSXTypeScriptWebAssemblyYAMLXML`   git clone cd echo   `
+### 2. Setup Python Environment
+```bash
+python -m venv venv
+# Windows:
+venv\Scripts\activate
+# Mac/Linux:
+source venv/bin/activate
 
-2\. Create virtual environment
-------------------------------
+pip install -r requirements.txt
+pip install -r requirements.chatbot.txt
+```
 
-Plain textANTLR4BashCC#CSSCoffeeScriptCMakeDartDjangoDockerEJSErlangGitGoGraphQLGroovyHTMLJavaJavaScriptJSONJSXKotlinLaTeXLessLuaMakefileMarkdownMATLABMarkupObjective-CPerlPHPPowerShell.propertiesProtocol BuffersPythonRRubySass (Sass)Sass (Scss)SchemeSQLShellSwiftSVGTSXTypeScriptWebAssemblyYAMLXML`   python -m venv venvvenv\Scripts\activate   `
+### 3. Configure Environment
+Ensure you have `.env` properly configured in the root directory with your PostgreSQL connection string and API keys.
 
-3\. Install dependencies
-------------------------
+### 4. Running the Microservices
 
-Plain textANTLR4BashCC#CSSCoffeeScriptCMakeDartDjangoDockerEJSErlangGitGoGraphQLGroovyHTMLJavaJavaScriptJSONJSXKotlinLaTeXLessLuaMakefileMarkdownMATLABMarkupObjective-CPerlPHPPowerShell.propertiesProtocol BuffersPythonRRubySass (Sass)Sass (Scss)SchemeSQLShellSwiftSVGTSXTypeScriptWebAssemblyYAMLXML`   pip install -r requirements.txt   `
+Because Echo uses a microservices architecture, you must run the Gateway and any AI services you intend to interact with.
 
-4\. Configure database
-----------------------
+**Run the API Gateway (Main Server)**
+```bash
+uvicorn src.app.main:app --reload --host 127.0.0.1 --port 8010
+```
 
-Set your PostgreSQL connection string in .env.
+**Run the Chatbot Microservice**
+*In a new terminal:*
+```bash
+uvicorn src.chatbot_api.app:app --host 127.0.0.1 --port 8000
+```
+*(Alternatively, you can run the chatbot via Docker using `docker-compose up`)*
 
-Run migrations:
+**Run the Frontend**
+*In a third terminal:*
+```bash
+cd frontend
+npm run dev
+```
 
-Plain textANTLR4BashCC#CSSCoffeeScriptCMakeDartDjangoDockerEJSErlangGitGoGraphQLGroovyHTMLJavaJavaScriptJSONJSXKotlinLaTeXLessLuaMakefileMarkdownMATLABMarkupObjective-CPerlPHPPowerShell.propertiesProtocol BuffersPythonRRubySass (Sass)Sass (Scss)SchemeSQLShellSwiftSVGTSXTypeScriptWebAssemblyYAMLXML`   alembic upgrade head   `
+---
 
-5\. Run the server
-------------------
+## Core Modules
 
-Plain textANTLR4BashCC#CSSCoffeeScriptCMakeDartDjangoDockerEJSErlangGitGoGraphQLGroovyHTMLJavaJavaScriptJSONJSXKotlinLaTeXLessLuaMakefileMarkdownMATLABMarkupObjective-CPerlPHPPowerShell.propertiesProtocol BuffersPythonRRubySass (Sass)Sass (Scss)SchemeSQLShellSwiftSVGTSXTypeScriptWebAssemblyYAMLXML`   uvicorn app.main:app --reload   `
+### 1. Landmark & Statue Recognition
+Users upload an image of a historical landmark or statue. The system exacts visual embeddings and retrieves structured metadata from PostgreSQL.
 
-Backend will start at:
+### 2. Historical Video Generation
+After recognition, the system generates a structured historical narration and scene descriptions derived strictly from verified data, converting historical text into short educational videos.
 
-Plain textANTLR4BashCC#CSSCoffeeScriptCMakeDartDjangoDockerEJSErlangGitGoGraphQLGroovyHTMLJavaJavaScriptJSONJSXKotlinLaTeXLessLuaMakefileMarkdownMATLABMarkupObjective-CPerlPHPPowerShell.propertiesProtocol BuffersPythonRRubySass (Sass)Sass (Scss)SchemeSQLShellSwiftSVGTSXTypeScriptWebAssemblyYAMLXML`   http://127.0.0.1:8000   `
+### 3. Conversational Historical Chatbot
+Users can interact with the recognized entity through a conversational interface using RAG. The system grounds responses in stored metadata and maintains historical accuracy.
 
-API Endpoints
-=============
+### 4. Hieroglyph Translation
+Users upload an image containing hieroglyphs. The system detects symbols and generates structured translations.
 
-POST /recognizeUpload image → returns recognized entity
+## Database Design
 
-POST /chatSend message → returns grounded historical response
+The system contains structured entities such as Landmarks, Pharaohs, Builders, Dynasties, and Historical Events. Relationships are modeled using SQLAlchemy ORM and version-controlled using Alembic migrations.
 
-POST /generate-videoGenerate narrated historical video
+## AI Techniques Used
+* Multimodal Embeddings
+* Similarity Search (ChromaDB)
+* Retrieval-Augmented Generation (RAG)
+* Diffusion Models
+* Grounded Response Control
 
-POST /translateUpload hieroglyph image → returns translation
-
-Database Design
-===============
-
-The system contains structured entities such as:
-
-*   Landmarks
-    
-*   Pharaohs
-    
-*   Builders
-    
-*   Dynasties
-    
-*   Historical Events
-    
-
-Relationships are modeled using SQLAlchemy ORM and version-controlled using Alembic migrations.
-
-AI Techniques Used
-==================
-
-*   Multimodal Embeddings
-    
-*   Similarity Search
-    
-*   Retrieval-Augmented Generation (RAG)
-    
-*   Diffusion Models
-    
-*   Structured Prompt Engineering
-    
-*   Grounded Response Control
-    
-
-Challenges
-==========
-
-*   GPU memory limitations during video generation
-    
-*   Avoiding hallucinations in historical responses
-    
-*   Building accurate embedding search for similar landmarks
-    
-*   Structuring metadata for clean retrieval
-    
-
-Future Improvements
-===================
-
-*   Arabic language support
-    
-*   Mobile application integration
-    
-*   3D reconstruction of landmarks
-    
-*   Real-time interactive video generation
-    
-*   Cloud deployment (AWS / GPU servers)
-    
-*   Improved multimodal fine-tuning
-    
-
-Academic Context
-================
-
-This project was developed as part of an Artificial Intelligence graduation project.
-
-The goal was to design a scalable AI system that combines computer vision, NLP, database systems, and generative AI into one unified educational platform.
-
-License
-=======
-
-This project is for academic and educational purposes.
-
+## Academic Context
+This project was developed as part of an Artificial Intelligence graduation project to design a scalable AI system combining computer vision, NLP, and database systems.

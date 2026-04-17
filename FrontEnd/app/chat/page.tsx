@@ -215,7 +215,7 @@ function ChatContent() {
               }
 
               if (data.audio_url) {
-                const url = `${API_BASE}${data.audio_url}`;
+                const url = data.audio_url.startsWith("data:") ? data.audio_url : `${API_BASE}${data.audio_url}`;
                 setMessages((m) => m.map(msg => msg.id === assistantMsgId ? { ...msg, audioUrl: url } : msg));
                 if (useVoice && audioRef.current) {
                   audioRef.current.src = url;
