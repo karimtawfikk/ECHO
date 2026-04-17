@@ -1,19 +1,19 @@
 "use client";
 
 import Link from "next/link";
-import PageShell from "../components/feature/PageShell";
+import PageShell from "../components/layout/PageShell";
 import { Button } from "../components/ui/button";
 import { motion } from "framer-motion";
 import { ArrowRight, DoorOpen, Sparkles } from "lucide-react";
-import TrendingRow from "../components/feature/TrendingRow";
+import TrendingRow from "../components/trending/TrendingRow";
 import ScrollReveal from "../components/animations/ScrollReveal";
 import ParallaxLayer from "../components/animations/ParallaxLayer";
 import { useEffect, useState } from "react";
-import { fetchTrendingEntities } from "../lib/entities";
+import { fetchTrendingEntities } from "../lib/services/entities";
 import type { RecognitionEntity } from "../lib/types";
 
 // ── Minimal mock fallback (used only when the API is unreachable) ──────────
-import { PHARAOHS as MOCK_PHARAOHS, LANDMARKS as MOCK_LANDMARKS } from "../lib/mock-trending";
+import { PHARAOHS as MOCK_PHARAOHS, LANDMARKS as MOCK_LANDMARKS } from "../lib/mock/mock-trending";
 
 // Preserve the exact same 5 names in display order
 const PHARAOH_ORDER = [

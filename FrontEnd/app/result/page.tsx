@@ -2,14 +2,14 @@
 
 import { motion } from "framer-motion";
 import { useRouter, useSearchParams } from "next/navigation";
-import PageShell from "@/components/feature/PageShell";
+import PageShell from "@/components/layout/PageShell";
 import { Button } from "@/components/ui/button";
 import { Video, MessageSquare, ChevronLeft, Scroll, Crown, MapPin, Sparkles, Hourglass } from "lucide-react";
 import Link from "next/link";
 import { Suspense, useState, useEffect, useMemo } from "react";
-import { PHARAOHS, LANDMARKS } from "@/lib/mock-trending";
-import { loadResultFromSession } from "@/lib/recognition";
-import { formatTitle } from "@/lib/recognition";
+import { PHARAOHS, LANDMARKS } from "@/lib/mock/mock-trending";
+import { loadResultFromSession } from "@/lib/services/recognition";
+import { formatTitle } from "@/lib/services/recognition";
 import type { RecognitionResult, SubEntity } from "@/lib/types";
 
 /* ── Manual / Quick-link flow (from home/trending cards) ────────────────── */

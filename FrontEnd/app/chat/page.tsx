@@ -3,13 +3,13 @@
 import { useEffect, useRef, useState, useCallback } from "react";
 import Link from "next/link";
 import Image from "next/image";
-import PageShell from "../../components/feature/PageShell";
+import PageShell from "../../components/layout/PageShell";
 import { Button } from "../../components/ui/button";
 import { Send, Scroll, Mic, MicOff, X, Volume2, VolumeX } from "lucide-react";
 import { useSearchParams } from "next/navigation";
 import { motion, AnimatePresence } from "framer-motion";
 import { Suspense } from "react";
-import { loadResultFromSession } from "../../lib/recognition";
+import { loadResultFromSession } from "../../lib/services/recognition";
 
 interface Message {
   id: string;

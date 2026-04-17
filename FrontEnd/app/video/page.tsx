@@ -3,7 +3,7 @@
 import { useMemo, useState, useEffect, useRef } from "react";
 import Link from "next/link";
 import { useSearchParams } from "next/navigation";
-import PageShell from "../../components/feature/PageShell";
+import PageShell from "../../components/layout/PageShell";
 import { Button } from "../../components/ui/button";
 import { Play, Wand2, Sparkles, Film, Crown, Hourglass, Scroll, MapPin, MessageSquare } from "lucide-react";
 import { motion, AnimatePresence } from "framer-motion";
@@ -63,7 +63,7 @@ function VideoPageContent() {
       </motion.div>
 
       <div className="flex flex-col md:flex-row md:items-end justify-between mb-12 gap-6">
-        <div className="flex items-start gap-5">
+        <div className="flex items-center gap-5">
           <div className="h-16 w-16 rounded-2xl bg-gradient-to-br from-[#E6B23C]/15 to-[#E6B23C]/5 border border-[#E6B23C]/15 flex items-center justify-center text-[#E6B23C]">
             <Film size={32} />
           </div>
