@@ -18,11 +18,11 @@ export default function Footer() {
                     <div className="lg:col-span-2 space-y-6">
                         <Link href="/" className="flex items-center gap-3 group">
                             <div className="h-10 w-10 rounded-xl bg-gradient-to-br from-[#E6B23C] to-[#D4A030] flex items-center justify-center shadow-[0_0_20px_rgba(230,178,60,0.2)]">
-                                <Sparkles size={18} className="text-[#0D0A07]" />
+                                <span className="text-[#0D0A07] text-2xl leading-none">☥</span>
                             </div>
                             <span
                                 className="text-2xl font-bold tracking-[0.25em] text-[#E6B23C] gold-glow"
-                                style={{ fontFamily: "var(--font-cinzel-dec), serif" }}
+                                style={{ fontFamily: 'var(--font-cormorant), serif' }}
                             >
                                 ECHO
                             </span>

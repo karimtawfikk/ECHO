@@ -6,6 +6,13 @@ export interface EntityImage {
     caption: string | null;
 }
 
+export interface SubEntity {
+    name: string;
+    type: string | null;
+    dynasty: string | null;
+    period: string | null;
+}
+
 export interface RecognitionEntity {
     id: number;
     name: string;
@@ -14,6 +21,8 @@ export interface RecognitionEntity {
     dynasty: string | null;
     period: string | null;
     location: string | null;
+    composite_entity: string | null;
+    composite_entities_data: SubEntity[] | null;
     images: EntityImage[];
     scripts: Record<string, unknown> | null;
 }
