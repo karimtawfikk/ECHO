@@ -34,4 +34,4 @@ tts_Outputs/
 request.json
 
 # Local recognition model artifacts
-Backend/recognition_models/
+src/recognition_models/

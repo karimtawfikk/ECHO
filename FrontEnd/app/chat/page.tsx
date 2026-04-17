@@ -9,6 +9,7 @@ import { Send, Scroll, Mic, MicOff, X, Volume2, VolumeX } from "lucide-react";
 import { useSearchParams } from "next/navigation";
 import { motion, AnimatePresence } from "framer-motion";
 import { Suspense } from "react";
+import { loadResultFromSession } from "../../lib/recognition";
 
 interface Message {
   id: string;
@@ -16,13 +17,14 @@ interface Message {
   text: string;
   ts: number;
   audioUrl?: string;
+  isSearching?: boolean;
 }
 
 type RecordingState = "idle" | "recording" | "processing";
 
 const API_BASE = process.env.NEXT_PUBLIC_API_BASE_URL ?? "http://localhost:8010";
 const CHAT_API = `${API_BASE}/api/v1/pharaoh/chat`;
-const STT_API  = `${API_BASE}/api/v1/pharaoh/transcribe`;
+const STT_API = `${API_BASE}/api/v1/pharaoh/transcribe`;
 const TUT_AVATAR = "/tut.png";
 
 // Voice auto-stop config
@@ -30,16 +32,59 @@ const SILENCE_THRESHOLD = 0.015;
 const SILENCE_DURATION_MS = 1500;
 const MIN_DURATION_MS = 1000;
 
+const renderMessageText = (text: string) => {
+  if (!text) return null;
+  const parts = text.split(/(\*\*.*?\*\*)/g);
+  return parts.map((part, i) => {
+    if (part.startsWith('**') && part.endsWith('**')) {
+      return <strong key={i} className="font-bold text-[#E6B23C]">{part.slice(2, -2)}</strong>;
+    }
+    return <span key={i}>{part}</span>;
+  });
+};
+
 function ChatContent() {
   const sp = useSearchParams();
-  const entityName = sp.get("entity") || "Ramesses II";
+  const entityName = sp.get("entity") ?? "Ancient Spirit";
+  const entityType = sp.get("type") || "pharaoh";
+
+  const getEntityImageUrl = (name: string, type: string) => {
+    const baseUrl = process.env.NEXT_PUBLIC_API_BASE_URL ?? "http://localhost:8010";
+    const isPharaoh = type === "pharaoh" || type === "king";
+    if (isPharaoh) {
+      if (name === "Akhenaton") return `${baseUrl}/static/images/pharaohs/Akhenaton.JPG`;
+      if (name === "Cleopatra VII Philopator") return `${baseUrl}/static/images/pharaohs/Cleopatra%20VII%20Philopator.jpg`;
+      if (name === "Hatshepsut") return `${baseUrl}/static/images/pharaohs/Hatshepsut.JPG`;
+      if (name === "Ramesses II") return `${baseUrl}/static/images/pharaohs/Ramesses%20II.jpg`;
+      if (name === "Tutankhamun") return `${baseUrl}/static/images/pharaohs/Tutankhamun.jpg`;
+    } else {
+      if (name === "Pyramids of Giza") return `${baseUrl}/static/images/landmarks/Pyramids%20of%20Giza.webp`;
+      if (name === "Sphinx") return `${baseUrl}/static/images/landmarks/Sphinx.jpg`;
+      if (name === "Temple of Karnak") return `${baseUrl}/static/images/landmarks/Temple%20of%20Karnak.jpg`;
+      if (name === "Temple of Luxor") return `${baseUrl}/static/images/landmarks/Temple%20of%20Luxor.jpg`;
+      if (name === "The Great Temple of Ramesses II at Abu Simbel") return `${baseUrl}/static/images/landmarks/The%20Great%20Temple%20of%20Ramesses%20II%20at%20Abu%20Simbel.webp`;
+    }
+    return null;
+  };
+
+  const staticUrl = getEntityImageUrl(entityName, entityType);
+
+  // Fallback: if no static image, try the user's uploaded image from sessionStorage
+  const [avatarUrl, setAvatarUrl] = useState<string | null>(staticUrl);
+  useEffect(() => {
+    if (!staticUrl) {
+      const payload = loadResultFromSession();
+      if (payload?.imageDataUrl) {
+        setAvatarUrl(payload.imageDataUrl);
+      }
+    }
+  }, [staticUrl]);
   const [messages, setMessages] = useState<Message[]>([
-    { id: "1", role: "assistant", text: `Greetings, traveler. I am ${entityName}, Son of Ra. You stand before a legacy that spans millennia. Ask me anything about my reign, my world, or the secrets of the ancients.`, ts: Date.now() },
+    { id: "1", role: "assistant", text: `Greetings, I am ${entityName}. You stand before a legacy that spans millennia. Ask me anything about my reign, my world, or the secrets of the ancients.`, ts: Date.now() },
   ]);
   const [input, setInput] = useState("");
   const [isTyping, setIsTyping] = useState(false);
   const [recordingState, setRecordingState] = useState<RecordingState>("idle");
-  const [muteAudio, setMuteAudio] = useState(false);
   const [threadId] = useState(() => `thread_${Math.random().toString(36).slice(2)}`);
 
   const scrollRef = useRef<HTMLDivElement>(null);
@@ -61,23 +106,29 @@ function ChatContent() {
   }, [messages, isTyping]);
 
   // ── Send message to real backend ──────────────────────────────────────
-  const sendMessage = useCallback(async (text?: string) => {
+  const sendMessage = useCallback(async (text?: string, useVoice: boolean = false) => {
     const trimmed = (text ?? input).trim();
     if (!trimmed || isTyping) return;
 
     setMessages((m) => [...m, { id: crypto.randomUUID(), role: "user", text: trimmed, ts: Date.now() }]);
     setInput("");
     setIsTyping(true);
+    const assistantMsgId = crypto.randomUUID();
 
     try {
       const res = await fetch(CHAT_API, {
         method: "POST",
-        headers: { "Content-Type": "application/json" },
+        headers: {
+          "Content-Type": "application/json",
+          "Accept": "text/event-stream",
+          "Cache-Control": "no-store",
+        },
         body: JSON.stringify({
           message: trimmed,
           thread_id: threadId,
-          voice_mode: !muteAudio,
+          voice_mode: useVoice,
           entity: entityName,
+          entity_type: entityType,
         }),
       });
 
@@ -87,44 +138,107 @@ function ChatContent() {
           const errData = await res.json();
           errDetail = errData.detail || errDetail;
         } catch {
-          // Fallback to text if JSON fails
           const text = await res.text();
           if (text) errDetail = text;
         }
         throw new Error(errDetail);
       }
 
-      const data = await res.json();
-      const replyText = data.response ?? "The sands of time veil my words. Ask again, traveler.";
-      const audioUrl = data.audio_url ? `${API_BASE}${data.audio_url}` : undefined;
+      const reader = res.body?.getReader();
+      if (!reader) throw new Error("Could not read message stream.");
 
-      setMessages((m) => [...m, {
-        id: crypto.randomUUID(),
-        role: "assistant",
-        text: replyText,
-        ts: Date.now(),
-        audioUrl,
-      }]);
+      const decoder = new TextDecoder();
 
-      // Auto-play TTS
-      if (audioUrl && !muteAudio && audioRef.current) {
-        audioRef.current.src = audioUrl;
-        audioRef.current.play().catch(() => {});
+      let fullText = "";
+      let firstChunk = true;
+      let buffer = "";
+
+      while (true) {
+        const { done, value } = await reader.read();
+        if (done) break;
+
+        buffer += decoder.decode(value, { stream: true });
+
+        let newlineIdx;
+        while ((newlineIdx = buffer.indexOf('\n')) !== -1) {
+          const line = buffer.slice(0, newlineIdx);
+          buffer = buffer.slice(newlineIdx + 1);
+
+          if (line.startsWith("data: ")) {
+            const dataStr = line.slice(6).trim();
+            if (dataStr === "[DONE]") continue;
+
+            let data: any = null;
+            try {
+              data = JSON.parse(dataStr);
+            } catch (e) {
+              // ignore parse errors
+              continue;
+            }
+
+            if (data.error) throw new Error(data.error);
+
+            // ── Agentic Search Indicator ──
+            if (data.tool === "tavily_search" || data.search || data.event === "on_tool_start" || data.tool_calls || data.name === "tavily_search_results_json" || data.name === "search_tool") {
+              if (firstChunk) {
+                setIsTyping(false);
+                setMessages((m) => [...m, { id: assistantMsgId, role: "assistant", text: "", ts: Date.now(), isSearching: true }]);
+                firstChunk = false;
+              } else {
+                setMessages((m) => m.map(msg => msg.id === assistantMsgId ? { ...msg, isSearching: true } : msg));
+              }
+              continue;
+            }
+
+            if (firstChunk) {
+              setIsTyping(false);
+              setMessages((m) => [...m, { id: assistantMsgId, role: "assistant", text: "", ts: Date.now() }]);
+              firstChunk = false;
+            }
+
+            if (data.text !== undefined) {
+              fullText += data.text;
+              setMessages((m) => m.map(msg => msg.id === assistantMsgId ? { ...msg, text: fullText, isSearching: false } : msg));
+              await new Promise(resolve => setTimeout(resolve, 1));
+            }
+
+            if (data.audio_url) {
+              const url = `${API_BASE}${data.audio_url}`;
+              setMessages((m) => m.map(msg => msg.id === assistantMsgId ? { ...msg, audioUrl: url } : msg));
+              if (useVoice && audioRef.current) {
+                audioRef.current.src = url;
+                audioRef.current.play().catch(() => { });
+              }
+            }
+          }
+        }
       }
+
+      if (firstChunk) {
+        setIsTyping(false);
+        setMessages((m) => [...m, { id: assistantMsgId, role: "assistant", text: "I'm sorry, that lies beyond what my stones remember.", ts: Date.now() }]);
+      }
+
     } catch (err: any) {
       console.error("[Chat] Error:", err);
-      const errorMessage = err.message || "The connection to the ancient realm was disrupted. Please try again.";
-      
+
+      setMessages((m) => {
+        const hasText = m.find(msg => msg.id === assistantMsgId)?.text;
+        if (!hasText) return m.filter((msg) => msg.id !== assistantMsgId);
+        return m;
+      });
+
+      const errorMsg = err.message || "The connection to the ancient realm was disrupted.";
       setMessages((m) => [...m, {
         id: crypto.randomUUID(),
         role: "assistant",
-        text: errorMessage,
+        text: `[System Error] ${errorMsg}`,
         ts: Date.now(),
       }]);
     } finally {
       setIsTyping(false);
     }
-  }, [input, isTyping, threadId, muteAudio]);
+  }, [input, isTyping, threadId]);
 
   // ── Voice recording ────────────────────────────────────────────────────
   const stopVAD = useCallback(() => {
@@ -188,7 +302,7 @@ function ChatContent() {
           const r = await fetch(STT_API, { method: "POST", body: form });
           const d = await r.json();
           if (d.text?.trim()) {
-            await sendMessage(d.text.trim());
+            await sendMessage(d.text.trim(), true);
           }
         } catch {
           console.error("[STT] Transcription failed");
@@ -246,28 +360,19 @@ function ChatContent() {
           <div className="relative">
             <div className="h-12 w-12 md:h-14 md:w-14 rounded-full bg-gradient-to-br from-[#E6B23C] to-[#D4A030] p-[2px] shadow-[0_0_20px_rgba(230,178,60,0.3)]">
               <div className="h-full w-full rounded-full bg-[#1A1208] overflow-hidden flex items-center justify-center">
-                <Image src={TUT_AVATAR} alt={entityName} width={56} height={56} className="object-cover" onError={(e) => { (e.target as HTMLImageElement).style.display = "none"; }} />
+                {avatarUrl ? (
+                  <img src={avatarUrl} alt={entityName} className="w-full h-full object-cover object-center" onError={(e) => { (e.target as HTMLImageElement).style.display = "none"; }} />
+                ) : (
+                  <span className="text-[#E6B23C] text-3xl leading-none">☥</span>
+                )}
               </div>
             </div>
-            <div className="absolute -bottom-0.5 -right-0.5 h-3 w-3 md:h-4 md:w-4 rounded-full bg-[#2A7B6F] border-2 border-[#0D0A07] shadow-[0_0_8px_rgba(42,123,111,0.5)]" />
+            <div className="absolute -bottom-0.5 -right-0.5 h-3 w-3 md:h-4 md:w-4 rounded-full bg-[#22C55E] border-2 border-[#0D0A07] shadow-[0_0_8px_rgba(42,123,111,0.5)]" />
           </div>
           <div className="flex-1">
             <h1 className="font-heading text-lg md:text-xl font-bold text-[#F5E6D0]">{entityName}</h1>
-            <div className="text-[9px] md:text-[10px] font-bold tracking-[0.2em] text-[#2A7B6F] uppercase">Online • Living Dialogue</div>
+            <div className="text-[9px] md:text-[10px] font-bold tracking-[0.2em] text-[#22C55E] uppercase">Online</div>
           </div>
-          {/* Mute toggle */}
-          <button
-            onClick={() => setMuteAudio(m => !m)}
-            className="h-9 w-9 md:h-10 md:w-10 rounded-full flex items-center justify-center transition-all"
-            style={{
-              background: muteAudio ? "rgba(230,178,60,0.06)" : "rgba(230,178,60,0.12)",
-              border: "1px solid rgba(230,178,60,0.2)",
-              color: muteAudio ? "#A08E70" : "#E6B23C",
-            }}
-            title={muteAudio ? "Unmute voice" : "Mute voice"}
-          >
-            {muteAudio ? <VolumeX size={16} /> : <Volume2 size={16} />}
-          </button>
         </motion.div>
 
         {/* Messages Area */}
@@ -277,33 +382,44 @@ function ChatContent() {
               {messages.map((msg) =>
                 msg.role === "assistant" ? (
                   <motion.div key={msg.id} initial={{ opacity: 0, x: -20, scale: 0.95 }} animate={{ opacity: 1, x: 0, scale: 1 }} transition={{ type: "spring", damping: 20 }}
-                    className="flex gap-3 max-w-[80%]"
+                    className="flex gap-3 max-w-[90%] md:max-w-[85%]"
                   >
                     <div className="h-8 w-8 rounded-full bg-gradient-to-br from-[#E6B23C]/20 to-[#E6B23C]/5 flex-shrink-0 flex items-center justify-center mt-1">
-                      <Scroll size={14} className="text-[#E6B23C]" />
+                      <span className="text-[#E6B23C] text-sm leading-none">☥</span>
                     </div>
-                    <div className="bubble-assistant px-5 py-3.5 shadow-lg break-words break-all">
-                      <p className="text-sm leading-relaxed">{msg.text}</p>
+                    <div className="bubble-assistant px-5 py-3.5 shadow-lg break-words whitespace-pre-wrap w-full">
+                      {msg.isSearching && (
+                        <AnimatePresence>
+                          <motion.div
+                            initial={{ opacity: 0, height: 0, marginBottom: 0 }}
+                            animate={{ opacity: 1, height: 'auto', marginBottom: 12 }}
+                            exit={{ opacity: 0, height: 0, marginBottom: 0 }}
+                            className="flex items-center gap-3 px-4 py-2.5 bg-[#E6B23C]/10 border border-[#E6B23C]/20 rounded-xl w-fit text-[#E6B23C] shadow-[0_0_15px_rgba(230,178,60,0.1)] overflow-hidden"
+                          >
+                            <motion.div animate={{ rotate: 360 }} transition={{ repeat: Infinity, duration: 3, ease: "linear" }}>
+                              <Scroll size={14} />
+                            </motion.div>
+                            <span className="text-[10px] font-bold tracking-widest uppercase">Consulting modern scrolls...</span>
+                          </motion.div>
+                        </AnimatePresence>
+                      )}
+                      {msg.text && (
+                        <motion.div initial={{ opacity: 0 }} animate={{ opacity: 1 }}>
+                          <p className="text-sm leading-relaxed">{renderMessageText(msg.text)}</p>
+                        </motion.div>
+                      )}
+
                       <div className="flex items-center gap-2 mt-1.5">
                         <span className="text-[9px] text-[#A08E70]/60">{new Date(msg.ts).toLocaleTimeString([], { hour: "2-digit", minute: "2-digit" })}</span>
-                        {msg.audioUrl && !muteAudio && (
-                          <button
-                            onClick={() => { if (audioRef.current) { audioRef.current.src = msg.audioUrl!; audioRef.current.play().catch(() => {}); } }}
-                            className="opacity-50 hover:opacity-100 transition-opacity"
-                            title="Replay voice"
-                          >
-                            <Volume2 size={10} color="#E6B23C" />
-                          </button>
-                        )}
                       </div>
                     </div>
                   </motion.div>
                 ) : (
                   <motion.div key={msg.id} initial={{ opacity: 0, x: 20, scale: 0.95 }} animate={{ opacity: 1, x: 0, scale: 1 }} transition={{ type: "spring", damping: 20 }}
-                    className="flex justify-end max-w-[80%] ml-auto"
+                    className="flex justify-end max-w-[90%] md:max-w-[85%] ml-auto"
                   >
-                    <div className="bubble-user px-5 py-3.5 shadow-lg break-words break-all">
-                      <p className="text-sm leading-relaxed font-medium">{msg.text}</p>
+                    <div className="bubble-user px-5 py-3.5 shadow-lg break-words whitespace-pre-wrap">
+                      <p className="text-sm leading-relaxed font-medium">{renderMessageText(msg.text)}</p>
                       <div className="text-[9px] text-[#0D0A07]/50 mt-1.5 text-right">{new Date(msg.ts).toLocaleTimeString([], { hour: "2-digit", minute: "2-digit" })}</div>
                     </div>
                   </motion.div>
@@ -312,7 +428,7 @@ function ChatContent() {
               {isTyping && (
                 <motion.div initial={{ opacity: 0 }} animate={{ opacity: 1 }} className="flex gap-3 items-center">
                   <div className="h-8 w-8 rounded-full bg-gradient-to-br from-[#E6B23C]/20 to-[#E6B23C]/5 flex-shrink-0 flex items-center justify-center">
-                    <Scroll size={14} className="text-[#E6B23C]" />
+                    <span className="text-[#E6B23C] text-sm leading-none">☥</span>
                   </div>
                   <div className="bubble-assistant px-5 py-3.5 flex gap-1.5">
                     {[0, 1, 2].map((i) => (
@@ -368,7 +484,7 @@ function ChatContent() {
                     className="h-3.5 w-3.5 rounded-full border-2 border-t-transparent"
                     style={{ borderColor: "#E6B23C", borderTopColor: "transparent" }}
                   />
-                  <span className="text-xs font-semibold tracking-widest uppercase" style={{ color: "#E6B23C" }}>Transcribing…</span>
+                  <span className="text-[10px] font-semibold tracking-widest uppercase" style={{ color: "#E6B23C" }}>Transcribing…</span>
                 </div>
               </motion.div>
             )}
@@ -403,14 +519,28 @@ function ChatContent() {
                   <motion.div key="mic" initial={{ scale: 0 }} animate={{ scale: 1 }} exit={{ scale: 0 }} transition={{ type: "spring", stiffness: 400, damping: 20 }}>
                     <button
                       onClick={recordingState === "idle" ? startRecording : cancelRecording}
-                      className="h-12 w-12 shrink-0 rounded-full flex items-center justify-center transition-all hover:scale-105"
+                      className="group relative h-14 w-14 shrink-0 rounded-full flex items-center justify-center leading-none transition-all hover:scale-105"
                       style={
                         recordingState === "recording"
                           ? { background: "linear-gradient(135deg, #C53030, #9B2C2C)", boxShadow: "0 0 20px rgba(197,48,48,0.5)", color: "#fff" }
-                          : { background: "rgba(230,178,60,0.12)", border: "1px solid rgba(230,178,60,0.3)", color: "#E6B23C" }
+                          : { background: "#0D0A07", border: "1px solid rgba(230,178,60,0.3)", color: "#E6B23C" }
                       }
                     >
-                      {recordingState === "recording" ? <MicOff size={18} /> : <Mic size={18} />}
+                      {recordingState === "recording" ? <MicOff size={18} /> : (
+                        <svg width="24" height="22" viewBox="0 0 24 20" fill="none" stroke="currentColor" strokeWidth="2.5" strokeLinecap="round" style={{ display: "block", margin: "auto" }}>
+                          <path d="M2 9v2" />
+                          <path d="M6 5v10" />
+                          <path d="M10 2v16" />
+                          <path d="M14 5v10" />
+                          <path d="M18 9v2" />
+                          <path d="M22 7v6" />
+                        </svg>
+                      )}
+
+                      {/* Premium Tooltip */}
+                      <span className="absolute -top-10 left-1/2 -translate-x-1/2 px-3 py-1.5 bg-[#0D0A07] border border-[#E6B23C]/30 text-[#E6B23C] text-[10px] uppercase font-bold tracking-wider rounded-lg opacity-0 group-hover:opacity-100 transition-opacity pointer-events-none whitespace-nowrap shadow-[0_0_10px_rgba(230,178,60,0.15)]">
+                        Use voice
+                      </span>
                     </button>
                   </motion.div>
                 )}

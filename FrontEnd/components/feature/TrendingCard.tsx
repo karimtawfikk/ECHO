@@ -34,9 +34,33 @@ export default function TrendingCard({ variant, entity, index }: TrendingCardPro
     const router = useRouter();
     const isPharaoh = variant === "pharaoh";
 
-    const IconComp = isPharaoh
-        ? PHARAOH_ICONS[index % PHARAOH_ICONS.length]
-        : LANDMARK_ICONS[index % LANDMARK_ICONS.length];
+    const getAssumedImageUrl = (name: string, pharaoh: boolean) => {
+        const baseUrl = process.env.NEXT_PUBLIC_API_BASE_URL ?? "http://localhost:8010";
+        if (pharaoh) {
+            if (name === "Akhenaton") return `${baseUrl}/static/images/pharaohs/Akhenaton.JPG`;
+            if (name === "Cleopatra VII Philopator") return `${baseUrl}/static/images/pharaohs/Cleopatra%20VII%20Philopator.jpg`;
+            if (name === "Hatshepsut") return `${baseUrl}/static/images/pharaohs/Hatshepsut.JPG`;
+            if (name === "Ramesses II") return `${baseUrl}/static/images/pharaohs/Ramesses%20II.jpg`;
+            if (name === "Tutankhamun") return `${baseUrl}/static/images/pharaohs/Tutankhamun.jpg`;
+        } else {
+            if (name === "Pyramids of Giza") return `${baseUrl}/static/images/landmarks/Pyramids%20of%20Giza.webp`;
+            if (name === "Sphinx") return `${baseUrl}/static/images/landmarks/Sphinx.jpg`;
+            if (name === "Temple of Karnak") return `${baseUrl}/static/images/landmarks/Temple%20of%20Karnak.jpg`;
+            if (name === "Temple of Luxor") return `${baseUrl}/static/images/landmarks/Temple%20of%20Luxor.jpg`;
+            if (name === "The Great Temple of Ramesses II at Abu Simbel") return `${baseUrl}/static/images/landmarks/The%20Great%20Temple%20of%20Ramesses%20II%20at%20Abu%20Simbel.webp`;
+        }
+        return null;
+    };
+
+    const assumedUrl = getAssumedImageUrl(entity.name, isPharaoh);
+    let finalImageUrl = null;
+    if (assumedUrl) {
+        finalImageUrl = assumedUrl;
+    } else if (entity.images && entity.images.length > 0 && entity.images[0].url) {
+        finalImageUrl = entity.images[0].url.startsWith("/static")
+            ? `${process.env.NEXT_PUBLIC_API_BASE_URL ?? "http://localhost:8010"}${entity.images[0].url}`
+            : entity.images[0].url;
+    }
 
 
     function handleClick() {
@@ -80,37 +104,38 @@ export default function TrendingCard({ variant, entity, index }: TrendingCardPro
                 onKeyDown={(e) => e.key === "Enter" && handleClick()}
             >
                 {/* ── Background ─────────────────────────────────────── */}
-                <div className="absolute inset-0">
-                    {/* Hero Image from DB */}
-                    {entity.images && entity.images.length > 0 && entity.images[0].url ? (
+                <div className="absolute inset-0 bg-[#0D0A07]">
+                    {/* Always render gradient behind the image as fallback */}
+                    {isPharaoh ? (
+                        <div
+                            className="absolute inset-0"
+                            style={{
+                                background:
+                                    "linear-gradient(160deg, #1E160E 0%, #2A1D0E 30%, #1A1407 60%, #0D0A07 100%)",
+                            }}
+                        />
+                    ) : (
+                        <div
+                            className="absolute inset-0"
+                            style={{
+                                background:
+                                    "linear-gradient(160deg, #12150E 0%, #1A1810 30%, #151210 60%, #0D0A07 100%)",
+                            }}
+                        />
+                    )}
+
+                    {/* Hero Image */}
+                    {finalImageUrl && (
                         <motion.img
-                            src={entity.images[0].url.startsWith("/static")
-                                ? `${process.env.NEXT_PUBLIC_API_BASE_URL ?? "http://localhost:8010"}${entity.images[0].url}`
-                                : entity.images[0].url
-                            }
+                            src={finalImageUrl}
                             alt={entity.name}
                             className="absolute inset-0 w-full h-full object-cover transition-transform duration-700 group-hover:scale-110"
                             fetchPriority={index < 2 ? "high" : "auto"}
                             loading={index < 2 ? "eager" : "lazy"}
+                            onError={(e) => {
+                                (e.target as HTMLImageElement).style.display = 'none';
+                            }}
                         />
-                    ) : (
-                        isPharaoh ? (
-                            <div
-                                className="absolute inset-0"
-                                style={{
-                                    background:
-                                        "linear-gradient(160deg, #1E160E 0%, #2A1D0E 30%, #1A1407 60%, #0D0A07 100%)",
-                                }}
-                            />
-                        ) : (
-                            <div
-                                className="absolute inset-0"
-                                style={{
-                                    background:
-                                        "linear-gradient(160deg, #12150E 0%, #1A1810 30%, #151210 60%, #0D0A07 100%)",
-                                }}
-                            />
-                        )
                     )}
 
                     {/* SVG pattern overlay */}
@@ -137,17 +162,6 @@ export default function TrendingCard({ variant, entity, index }: TrendingCardPro
 
                 {/* ── Shine sweep on hover ────────────────────────────── */}
                 <div className="trending-card-shine absolute inset-0 pointer-events-none z-10" />
-
-                {/* ── Corner icon ─────────────────────────────────────── */}
-                <div
-                    className={`absolute top-4 right-4 z-20 p-2 rounded-xl transition-colors duration-300
-                        ${isPharaoh
-                            ? "bg-[#E6B23C]/[0.07] group-hover:bg-[#E6B23C]/[0.14] text-[#E6B23C]/50"
-                            : "bg-[#A08E70]/[0.07] group-hover:bg-[#A08E70]/[0.14] text-[#A08E70]/50"
-                        }`}
-                >
-                    <IconComp size={18} />
-                </div>
 
 
                 {/* ── Rank number ─────────────────────────────────────── */}
@@ -178,33 +192,6 @@ export default function TrendingCard({ variant, entity, index }: TrendingCardPro
                     <h3 className="font-heading text-base font-bold text-[#F5E6D0] mb-1 leading-tight tracking-wide hover:text-white transition-colors line-clamp-2">
                         {entity.name.includes("(") ? entity.name.split("(")[0].trim() : entity.name}
                     </h3>
-
-                    {/* Pharaoh: tags chip */}
-                    {isPharaoh && (entity.dynasty || entity.type) && (
-                        <div className="flex flex-wrap gap-1 mb-1.5 overflow-hidden">
-                            {entity.type && (
-                                <span className="inline-flex items-center gap-1 px-1.5 py-0.5 rounded-md bg-[#E6B23C]/[0.08] border border-[#E6B23C]/10 text-[9px] font-semibold tracking-wider text-[#E6B23C] uppercase whitespace-nowrap">
-                                    {entity.type}
-                                </span>
-                            )}
-                            {entity.dynasty && (
-                                <span className="inline-flex items-center gap-1 px-1.5 py-0.5 rounded-md bg-[#E6B23C]/[0.08] border border-[#E6B23C]/10 text-[9px] font-semibold tracking-wider text-[#E6B23C] uppercase whitespace-nowrap">
-                                    <Crown size={8} />
-                                    {entity.dynasty}
-                                </span>
-                            )}
-                        </div>
-                    )}
-
-                    {/* Landmark: location line */}
-                    {!isPharaoh && entity.location && (
-                        <div className="flex items-center gap-1 mb-1.5 text-[#A08E70]">
-                            <MapPin size={9} className="flex-shrink-0" />
-                            <span className="text-[10px] font-medium tracking-wide truncate">
-                                {entity.location}
-                            </span>
-                        </div>
-                    )}
 
                     {/* Teaser description */}
                     {entity.description && (

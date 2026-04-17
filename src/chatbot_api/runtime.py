@@ -84,9 +84,7 @@ class EchoChatbotRuntime:
 
     def __init__(self) -> None:
         self.repo_root = Path(__file__).resolve().parents[2]
-        self.resources_dir = (
-            self.repo_root / "experiments" / "chatbot" / "echo_chatbot" / "resources"
-        )
+        self.resources_dir = Path(__file__).resolve().parent.parent / "resources"
         self.sql_template, self.prompts = self._load_resources()
         self.sessions: dict[str, dict[str, object]] = {}
         self.qwen_model = None

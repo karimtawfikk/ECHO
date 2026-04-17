@@ -1,7 +1,7 @@
 import "./globals.css";
 import type { ReactNode } from "react";
 import Providers from "./providers";
-import { Cinzel_Decorative, EB_Garamond, Playfair_Display, Plus_Jakarta_Sans } from "next/font/google";
+import { Cinzel_Decorative, EB_Garamond, Playfair_Display, Plus_Jakarta_Sans, Cormorant_Garamond } from "next/font/google";
 
 const jakarta = Plus_Jakarta_Sans({
   subsets: ["latin"],
@@ -28,9 +28,16 @@ const ebGaramond = EB_Garamond({
   display: "swap",
 });
 
+const cormorant = Cormorant_Garamond({
+  weight: ["300", "400", "500", "600", "700"],
+  subsets: ["latin"],
+  variable: "--font-cormorant",
+  display: "swap",
+});
+
 export const metadata = {
   title: {
-    default: "E.C.H.O — Every Capture Has Origin",
+    default: "E.C.H.O — Every Capture Has Origins",
     template: "%s | E.C.H.O",
   },
   description:
@@ -62,7 +69,7 @@ export const viewport = {
 
 export default function RootLayout({ children }: { children: ReactNode }) {
   return (
-    <html lang="en" className={`${jakarta.variable} ${playfair.variable} ${cinzelDec.variable} ${ebGaramond.variable}`}>
+    <html lang="en" className={`${jakarta.variable} ${playfair.variable} ${cinzelDec.variable} ${ebGaramond.variable} ${cormorant.variable}`}>
       <body>
         <Providers>{children}</Providers>
       </body>

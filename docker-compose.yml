@@ -2,7 +2,7 @@ services:
   chatbot:
     build:
       context: .
-      dockerfile: Dockerfile.chatbot
+      dockerfile: infra/Dockerfile.chatbot
       args:
         HF_TOKEN: "${HF_TOKEN}"
     container_name: "${CHATBOT_CONTAINER_NAME:-echo-chatbot-api}"
@@ -27,7 +27,7 @@ services:
   video:
     build:
       context: .
-      dockerfile: Dockerfile.video
+      dockerfile: infra/Dockerfile.video
       args:
         HF_TOKEN: "${HF_TOKEN}"
     container_name: "${VIDEO_CONTAINER_NAME:-echo-video-api}"

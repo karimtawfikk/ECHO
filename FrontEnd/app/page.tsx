@@ -4,7 +4,7 @@ import Link from "next/link";
 import PageShell from "../components/feature/PageShell";
 import { Button } from "../components/ui/button";
 import { motion } from "framer-motion";
-import { ArrowRight, Sparkles } from "lucide-react";
+import { ArrowRight, DoorOpen, Sparkles } from "lucide-react";
 import TrendingRow from "../components/feature/TrendingRow";
 import ScrollReveal from "../components/animations/ScrollReveal";
 import ParallaxLayer from "../components/animations/ParallaxLayer";
@@ -40,6 +40,8 @@ function mockToEntity(item: { name: string; description: string; dynasty?: strin
     dynasty: (item as { dynasty?: string }).dynasty ?? null,
     period: (item as { period?: string }).period ?? null,
     location: (item as { location?: string }).location ?? null,
+    composite_entity: null,
+    composite_entities_data: null,
     images: [],
     scripts: null,
   };
@@ -101,8 +103,8 @@ export default function HomePage() {
           transition={{ delay: 0.2, duration: 0.6 }}
           className="inline-flex items-center gap-2 px-5 py-2.5 rounded-full bg-[#E6B23C]/[0.08] border border-[#E6B23C]/15 mb-8"
         >
-          <Sparkles size={14} className="text-[#E6B23C]" />
-          <span className="text-xs font-bold tracking-[0.2em] text-[#E6B23C] uppercase">AI-Powered Archaeological Portal</span>
+          <DoorOpen size={14} className="text-[#E6B23C]" />
+          <span className="text-xs font-bold tracking-[0.2em] text-[#E6B23C] uppercase">Gateway to Ancient Egypt</span>
         </motion.div>
 
         <motion.div
@@ -113,11 +115,13 @@ export default function HomePage() {
         >
           <h1
             className="font-display text-6xl md:text-8xl lg:text-[7rem] font-bold tracking-[0.15em] uppercase text-[#E6B23C] gold-glow mb-4"
+            style={{ fontFamily: 'var(--font-cormorant), serif' }}
           >
             E.C.H.O
           </h1>
           <p
             className="font-display text-2xl md:text-3xl lg:text-4xl font-bold leading-[1.2] tracking-[0.03em] uppercase text-[#F5E6D0]"
+            style={{ fontFamily: 'var(--font-cormorant), serif' }}
           >
             Every Capture Has <span className="text-[#E6B23C]">Origins</span>
           </p>
@@ -127,9 +131,10 @@ export default function HomePage() {
           initial={{ opacity: 0, y: 20 }}
           animate={{ opacity: 1, y: 0 }}
           transition={{ delay: 0.5, duration: 0.6 }}
-          className="text-[#A08E70] text-lg md:text-xl max-w-2xl leading-relaxed mb-12"
+          className="text-[#A08E70] text-lg md:text-xl max-w-xl font-semibold leading-relaxed mb-12"
+          style={{ fontFamily: 'var(--font-cormorant), serif' }}
         >
-          Upload an artifact or landmark and watch history come alive—our AI recognizes it, tells its story, and creates a cinematic journey.
+          Upload a landmark or artifact to explore its origins, context, and story through visuals, narration, and conversation.
         </motion.p>
 
         <motion.div
@@ -200,20 +205,24 @@ export default function HomePage() {
         <div>
           <div className="flex items-center gap-3 mb-4">
             <div className="h-[1px] w-8 bg-[#E6B23C]/40" />
-            <span className="text-xs font-bold tracking-[0.25em] text-[#E6B23C] uppercase">About the Project</span>
+            <span className="text-xs font-bold tracking-[0.25em] text-[#E6B23C] uppercase">About</span>
           </div>
-          <h2 className="font-heading text-4xl md:text-5xl font-bold text-[#F5E6D0] tracking-tight mb-8">
-            What is E.C.H.O
+          <h2 className="font-heading text-xl md:text-2xl lg:text-3xl font-bold leading-[1.2] tracking-[0.03em] uppercase text-[#F5E6D0]">
+            What is E.C.H.O?
           </h2>
-          <div className="space-y-6 text-[#A08E70] leading-relaxed text-lg md:text-xl">
+
+          <div
+            className="mt-2 mb-4 h-[1px] w-24"
+          />
+          <div className="space-y-6 text-[#A08E70] leading-relaxed text-lg md:text-xl" style={{ fontFamily: 'var(--font-cormorant), serif' }}>
             <p>
-              E.C.H.O stands for <strong className="text-[#F5E6D0]">Every Capture Has Origin</strong>.
+              E.C.H.O stands for <strong className="text-[#F5E6D0]">Every Capture Has Origins</strong>.
               It is an AI-powered archaeological portal that transforms tourist photos into
               immersive historical experiences.
             </p>
             <p>
               Point your camera at a sphinx, a temple wall, or a pharaoh&apos;s statue —
-              our neural engine will identify the artifact, generate a cinematic documentary,
+              our engine will identify the artifact, generate a cinematic documentary,
               and let you speak directly with the historical figure it represents.
             </p>
           </div>
@@ -221,10 +230,10 @@ export default function HomePage() {
 
         <div className="space-y-4">
           {[
-            { label: "Neural Vision", text: "State-of-the-art landmark and artifact recognition trained on archaeological datasets." },
-            { label: "Cinematic AI", text: "Documentary-grade video synthesis with historically accurate narration and subtitles." },
-            { label: "Living Dialogue", text: "Conversational AI trained on historical texts for authentic pharaoh interactions." },
-            { label: "Hieroglyph Decoder", text: "OCR-powered translation of ancient Egyptian scripts into modern language." },
+            { label: "Recognition", text: "Recognizes landmarks and artifacts from images, using models trained on curated archaeological data." },
+            { label: "Video", text: "Generates documentary-style videos with historically accurate narration." },
+            { label: "Dialogue", text: "Enables interactive conversations grounded in historical context, allowing you to explore each entity in depth." },
+            { label: "Translation", text: "Translates ancient Egyptian hieroglyphic inscriptions into modern language using OCR and language models." },
           ].map((item, i) => (
             <ScrollReveal
               key={item.label}

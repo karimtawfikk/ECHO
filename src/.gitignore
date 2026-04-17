@@ -1,0 +1,38 @@
+# Python
+__pycache__/
+*.pyc
+*.pyo
+*.pyd
+*.sqlite3
+
+# Virtual environments
+venv_studio/
+venv/
+.venv/
+
+# Environment variables
+.env
+
+# Jupyter
+.ipynb_checkpoints/
+
+# OS
+.DS_Store
+Thumbs.db
+
+# Alembic cache
+alembic/versions/__pycache__/
+
+# folder
+data/
+tts_Outputs/
+
+.vscode/
+.idea/
+.langgraph_api/
+
+# Local generated/test files
+request.json
+
+# Local recognition model 
+src/recognition_models/
