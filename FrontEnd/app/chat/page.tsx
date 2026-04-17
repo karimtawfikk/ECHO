@@ -23,8 +23,8 @@ interface Message {
 type RecordingState = "idle" | "recording" | "processing";
 
 const API_BASE = process.env.NEXT_PUBLIC_API_BASE_URL ?? "http://localhost:8010";
-const CHAT_API = `${API_BASE}/api/v1/pharaoh/chat`;
-const STT_API = `${API_BASE}/api/v1/pharaoh/transcribe`;
+const CHAT_API = `${API_BASE}/api/v1/chat/chat`;
+const STT_API = `${API_BASE}/api/v1/chat/transcribe`;
 const TUT_AVATAR = "/tut.png";
 
 // Voice auto-stop config
@@ -114,6 +114,7 @@ function ChatContent() {
     setInput("");
     setIsTyping(true);
     const assistantMsgId = crypto.randomUUID();
+    let isStreamComplete = false;
 
     try {
       const res = await fetch(CHAT_API, {
@@ -150,76 +151,90 @@ function ChatContent() {
       const decoder = new TextDecoder();
 
       let fullText = "";
+      let displayedText = "";
       let firstChunk = true;
       let buffer = "";
 
-      while (true) {
-        const { done, value } = await reader.read();
-        if (done) break;
+      // Typewriter drain interval - separates network speed from visual speed
+      const typewriterId = setInterval(() => {
+        if (displayedText.length < fullText.length) {
+          // Reveal 8 characters every 5ms for an ultra-fast terminal-like blur speed
+          const nextChunk = fullText.slice(displayedText.length, displayedText.length + 8);
+          displayedText += nextChunk;
+          setMessages((m) => m.map(msg => msg.id === assistantMsgId ? { ...msg, text: displayedText, isSearching: false } : msg));
+        } else if (isStreamComplete) {
+          clearInterval(typewriterId);
+        }
+      }, 10);
 
-        buffer += decoder.decode(value, { stream: true });
+      try {
+        while (true) {
+          const { done, value } = await reader.read();
+          if (done) break;
 
-        let newlineIdx;
-        while ((newlineIdx = buffer.indexOf('\n')) !== -1) {
-          const line = buffer.slice(0, newlineIdx);
-          buffer = buffer.slice(newlineIdx + 1);
+          buffer += decoder.decode(value, { stream: true });
 
-          if (line.startsWith("data: ")) {
-            const dataStr = line.slice(6).trim();
-            if (dataStr === "[DONE]") continue;
+          let newlineIdx;
+          while ((newlineIdx = buffer.indexOf('\n')) !== -1) {
+            const line = buffer.slice(0, newlineIdx);
+            buffer = buffer.slice(newlineIdx + 1);
 
-            let data: any = null;
-            try {
-              data = JSON.parse(dataStr);
-            } catch (e) {
-              // ignore parse errors
-              continue;
-            }
+            if (line.startsWith("data: ")) {
+              const dataStr = line.slice(6).trim();
+              if (dataStr === "[DONE]") continue;
 
-            if (data.error) throw new Error(data.error);
+              let data: any = null;
+              try {
+                data = JSON.parse(dataStr);
+              } catch (e) {
+                continue;
+              }
 
-            // ── Agentic Search Indicator ──
-            if (data.tool === "tavily_search" || data.search || data.event === "on_tool_start" || data.tool_calls || data.name === "tavily_search_results_json" || data.name === "search_tool") {
+              if (data.error) throw new Error(data.error);
+
+              // ── Agentic Search Indicator ──
+              if (data.tool === "tavily_search" || data.search || data.event === "on_tool_start" || data.tool_calls || data.name === "tavily_search_results_json" || data.name === "search_tool") {
+                if (firstChunk) {
+                  setIsTyping(false);
+                  setMessages((m) => [...m, { id: assistantMsgId, role: "assistant", text: "", ts: Date.now(), isSearching: true }]);
+                  firstChunk = false;
+                } else {
+                  setMessages((m) => m.map(msg => msg.id === assistantMsgId ? { ...msg, isSearching: true } : msg));
+                }
+                continue;
+              }
+
               if (firstChunk) {
                 setIsTyping(false);
-                setMessages((m) => [...m, { id: assistantMsgId, role: "assistant", text: "", ts: Date.now(), isSearching: true }]);
+                setMessages((m) => [...m, { id: assistantMsgId, role: "assistant", text: "", ts: Date.now() }]);
                 firstChunk = false;
-              } else {
-                setMessages((m) => m.map(msg => msg.id === assistantMsgId ? { ...msg, isSearching: true } : msg));
               }
-              continue;
-            }
 
-            if (firstChunk) {
-              setIsTyping(false);
-              setMessages((m) => [...m, { id: assistantMsgId, role: "assistant", text: "", ts: Date.now() }]);
-              firstChunk = false;
-            }
+              if (data.text !== undefined) {
+                fullText += data.text; // Just append to fullText; setInterval handles display
+              }
 
-            if (data.text !== undefined) {
-              fullText += data.text;
-              setMessages((m) => m.map(msg => msg.id === assistantMsgId ? { ...msg, text: fullText, isSearching: false } : msg));
-              await new Promise(resolve => setTimeout(resolve, 1));
-            }
-
-            if (data.audio_url) {
-              const url = `${API_BASE}${data.audio_url}`;
-              setMessages((m) => m.map(msg => msg.id === assistantMsgId ? { ...msg, audioUrl: url } : msg));
-              if (useVoice && audioRef.current) {
-                audioRef.current.src = url;
-                audioRef.current.play().catch(() => { });
+              if (data.audio_url) {
+                const url = `${API_BASE}${data.audio_url}`;
+                setMessages((m) => m.map(msg => msg.id === assistantMsgId ? { ...msg, audioUrl: url } : msg));
+                if (useVoice && audioRef.current) {
+                  audioRef.current.src = url;
+                  audioRef.current.play().catch(() => { });
+                }
               }
             }
           }
         }
-      }
 
-      if (firstChunk) {
-        setIsTyping(false);
-        setMessages((m) => [...m, { id: assistantMsgId, role: "assistant", text: "I'm sorry, that lies beyond what my stones remember.", ts: Date.now() }]);
+        if (firstChunk) {
+          setIsTyping(false);
+          setMessages((m) => [...m, { id: assistantMsgId, role: "assistant", text: "I'm sorry, that lies beyond what my stones remember.", ts: Date.now() }]);
+        }
+      } finally {
+        isStreamComplete = true;
       }
-
     } catch (err: any) {
+      isStreamComplete = true;
       console.error("[Chat] Error:", err);
 
       setMessages((m) => {
