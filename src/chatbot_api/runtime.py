@@ -90,25 +90,46 @@ class EchoChatbotRuntime:
         self.qwen_model = None
         self.hf_token = getenv("HF_TOKEN")
 
-        self.groq_client = Groq(api_key=getenv("GROQ_API_KEY1"))
-        self.query_rewriter_llm = ChatGroq(
-            model_name=self.GROQ_QUERY_REWRITER_MODEL_NAME,
-            temperature=0.2,
-            max_tokens=1024,
-            api_key=getenv("GROQ_API_KEY1"),
-            extra_body={"reasoning_effort": "none", "reasoning_format": "hidden"},
-        )
+        keys = [getenv(f"GROQ_API_KEY{i}") for i in range(1, 10)]
+        self.valid_groq_keys = [k for k in keys if k]
+
+        if not self.valid_groq_keys:
+            raise ValueError("No GROQ_API_KEYs found in environment.")
+
+        # Used for transcription fallback loop later
+        self.groq_client = Groq(api_key=self.valid_groq_keys[0])
+
+        rewriter_llms = [
+            ChatGroq(
+                model_name=self.GROQ_QUERY_REWRITER_MODEL_NAME,
+                temperature=0.2,
+                max_tokens=1024,
+                api_key=key,
+                max_retries=0, # Fail fast to rotate immediately
+                extra_body={"reasoning_effort": "none", "reasoning_format": "hidden"},
+            )
+            for key in self.valid_groq_keys
+        ]
+        self.query_rewriter_llm = rewriter_llms[0].with_fallbacks(rewriter_llms[1:])
+
         self.search_tool = TavilySearch(max_results=4, search_depth="advanced")
         self.tools = [self.search_tool]
         self.tool_node = ToolNode(tools=self.tools)
-        self.generator_llm = ChatGroq(
-            model_name=self.GROQ_GENERATOR_MODEL_NAME,
-            temperature=0.8,
-            max_tokens=4096,
-            top_p=0.95,
-            api_key=getenv("GROQ_API_KEY2"),
-            extra_body={"reasoning_effort": "medium", "reasoning_format": "hidden"},
-        ).bind_tools(self.tools)
+
+        generator_llms = [
+            ChatGroq(
+                model_name=self.GROQ_GENERATOR_MODEL_NAME,
+                temperature=0.8,
+                max_tokens=4096,
+                top_p=0.95,
+                api_key=key,
+                max_retries=0, # Fail fast to rotate immediately
+                extra_body={"reasoning_effort": "medium", "reasoning_format": "hidden"},
+            ).bind_tools(self.tools)
+            for key in self.valid_groq_keys
+        ]
+        # Notice we reuse the keys loop for the generator too! We're no longer hard-locked to API_KEY2 for generator.
+        self.generator_llm = generator_llms[0].with_fallbacks(generator_llms[1:])
         self.reranker = JinaRerank(
             model="jina-reranker-v3",
             top_n=self.TOP_K,
@@ -122,7 +143,14 @@ class EchoChatbotRuntime:
         workflow.add_node("generator", self.generate_node)
         workflow.add_node("tools", self.tool_node)
         workflow.set_entry_point("rewriter")
-        workflow.add_edge("rewriter", "retriever")
+        
+        def rewriter_condition(state: AgentState) -> str:
+            if "OUT_OF_SCOPE" in state.get("search_query", ""):
+                return "generator"
+            return "retriever"
+            
+        workflow.add_conditional_edges("rewriter", rewriter_condition)
+        
         workflow.add_edge("retriever", "reranker")
         workflow.add_edge("reranker", "generator")
         workflow.add_conditional_edges(
@@ -522,15 +550,18 @@ class EchoChatbotRuntime:
         state["messages"] = state["messages"] + rewrite_result["messages"]
         state["search_query"] = rewrite_result["search_query"]
 
-        step_start = perf_counter()
-        retrieve_result = self.retrieve_node(state)
-        print(f"[chatbot] retrieve_node: {perf_counter() - step_start:.2f}s", flush=True)
-        state["context"] = retrieve_result["context"]
+        if "OUT_OF_SCOPE" not in state["search_query"]:
+            step_start = perf_counter()
+            retrieve_result = self.retrieve_node(state)
+            print(f"[chatbot] retrieve_node: {perf_counter() - step_start:.2f}s", flush=True)
+            state["context"] = retrieve_result["context"]
 
-        step_start = perf_counter()
-        rerank_result = self.rerank_node(state)
-        print(f"[chatbot] rerank_node: {perf_counter() - step_start:.2f}s", flush=True)
-        state["context"] = rerank_result["context"]
+            step_start = perf_counter()
+            rerank_result = self.rerank_node(state)
+            print(f"[chatbot] rerank_node: {perf_counter() - step_start:.2f}s", flush=True)
+            state["context"] = rerank_result["context"]
+        else:
+            print("[chatbot] OUT_OF_SCOPE detected, bypassing retriever and reranker to save resources...", flush=True)
 
         print("[chatbot] generation stream starting...", flush=True)
         stream_start = perf_counter()
@@ -561,6 +592,7 @@ class EchoChatbotRuntime:
 
         if streamed_tool_calls:
             print("[chatbot] streamed generation requested tool call", flush=True)
+            yield 'data: {"event": "on_tool_start"}\n\n'
             tool_message = self._invoke_search_tool(streamed_tool_calls[0])
             state["messages"] = state["messages"] + [
                 AIMessage(content=final_text, tool_calls=streamed_tool_calls),
@@ -644,15 +676,22 @@ class EchoChatbotRuntime:
         return entity_id, reply_text
 
     def transcribe_audio(self, filename: str, audio_bytes: bytes) -> str:
-        transcription = self.groq_client.audio.transcriptions.create(
-            file=(filename, audio_bytes),
-            model=self.GROQ_STT_MODEL_NAME,
-            temperature=0,
-        )
-        text_value = transcription.text.strip()
-        if not text_value:
-            raise RuntimeError("Transcription returned empty text.")
-        return text_value
+        for key in self.valid_groq_keys:
+            try:
+                client = Groq(api_key=key, max_retries=0)
+                transcription = client.audio.transcriptions.create(
+                    file=(filename, audio_bytes),
+                    model=self.GROQ_STT_MODEL_NAME,
+                    temperature=0,
+                )
+                text_value = transcription.text.strip()
+                if text_value:
+                    return text_value
+            except Exception as e:
+                print(f"[chatbot] Transcribe with key {key[:8]}... failed: {e}")
+                continue
+                
+        raise RuntimeError("Transcription failed: All Groq API keys exhausted or rate limited.")
 
     def synthesize_speech(
         self, text_value: str, entity_type: str | None = None, entity_name: str | None = None
