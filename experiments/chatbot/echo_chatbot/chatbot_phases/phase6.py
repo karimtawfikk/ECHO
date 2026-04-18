@@ -513,7 +513,14 @@ workflow.add_node("tts_router", lambda state: {})
 workflow.add_node("tts",        tts_node)
 
 workflow.set_entry_point("rewriter")
-workflow.add_edge("rewriter",  "retriever")
+
+def rewriter_condition(state: AgentState) -> str:
+    if "OUT_OF_SCOPE" in state.get("search_query", ""):
+        return "generator"
+    return "retriever"
+
+workflow.add_conditional_edges("rewriter", rewriter_condition)
+
 workflow.add_edge("retriever", "reranker")
 workflow.add_edge("reranker",  "generator")
 workflow.add_conditional_edges(
@@ -537,7 +544,6 @@ workflow.add_edge("tts", END)
 
 memory = MemorySaver()
 graph  = workflow.compile(checkpointer=memory)
-
 
 # ---------------------------------------------------------------------------
 # Main
