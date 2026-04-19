@@ -8,6 +8,7 @@ from .schemas import (
     HealthResponse,
     SpeechRequest,
     TranscriptionResponse,
+    InitSessionRequest,
 )
 from .runtime import chatbot_runtime
 from .service import chatbot_service
@@ -24,6 +25,17 @@ def preload_models() -> None:
 @app.get("/health", response_model=HealthResponse)
 def healthcheck() -> HealthResponse:
     return HealthResponse(status="ok")
+
+
+@app.post("/init")
+def init_session(request: InitSessionRequest) -> dict:
+    try:
+        chatbot_service.init_session(request)
+        return {"status": "success"}
+    except ValueError as exc:
+        raise HTTPException(status_code=404, detail=str(exc)) from exc
+    except Exception as exc:
+        raise HTTPException(status_code=500, detail=str(exc)) from exc
 
 
 @app.post("/chat")
