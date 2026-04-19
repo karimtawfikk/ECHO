@@ -1,6 +1,6 @@
 // ─── Recognition API helper ──────────────────────────────────────────────────
 
-import { RecognitionResult, PendingResult } from "./types";
+import { RecognitionResult, PendingResult } from "../types";
 
 const SESSION_KEY = "echo_recognition_result";
 
