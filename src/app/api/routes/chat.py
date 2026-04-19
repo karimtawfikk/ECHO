@@ -5,7 +5,7 @@ from fastapi.responses import StreamingResponse
 
 router = APIRouter()
 
-CHATBOT_API_URL = "http://localhost:8000"
+CHATBOT_API_URL = "http://127.0.0.1:8000"
 
 from src.app.schemas.chatbot import ChatRequest, ChatResponse, TranscribeResponse, InitRequest
 
