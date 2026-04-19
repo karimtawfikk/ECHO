@@ -7,7 +7,24 @@ router = APIRouter()
 
 CHATBOT_API_URL = "http://localhost:8000"
 
-from src.app.schemas.chatbot import ChatRequest, ChatResponse, TranscribeResponse
+from src.app.schemas.chatbot import ChatRequest, ChatResponse, TranscribeResponse, InitRequest
+
+@router.post("/init")
+async def init_chat(req: InitRequest):
+    payload = {
+        "session_id": req.thread_id,
+        "entity_type": req.entity_type,
+        "entity_name": req.entity
+    }
+    async with httpx.AsyncClient(timeout=30.0) as client:
+        try:
+            res = await client.post(f"{CHATBOT_API_URL}/init", json=payload)
+            if res.status_code == 200:
+                return {"status": "success"}
+            else:
+                raise HTTPException(status_code=res.status_code, detail=res.text)
+        except httpx.RequestError as exc:
+            raise HTTPException(status_code=503, detail=f"Init failed: {exc}")
 
 @router.get("/info")
 async def info():

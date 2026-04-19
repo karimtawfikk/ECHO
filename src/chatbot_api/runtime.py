@@ -504,6 +504,7 @@ class EchoChatbotRuntime:
             }
         print(f"[chatbot] /init done in {perf_counter() - init_start:.2f}s", flush=True)
 
+
     def stream_chat(
         self,
         *,
