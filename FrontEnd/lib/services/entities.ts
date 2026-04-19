@@ -1,6 +1,7 @@
 // ─── Frontend API for fetching trending entities from the DB ─────────────────
 
-import type { RecognitionEntity } from "./types";
+import type { RecognitionEntity } from "../types";
+
 
 const API_BASE =
     process.env.NEXT_PUBLIC_API_BASE_URL ?? "http://localhost:8010";
