@@ -488,6 +488,22 @@ class EchoChatbotRuntime:
         session_context = self._get_session_context(session_id)
         session_context["messages"] = messages
 
+    def init_session(self, session_id: str, entity_type: str, entity_name: str) -> None:
+        init_start = perf_counter()
+        print(f"[chatbot] /init start session={session_id} entity={entity_type}:{entity_name}", flush=True)
+        session_context = self.sessions.get(session_id)
+        if session_context is None or session_context.get("entity_type") != entity_type or session_context.get("entity_name") != entity_name:
+            entity_id, gender = self.resolve_entity(entity_type, entity_name)
+            self.sessions[session_id] = {
+                "entity_type": entity_type,
+                "entity_name": entity_name,
+                "entity_id": entity_id,
+                "gender": gender,
+                "user_memory": [],
+                "messages": [],
+            }
+        print(f"[chatbot] /init done in {perf_counter() - init_start:.2f}s", flush=True)
+
     def stream_chat(
         self,
         *,

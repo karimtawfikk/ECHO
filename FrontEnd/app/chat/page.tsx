@@ -512,7 +512,7 @@ function ChatContent() {
                 value={input}
                 onChange={(e) => setInput(e.target.value)}
                 onKeyDown={handleKeyDown}
-                disabled={recordingState !== "idle" || isTyping}
+                disabled={recordingState !== "idle"}
                 placeholder={`Message ${entityName}...`}
                 className="flex-1 h-12 px-5 rounded-full bg-[#0D0A07] border border-[#E6B23C]/20 text-sm placeholder:text-[#A08E70]/50 focus:outline-none focus:border-[#E6B23C]/40 focus:shadow-[0_0_15px_rgba(230,178,60,0.1)] transition-all disabled:opacity-50"
                 style={{ color: "#E6B23C", caretColor: "#E6B23C" }}
