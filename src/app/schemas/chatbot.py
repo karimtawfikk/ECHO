@@ -1,6 +1,11 @@
 from typing import Optional
 from pydantic import BaseModel
 
+class InitRequest(BaseModel):
+    thread_id: str
+    entity: str
+    entity_type: str
+
 class ChatRequest(BaseModel):
     message: str
     thread_id: str

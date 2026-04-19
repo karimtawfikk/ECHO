@@ -87,6 +87,25 @@ function ChatContent() {
   const [recordingState, setRecordingState] = useState<RecordingState>("idle");
   const [threadId] = useState(() => `thread_${Math.random().toString(36).slice(2)}`);
 
+  useEffect(() => {
+    const initChat = async () => {
+      try {
+        await fetch(`${API_BASE}/api/v1/chat/init`, {
+          method: "POST",
+          headers: { "Content-Type": "application/json" },
+          body: JSON.stringify({
+            thread_id: threadId,
+            entity: entityName,
+            entity_type: entityType,
+          }),
+        });
+      } catch (e) {
+        console.error("Session init failed:", e);
+      }
+    };
+    initChat();
+  }, [threadId, entityName, entityType]);
+
   const scrollRef = useRef<HTMLDivElement>(null);
   const audioRef = useRef<HTMLAudioElement>(null);
   const mediaRecorderRef = useRef<MediaRecorder | null>(null);
