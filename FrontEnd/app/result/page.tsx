@@ -98,7 +98,7 @@ function ResultContent() {
   const typeLabel = displayType === "pharaoh" ? "PHARAOH" : "LANDMARK";
 
   const getAssumedImageUrl = (name: string, isPharaoh: boolean) => {
-    const baseUrl = process.env.NEXT_PUBLIC_API_BASE_URL ?? "http://localhost:8010";
+    const baseUrl = process.env.NEXT_PUBLIC_API_URL?.replace(/\/api\/v1\/?$/, "") ?? "http://localhost:8010";
     if (isPharaoh) {
       if (name === "Akhenaton") return `${baseUrl}/static/images/pharaohs/Akhenaton.JPG`;
       if (name === "Cleopatra VII Philopator") return `${baseUrl}/static/images/pharaohs/Cleopatra%20VII%20Philopator.jpg`;
@@ -123,7 +123,7 @@ function ResultContent() {
     finalImageUrl = assumedUrl;
   } else if (sessionResult?.entity?.images && sessionResult.entity.images.length > 0 && sessionResult.entity.images[0].url) {
     finalImageUrl = sessionResult.entity.images[0].url.startsWith("/static")
-      ? `${process.env.NEXT_PUBLIC_API_BASE_URL ?? "http://localhost:8010"}${sessionResult.entity.images[0].url}`
+      ? `${process.env.NEXT_PUBLIC_API_URL?.replace(/\/api\/v1\/?$/, "") ?? "http://localhost:8010"}${sessionResult.entity.images[0].url}`
       : sessionResult.entity.images[0].url;
   }
 

@@ -33,7 +33,7 @@ function VideoPageContent() {
     try {
       setIsGenerating(true);
       const isLandmark = entityType === "landmark";
-      const API_BASE_URL = process.env.NEXT_PUBLIC_API_BASE_URL || "http://localhost:8010";
+      const API_BASE_URL = process.env.NEXT_PUBLIC_API_URL?.replace(/\/api\/v1\/?$/, "") ?? "http://localhost:8010";
       const response = await fetch(`${API_BASE_URL}/api/v1/video/generate`, {
         method: "POST",
         headers: { "Content-Type": "application/json" },
