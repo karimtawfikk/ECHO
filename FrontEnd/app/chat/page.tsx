@@ -22,7 +22,7 @@ interface Message {
 
 type RecordingState = "idle" | "recording" | "processing";
 
-const API_BASE = process.env.NEXT_PUBLIC_API_BASE_URL ?? "http://localhost:8010";
+const API_BASE = process.env.NEXT_PUBLIC_API_URL?.replace(/\/api\/v1\/?$/, "") ?? "http://localhost:8010";
 const CHAT_API = `${API_BASE}/api/v1/chat/chat`;
 const STT_API = `${API_BASE}/api/v1/chat/transcribe`;
 const TUT_AVATAR = "/tut.png";
@@ -49,7 +49,7 @@ function ChatContent() {
   const entityType = sp.get("type") || "pharaoh";
 
   const getEntityImageUrl = (name: string, type: string) => {
-    const baseUrl = process.env.NEXT_PUBLIC_API_BASE_URL ?? "http://localhost:8010";
+    const baseUrl = process.env.NEXT_PUBLIC_API_URL?.replace(/\/api\/v1\/?$/, "") ?? "http://localhost:8010";
     const isPharaoh = type === "pharaoh" || type === "king";
     if (isPharaoh) {
       if (name === "Akhenaton") return `${baseUrl}/static/images/pharaohs/Akhenaton.JPG`;
