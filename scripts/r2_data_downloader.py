@@ -19,9 +19,10 @@ client = session.client(
     aws_secret_access_key=SECRET_KEY,
 )
 
-REMOTE_PREFIX = "data/video_generation/outputs/landmarks_scripts"
+REMOTE_PREFIX = "data"
 # 🔹 Where to save locally
-LOCAL_DIR = Path(r"C:\\Uni\\4th Year\\GP\\ECHO\\data\\video_generation\\outputs")
+LOCAL_DIR = Path(__file__).parent.parent / "data"
+
 
 LOCAL_DIR.mkdir(parents=True, exist_ok=True)
 
