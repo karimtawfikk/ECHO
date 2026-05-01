@@ -335,12 +335,15 @@ function ChatContent() {
           form.append("audio", blob, "recording.webm");
           const r = await fetch(STT_API, { method: "POST", body: form });
           const d = await r.json();
+          
+          // Clear "Transcribing..." immediately after receiving text
+          setRecordingState("idle");
+
           if (d.text?.trim()) {
-            await sendMessage(d.text.trim(), true);
+            sendMessage(d.text.trim(), true);
           }
         } catch {
           console.error("[STT] Transcription failed");
-        } finally {
           setRecordingState("idle");
         }
       };
