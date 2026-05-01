@@ -1,3 +1,4 @@
+print("--- Starting seed_db.py script ---")
 from pathlib import Path
 import sys
 sys.path.append(str(Path(__file__).resolve().parents[1]))
@@ -17,11 +18,14 @@ from src.models.pharaohs_scripts import PharaohScript
 
 Base.metadata.create_all(bind=engine)
 
+
+
 #Landmarks
-landmarks_json_path = Path(r"D:\GP\ECHO\data\data\video_generation\outputs\landmarks.json")
+landmarks_json_path = Path(r"C:\Uni\GP\ECHO\data\video_generation\outputs\landmarks.json")
 with open(landmarks_json_path, "r", encoding="utf-8") as f:
     landmarks_data = json.load(f)
 
+print("Starting Landmarks seeding...")
 with Session(engine) as session:
     for lm in landmarks_data:
         landmark = Landmark(
@@ -34,7 +38,8 @@ with Session(engine) as session:
     session.commit()
 
 #Landmark Images
-chroma_db_path = Path(r"D:\GP\ECHO\data\data\video_generation\embeddings\chroma_db_landmarks")
+print("Starting Landmark Images seeding...")
+chroma_db_path = Path(r"C:\Uni\GP\ECHO\data\video_generation\embeddings\chroma_db_landmarks")
 client = chromadb.PersistentClient(path=chroma_db_path)
 collection = client.get_collection("landmarks_images")
 
@@ -77,7 +82,8 @@ with Session(engine) as session:
 print("Landmark images synced from Chroma to PostgreSQL!")
 
 #Landmarks Text
-chroma_db_path = Path(r"D:\GP\ECHO\data\data\chatbot\embeddings\landmarks_qwen_MRL_768_db")
+print("Starting Landmark Texts seeding...")
+chroma_db_path = Path(r"C:\Uni\GP\ECHO\data\chatbot\embeddings\landmarks_qwen_MRL_768_db")
 client = chromadb.PersistentClient(path=chroma_db_path)
 collection = client.get_collection("landmarks")
 
@@ -115,14 +121,14 @@ print(f"{landmark_count} Landmark texts skipped due to missing landmarks in DB."
 print(skipped)
 print("Landmark texts synced from Chroma to PostgreSQL!")
 
-
 #Landmarks Scripts
-chroma_db_path = Path(r"D:\GP\ECHO\data\data\video_generation\embeddings\chroma_db_scripts_landmarks")
+print("Starting Landmark Scripts seeding...")
+chroma_db_path = Path(r"C:\Uni\GP\ECHO\data\video_generation\embeddings\chroma_db_scripts_landmarks")
 client = chromadb.PersistentClient(path=chroma_db_path)
 collection = client.get_collection("landmarks_scripts")
 all_items = collection.get(include=["metadatas", "embeddings"])
 
-SCRIPTS_DIR = Path(r"D:\GP\ECHO\data\data\video_generation\outputs\landmarks_scripts")
+SCRIPTS_DIR = Path(r"C:\Uni\GP\ECHO\data\video_generation\outputs\landmarks_scripts")
 
 id=0
 landmark_count=0
@@ -132,7 +138,8 @@ with Session(engine) as session:
     for metadata, emb in zip(all_items["metadatas"], all_items["embeddings"]):
 
         landmark_name = metadata.get("landmark_name")
-        script_path = Path("data") / Path(metadata.get("path"))
+        # Use the absolute SCRIPTS_DIR and just the filename from metadata
+        script_path = SCRIPTS_DIR / Path(metadata.get("path")).name
 
 
         landmark_script = script_path.read_text(encoding="utf-8", errors="ignore")
@@ -162,7 +169,7 @@ print("Landmark scripts synced from Chroma to PostgreSQL!")
 
 
 #Pharaohs
-pharaohs_json_path = Path(r"D:\GP\ECHO\data\data\video_generation\outputs\pharaohs.json")
+pharaohs_json_path = Path(r"C:\Uni\GP\ECHO\data\video_generation\outputs\pharaohs.json")
 with open(pharaohs_json_path, "r", encoding="utf-8") as f:
     pharaohs_data = json.load(f)
 
@@ -182,7 +189,8 @@ with Session(engine) as session:
     session.commit()
 
 #Pharaoh Images
-chroma_db_path = Path(r"D:\GP\ECHO\data\data\video_generation\embeddings\chroma_db_pharaohs")
+print("Starting Pharaoh Images seeding...")
+chroma_db_path = Path(r"C:\Uni\GP\ECHO\data\video_generation\embeddings\chroma_db_pharaohs")
 client = chromadb.PersistentClient(path=chroma_db_path)
 collection = client.get_collection("pharaohs_images")
 
@@ -219,7 +227,8 @@ with Session(engine) as session:
 print("Pharaoh images synced from Chroma to PostgreSQL!")
 
 #Pharaohs Text
-chroma_db_path = Path(r"D:\GP\ECHO\data\data\chatbot\embeddings\pharaohs_qwen_MRL_768_db")
+print("Starting Pharaoh Texts seeding...")
+chroma_db_path = Path(r"C:\Uni\GP\ECHO\data\chatbot\embeddings\pharaohs_qwen_MRL_768_db")
 client = chromadb.PersistentClient(path=chroma_db_path)
 collection = client.get_collection("pharaohs")
 
@@ -254,13 +263,12 @@ print("Pharaohs texts synced from Chroma to PostgreSQL!")
 
 
 #Pharaohs Scripts
-chroma_db_path = Path(r"D:\GP\ECHO\data\data\video_generation\embeddings\chroma_db_scripts_pharaohs")
+print("Starting Pharaoh Scripts seeding...")
+chroma_db_path = Path(r"C:\Uni\GP\ECHO\data\video_generation\embeddings\chroma_db_scripts_pharaohs")
 client = chromadb.PersistentClient(path=chroma_db_path)
 collection = client.get_collection("pharaohs_scripts")
 all_items = collection.get(include=["metadatas", "embeddings"])
-
-
-
+PHARAOH_SCRIPTS_DIR = Path(r"C:\Uni\GP\ECHO\data\video_generation\outputs\pharaohs_scripts")
 id=0
 pharaoh_count=0
 skipped=[]
@@ -269,7 +277,8 @@ with Session(engine) as session:
     for metadata, emb in zip(all_items["metadatas"], all_items["embeddings"]):
 
         pharaoh_name = metadata.get("pharaoh_name")
-        script_path = Path("data") / Path(metadata.get("path"))
+        # Use the absolute PHARAOH_SCRIPTS_DIR and just the filename from metadata
+        script_path = PHARAOH_SCRIPTS_DIR / Path(metadata.get("path")).name
 
         pharaoh_script = script_path.read_text(encoding="utf-8", errors="ignore")
 
