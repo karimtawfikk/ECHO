@@ -35,6 +35,7 @@ from sqlalchemy.orm import Session
 from sqlalchemy import text
 from src.db import engine
 
+
 from yaml import safe_load
 
 filterwarnings("ignore")
