@@ -28,8 +28,8 @@ const STT_API = `${API_BASE}/api/v1/chat/transcribe`;
 const TUT_AVATAR = "/tut.png";
 
 // Voice auto-stop config
-const SILENCE_THRESHOLD = 0.015;
-const SILENCE_DURATION_MS = 1500;
+const SILENCE_THRESHOLD = 0.05;
+const SILENCE_DURATION_MS = 1200;
 const MIN_DURATION_MS = 1000;
 
 const renderMessageText = (text: string) => {
@@ -114,6 +114,7 @@ function ChatContent() {
   const silenceStartRef = useRef<number | null>(null);
   const recordStartRef = useRef<number>(0);
   const rafRef = useRef<number | null>(null);
+  const wasCancelledRef = useRef<boolean>(false);
 
   useEffect(() => {
     if (scrollRef.current) {
@@ -289,6 +290,7 @@ function ChatContent() {
   }, [stopVAD]);
 
   const cancelRecording = useCallback(() => {
+    wasCancelledRef.current = true;
     stopVAD();
     if (mediaRecorderRef.current && mediaRecorderRef.current.state !== "inactive") {
       mediaRecorderRef.current.stream.getTracks().forEach(t => t.stop());
@@ -324,6 +326,13 @@ function ChatContent() {
 
       recorder.onstop = async () => {
         stream.getTracks().forEach(t => t.stop());
+
+        if (wasCancelledRef.current) {
+          wasCancelledRef.current = false;
+          setRecordingState("idle");
+          return;
+        }
+
         const chunks = audioChunksRef.current;
         if (chunks.length === 0) { setRecordingState("idle"); return; }
 
@@ -335,7 +344,7 @@ function ChatContent() {
           form.append("audio", blob, "recording.webm");
           const r = await fetch(STT_API, { method: "POST", body: form });
           const d = await r.json();
-          
+
           // Clear "Transcribing..." immediately after receiving text
           setRecordingState("idle");
 
@@ -483,27 +492,74 @@ function ChatContent() {
           <AnimatePresence>
             {recordingState === "recording" && (
               <motion.div
-                initial={{ opacity: 0, y: 10 }}
-                animate={{ opacity: 1, y: 0 }}
-                exit={{ opacity: 0, y: 10 }}
-                className="absolute bottom-20 left-4 right-4 z-20"
+                initial={{ opacity: 0 }}
+                animate={{ opacity: 1 }}
+                exit={{ opacity: 0 }}
+                className="absolute inset-0 z-30 flex items-center justify-center pointer-events-none"
+                style={{ background: "rgba(13,10,7,0.3)", backdropFilter: "blur(2px)" }}
               >
-                <div className="flex items-center gap-3 px-4 py-2.5 rounded-2xl" style={{ background: "rgba(180,30,30,0.12)", border: "1px solid rgba(220,50,50,0.3)" }}>
-                  <motion.div
-                    animate={{ scale: [1, 1.4, 1], opacity: [1, 0.5, 1] }}
-                    transition={{ repeat: Infinity, duration: 1 }}
-                    className="h-3 w-3 rounded-full shrink-0"
-                    style={{ background: "#E53E3E", boxShadow: "0 0 10px rgba(229,62,62,0.6)" }}
-                  />
-                  <span className="flex-1 text-xs font-semibold tracking-widest uppercase" style={{ color: "#FC8181" }}>Listening…</span>
-                  <button
-                    onClick={cancelRecording}
-                    className="flex items-center gap-1.5 px-3 py-1 rounded-xl text-xs font-semibold transition-all hover:scale-105"
-                    style={{ background: "rgba(229,62,62,0.15)", color: "#FC8181", border: "1px solid rgba(229,62,62,0.3)" }}
-                  >
-                    <X size={12} />
-                    Cancel
-                  </button>
+                <div className="relative flex flex-col items-center gap-8 pointer-events-auto">
+                  {/* The Liquid Blob Container */}
+                  <div className="relative h-32 w-32 md:h-[152px] md:w-[152px] flex items-center justify-center">
+                    {/* Organic Glow (Behind) */}
+                    <motion.div
+                      animate={{
+                        scale: [1, 1.4, 1],
+                        opacity: [0.3, 0.1, 0.3],
+                        borderRadius: [
+                          "60% 40% 30% 70% / 60% 30% 70% 40%",
+                          "30% 60% 70% 40% / 50% 60% 30% 60%",
+                          "60% 40% 30% 70% / 60% 30% 70% 40%"
+                        ]
+                      }}
+                      transition={{ repeat: Infinity, duration: 8, ease: "easeInOut" }}
+                      className="absolute inset-0 bg-[#E6B23C] blur-3xl pointer-events-none"
+                    />
+
+                    {/* Rotating Liquid Shape */}
+                    <motion.div
+                      animate={{
+                        borderRadius: [
+                          "60% 40% 30% 70% / 60% 30% 70% 40%",
+                          "30% 60% 70% 40% / 50% 60% 30% 60%",
+                          "60% 40% 30% 70% / 60% 30% 70% 40%"
+                        ],
+                        rotate: [0, 360],
+                      }}
+                      transition={{
+                        duration: 15,
+                        repeat: Infinity,
+                        ease: "linear"
+                      }}
+                      className="absolute inset-0 bg-gradient-to-br from-[#FFE6A9] via-[#E6B23C] to-[#B48B2D] shadow-[0_0_60px_rgba(230,178,60,0.4)]"
+                    />
+
+                    {/* Static Heartbeat Pulse (Icon stays upright) */}
+                    <motion.div
+                      animate={{ scale: [1, 1.25, 1] }}
+                      transition={{ repeat: Infinity, duration: 1.5, ease: "easeInOut" }}
+                      className="relative z-10"
+                    >
+                      <Mic size={36} className="text-[#1A1208] drop-shadow-lg" />
+                    </motion.div>
+                  </div>
+
+                  {/* Status & Cancel Button (Outside the rotation) */}
+                  <div className="flex flex-col items-center gap-4">
+                    <motion.div
+                      animate={{ opacity: [1, 0.4, 1] }}
+                      transition={{ repeat: Infinity, duration: 2 }}
+                    >
+                      <span className="text-sm font-bold tracking-[0.5em] uppercase text-[#E6B23C] drop-shadow-md">Listening</span>
+                    </motion.div>
+
+                    <button
+                      onClick={cancelRecording}
+                      className="mt-4 px-10 py-3 rounded-full bg-[#0D0A07]/40 backdrop-blur-md border border-[#E6B23C]/20 text-[#E6B23C] text-[11px] font-bold uppercase tracking-[0.3em] hover:bg-[#E6B23C] hover:text-[#0D0A07] transition-all hover:scale-105 active:scale-95 shadow-xl"
+                    >
+                      Cancel
+                    </button>
+                  </div>
                 </div>
               </motion.div>
             )}
