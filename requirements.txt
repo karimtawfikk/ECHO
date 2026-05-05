@@ -2,6 +2,7 @@
 fastapi
 uvicorn[standard]
 python-multipart
+httpx
 
 # Database
 sqlalchemy
@@ -35,6 +36,13 @@ google-genai
 groq
 edge-tts
 
+# GPU-Specific Libraries
+--extra-index-url https://download.pytorch.org/whl/cu121
+torch
+torchvision
+torchaudio
+tensorflow[and-cuda]
+
 # NLP and evaluation tooling (used in notebooks)
 numpy
 scikit-learn
@@ -44,13 +52,7 @@ langdetect
 sentence-transformers
 transformers
 torch
-
-# LangGraph / LangChain stack for chatbot phases
-langgraph
-langchain-core
-langchain-community
-langchain-groq
-langchain-tavily
+joblib
 
 # Jupyter for experimentation
 notebook

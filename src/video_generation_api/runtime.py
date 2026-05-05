@@ -797,8 +797,8 @@ class VideoGenerationRuntime:
                 *video_codec,
                 "-pix_fmt",
                 "yuv420p",
-                "-fps_mode",
-                "cfr",
+                "-vsync",
+                "1",
                 str(output_path),
             ]
         )
@@ -958,8 +958,8 @@ class VideoGenerationRuntime:
                 *video_codec,
                 "-pix_fmt",
                 "yuv420p",
-                "-fps_mode",
-                "cfr",
+                "-vsync",
+                "1",
                 "-c:a",
                 "copy",
                 str(output_path),

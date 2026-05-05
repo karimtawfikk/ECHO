@@ -23,6 +23,6 @@ RUN python scripts/preload_video_models.py
 COPY src/video_generation_api src/video_generation_api
 COPY src/db src/db
 
-EXPOSE 8001
+EXPOSE 8005
 
 CMD ["uvicorn", "src.video_generation_api.main:app", "--host", "0.0.0.0", "--port", "8001"]
