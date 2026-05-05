@@ -51,7 +51,7 @@ services:
     volumes:
       - hf_cache_video:/root/.cache/huggingface
     ports:
-      - "8001:8001"
+      - "8005:8005"
     gpus: all
 
 volumes:

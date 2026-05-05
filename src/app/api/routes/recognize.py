@@ -76,6 +76,11 @@ async def recognize_artifact(
         }
 
     except Exception as e:
+        print(f"[RECOGNIZE ERROR]: {e}") # <--- ADD THIS LINE
+        import traceback
+        traceback.print_exc()           # <--- ADD THIS LINE TOO
+
+        
         return RecognitionResponse(
             source="error",
             type="error",

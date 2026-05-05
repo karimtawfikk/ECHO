@@ -6,7 +6,12 @@ from PIL import Image
 os.environ["TF_CPP_MIN_LOG_LEVEL"] = "2"
 try:
     import tensorflow as tf
-except Exception:
+    gpus = tf.config.list_physical_devices('GPU')
+    if gpus:
+        for gpu in gpus:
+            tf.config.experimental.set_memory_growth(gpu, True)
+except Exception as e:
+    print(f"[ML] Error setting memory growth: {e}")
     tf = None
 
 import joblib
@@ -59,6 +64,8 @@ class RecognitionInference:
             self.pharaoh_model = self._load_model("pharaoh")
             self.landmark_model = self._load_model("landmark")
             print(f"[ML] Models loaded from {self.model_path}")
+            device = "GPU" if len(tf.config.list_physical_devices('GPU')) > 0 else "CPU"
+            print(f"[ML] Recognition running on: {device}")
         except Exception as e:
             print(f"[ML] CRITICAL: {e}")
             self.binary_model = self.pharaoh_model = self.landmark_model = None
