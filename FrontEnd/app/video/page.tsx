@@ -41,11 +41,25 @@ function VideoPageContent() {
       });
 
       if (!response.ok) {
-        throw new Error("Failed to generate video. The artifact may not have a ready script.");
+        throw new Error("Failed to start video generation.");
       }
 
-      const blob = await response.blob();
-      setVideoUrl(URL.createObjectURL(blob));
+      // Poll for status
+      let ready = false;
+      while (!ready) {
+        await new Promise(r => setTimeout(r, 5000)); // wait 5 seconds
+        
+        const statusRes = await fetch(`${API_BASE_URL}/api/v1/video/status/${encodeURIComponent(entityName)}`);
+        if (!statusRes.ok) continue;
+        
+        const statusData = await statusRes.json();
+        if (statusData.status === "ready") {
+          ready = true;
+          setVideoUrl(`${API_BASE_URL}/api/v1/video/stream/${encodeURIComponent(entityName)}`);
+        } else if (statusData.status === "failed") {
+          throw new Error("Video generation failed on the server.");
+        }
+      }
     } catch (error) {
       alert(error instanceof Error ? error.message : "Error generating video");
     } finally {
