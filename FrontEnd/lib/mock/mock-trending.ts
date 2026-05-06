@@ -24,7 +24,7 @@ export const PHARAOHS: Pharaoh[] = [
         dynasty: "18th Dynasty",
         period: "New Kingdom",
         description:
-            "The revolutionary pharaoh who abolished polytheism and introduced the worship of Aten, the sun disc.",
+            "Akhenaten was a pharaoh of the Eighteenth Dynasty who reigned from the first year of his rule until his death in his seventeenth regnal year, around 1334 or 1335 BCE.",
         type: "king",
         badge: "Revolutionary",
         icon: "sparkles",
@@ -34,7 +34,7 @@ export const PHARAOHS: Pharaoh[] = [
         dynasty: "Ptolemaic Dynasty",
         period: "Ptolemaic Period",
         description:
-            "The last active ruler of the Ptolemaic Kingdom, famed for her intelligence, political acumen, and alliances with Rome.",
+            "Cleopatra VII, the last active ruler of Ptolemaic Egypt (69–30 BCE), wielded political genius to maintain sovereignty against Rome through alliances with Julius Caesar and Mark Antony. Her death marked the end of ancient Egypt’s independence and its annexation as a Roman province.",
         type: "queen",
         badge: "Legendary",
         icon: "crown",
@@ -44,7 +44,7 @@ export const PHARAOHS: Pharaoh[] = [
         dynasty: "18th Dynasty",
         period: "New Kingdom",
         description:
-            "One of the most successful pharaohs, she expanded trade routes and commissioned hundreds of construction projects.",
+            "Hatshepsut reigned as pharaoh (c. 1479–1458 BCE) in the 18th Dynasty, one of ancient Egypt’s few female rulers, and commissioned massive building projects including her mortuary temple at Deir el-Bahari. She emphasized divine legitimacy through propaganda and trade expeditions, notably to Punt, enriching Egypt economically and culturally.",
         type: "queen",
         badge: "Royal",
         icon: "star",
@@ -54,7 +54,7 @@ export const PHARAOHS: Pharaoh[] = [
         dynasty: "19th Dynasty",
         period: "New Kingdom",
         description:
-            "Known as Ramesses the Great, he led numerous military expeditions and built monuments across Egypt.",
+            "Ramesses II was the third pharaoh of the nineteenth Dynasty and reigned from 1279 BCE until his death in 1213 BCE, marking one of the longest and most influential reigns in Egyptian history.",
         type: "king",
         badge: "World-Famous",
         icon: "shield",
@@ -64,7 +64,7 @@ export const PHARAOHS: Pharaoh[] = [
         dynasty: "18th Dynasty",
         period: "New Kingdom",
         description:
-            "The boy king whose nearly intact tomb revealed the splendours of ancient Egyptian burial traditions.",
+            "Tutankhamun ruled Egypt during the 18th Dynasty (c. 1332–1323 BCE) and is famed for his nearly intact tomb discovered in 1922. Though his reign was short, his burial treasures—including the iconic gold mask—offer unparalleled insight into New Kingdom royal funerary practices.",
         type: "king",
         badge: "Dynasty Icon",
         icon: "scroll",
@@ -77,7 +77,7 @@ export const LANDMARKS: Landmark[] = [
         name: "Pyramids of Giza",
         location: "Giza Plateau, Cairo",
         description:
-            "The last surviving wonder of the ancient world, standing as an eternal testament to human ambition.",
+            "The Pyramids of Giza, built during Egypt’s Fourth Dynasty, form the last surviving wonder of the ancient world. These colossal tombs for Pharaohs Khufu, Khafre, and Menkaure display extraordinary engineering skill and remain symbols of Egypt’s power and spiritual belief in the afterlife.",
         badge: "Ancient Wonder",
         icon: "pyramid",
     },
@@ -85,7 +85,7 @@ export const LANDMARKS: Landmark[] = [
         name: "Sphinx",
         location: "Giza Plateau, Cairo",
         description:
-            "A colossal limestone statue with a lion's body and a human head, guarding the great pyramids.",
+            "The Great Sphinx of Giza is the most instantly recognizable statue associated with ancient Egypt and among the most famous in the world.",
         badge: "Iconic",
         icon: "landmark",
     },
@@ -93,7 +93,7 @@ export const LANDMARKS: Landmark[] = [
         name: "Temple of Karnak",
         location: "Luxor, Upper Egypt",
         description:
-            "The largest ancient religious site in the world, a vast complex of temples, pylons, and obelisks.",
+            "The Temple complex of Karnak, located on the east bank of Thebes, modern Luxor, in Upper Egypt, is considered the biggest temple in existence.",
         badge: "UNESCO",
         icon: "columns",
     },
@@ -101,7 +101,7 @@ export const LANDMARKS: Landmark[] = [
         name: "Temple of Luxor",
         location: "Luxor, Upper Egypt",
         description:
-            "A majestic temple complex on the east bank of the Nile, dedicated to the rejuvenation of kingship.",
+            "The Temple of Luxor, built by Pharaoh Amenhotep III and expanded by Ramesses II, stands majestically on the east bank of the Nile. Once the center of the Opet Festival, it symbolized the renewal of kingship and remains a stunning example of New Kingdom architecture.",
         badge: "Most Visited",
         icon: "compass",
     },
@@ -109,7 +109,7 @@ export const LANDMARKS: Landmark[] = [
         name: "The Great Temple of Ramesses II at Abu Simbel",
         location: "Aswan, Nubia",
         description:
-            "Four colossal statues of Ramesses II carved into the cliff face, an engineering marvel relocated in 1968.",
+            "Abu Simbel is a monumental rockcut complex situated on the western bank of the Nile. Built by the 19th Dynasty Pharaoh Ramesses II, who reigned from 1279–13 BCE, the complex consists of two temples carved into a sandstone cliff on the west bank of the Nile at the Second Nile Cataract, the border between Lower Nubia and Upper Nubia.",
         badge: "UNESCO",
         icon: "map-pin",
     },

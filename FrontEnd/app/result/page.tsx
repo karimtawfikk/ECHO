@@ -51,6 +51,7 @@ function ResultContent() {
   // ── 3. Derive display data from whichever source we have ─────────────
   const isApiFlow = !!sessionResult;
   const isQuickLink = !isApiFlow && !!entityNameParam;
+  const isFromTrending = sessionResult?.source === "quick-link" || isQuickLink;
 
   const mockMatch = useMemo(() => {
     if (isApiFlow || !entityNameParam) return null;
@@ -136,9 +137,9 @@ function ResultContent() {
       <motion.div initial={{ opacity: 0 }} animate={{ opacity: 1 }} className="max-w-6xl mx-auto">
         {/* Breadcrumb */}
         <motion.div initial={{ opacity: 0, x: -20 }} animate={{ opacity: 1, x: 0 }} className="mb-8">
-          <Link href="/upload" className="group inline-flex items-center gap-2 text-xs font-semibold tracking-[0.15em] uppercase text-[#A08E70] hover:text-[#E6B23C] transition-colors">
+          <Link href={isFromTrending ? "/" : "/upload"} className="group inline-flex items-center gap-2 text-xs font-semibold tracking-[0.15em] uppercase text-[#A08E70] hover:text-[#E6B23C] transition-colors">
             <span className="group-hover:-translate-x-1 transition-transform">←</span>
-            Return
+            {isFromTrending ? "Back to Home" : "Return"}
           </Link>
         </motion.div>
 
@@ -329,11 +330,11 @@ function ResultContent() {
               )}
 
               <Button
-                onClick={() => router.push("/upload")}
+                onClick={() => router.push(isFromTrending ? "/" : "/upload")}
                 className="h-14 rounded-2xl bg-gradient-to-r from-[#C1840A] to-[#A06A00] hover:from-[#D4A030] hover:to-[#C1840A] text-white font-bold text-base transition-all hover:scale-[1.02] shadow-[0_4px_30px_rgba(230,178,60,0.15)] flex items-center justify-center gap-2"
               >
                 <Sparkles size={20} />
-                Recognize Another Entity
+                {isFromTrending ? "Explore More" : "Recognize Another Entity"}
               </Button>
             </div>
 

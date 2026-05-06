@@ -9,7 +9,6 @@ import TrendingRow from "../components/trending/TrendingRow";
 import ScrollReveal from "../components/animations/ScrollReveal";
 import ParallaxLayer from "../components/animations/ParallaxLayer";
 import { useEffect, useState } from "react";
-import { fetchTrendingEntities } from "../lib/services/entities";
 import type { RecognitionEntity } from "../lib/types";
 
 // ── Minimal mock fallback (used only when the API is unreachable) ──────────
@@ -63,22 +62,13 @@ const FALLBACK_LANDMARKS: RecognitionEntity[] = LANDMARK_ORDER
 
 // ── Page ─────────────────────────────────────────────────────────────────
 export default function HomePage() {
-  const [pharaohs, setPharaohs] = useState<RecognitionEntity[]>([]);
-  const [landmarks, setLandmarks] = useState<RecognitionEntity[]>([]);
-  const [isLoading, setIsLoading] = useState(true);
+  const [pharaohs] = useState<RecognitionEntity[]>(FALLBACK_PHARAOHS);
+  const [landmarks] = useState<RecognitionEntity[]>(FALLBACK_LANDMARKS);
+  const [isLoading] = useState(false);
 
+  // Database fetch removed to eliminate latency as requested
   useEffect(() => {
-    fetchTrendingEntities()
-      .then((data) => {
-        setPharaohs(data.pharaohs.length > 0 ? data.pharaohs : FALLBACK_PHARAOHS);
-        setLandmarks(data.landmarks.length > 0 ? data.landmarks : FALLBACK_LANDMARKS);
-      })
-      .catch(() => {
-        // API unreachable – fall back to mock data silently
-        setPharaohs(FALLBACK_PHARAOHS);
-        setLandmarks(FALLBACK_LANDMARKS);
-      })
-      .finally(() => setIsLoading(false));
+    // No-op: we now use the hardcoded mock data directly
   }, []);
 
   return (
@@ -145,18 +135,17 @@ export default function HomePage() {
         >
           <Button
             asChild
-            className="h-14 px-10 rounded-2xl bg-gradient-to-r from-[#E6B23C] to-[#D4A030] hover:from-[#FFD369] hover:to-[#E6B23C] text-[#0D0A07] font-bold text-base transition-all hover:scale-105 shadow-[0_4px_30px_rgba(230,178,60,0.25)] hover:shadow-[0_4px_40px_rgba(230,178,60,0.4)]"
+            className="h-14 w-64 rounded-2xl bg-gradient-to-r from-[#E6B23C] to-[#D4A030] hover:from-[#FFD369] hover:to-[#E6B23C] text-[#0D0A07] font-bold text-base transition-all hover:scale-105 shadow-[0_4px_30px_rgba(230,178,60,0.25)] hover:shadow-[0_4px_40px_rgba(230,178,60,0.4)]"
           >
             <Link href="/upload">
               Recognize Entities
-              <ArrowRight className="ml-3" size={18} />
             </Link>
           </Button>
 
           <Button
             asChild
             variant="outline"
-            className="h-14 px-10 rounded-2xl border-[#E6B23C]/15 bg-[#E6B23C]/[0.04] hover:bg-[#E6B23C]/[0.08] text-[#F5E6D0] font-semibold text-base transition-all hover:scale-105 hover:border-[#E6B23C]/25"
+            className="h-14 w-64 rounded-2xl border-[#E6B23C]/15 bg-[#E6B23C]/[0.04] hover:bg-[#E6B23C]/[0.08] text-[#F5E6D0] font-bold text-base transition-all hover:scale-105 hover:border-[#E6B23C]/25"
           >
             <Link href="/translate">
               Translate Hieroglyphs
