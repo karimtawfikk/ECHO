@@ -51,7 +51,6 @@ textstat
 langdetect
 sentence-transformers
 transformers
-torch
 joblib
 
 # Jupyter for experimentation

@@ -31,7 +31,7 @@ async def get_status(entity_name: str):
 @router.get("/stream/{entity_name}")
 async def stream_video(entity_name: str):
     filename = f"{entity_name.replace(' ', '_')}_final_video.mp4"
-    filepath = os.path.join("tts_Outputs", filename)
+    filepath = os.path.join("data/generated_videos", filename)
     if os.path.exists(filepath):
         return FileResponse(filepath, media_type="video/mp4")
     raise HTTPException(status_code=404, detail="Video not ready")

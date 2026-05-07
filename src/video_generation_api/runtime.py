@@ -36,7 +36,7 @@ load_dotenv()
 
 @dataclass
 class VideoPipelineConfig:
-    output_dir: str = "tts_Outputs"
+    output_dir: str = "data/generated_videos"
     temp_frames_dir: str = "temp_frames"
     temp_clips_dir: str = "temp_clips"
     voice: str = "en-US-ChristopherNeural"
@@ -769,13 +769,15 @@ class VideoGenerationRuntime:
         else:
             video_filter = (build_pan_vf() or build_zoom_vf()) if (prefer_pan_when_possible and can_pan) else build_zoom_vf()
 
-        video_codec = ["-c:v", "h264_nvenc", "-preset", "p1"] if use_nvenc else [
+        video_codec = ["-c:v", "h264_nvenc", "-preset", "p1", "-b:v", "5M", "-g", "30"] if use_nvenc else [
             "-c:v",
             "libx264",
             "-preset",
             "slow",
             "-crf",
-            "18",
+            "22",
+            "-g",
+            "30",
         ]
 
         self.run_ffmpeg(
@@ -889,11 +891,15 @@ class VideoGenerationRuntime:
             cumulative += durations_local[index] - fade
             last = out
 
-        video_codec = ["-c:v", "h264_nvenc", "-preset", "medium"] if use_nvenc else [
+        video_codec = ["-c:v", "h264_nvenc", "-preset", "medium", "-b:v", "4M", "-maxrate", "5M", "-bufsize", "6M", "-g", "30"] if use_nvenc else [
             "-c:v",
             "libx264",
             "-preset",
             "slow",
+            "-crf",
+            "22",
+            "-g",
+            "30",
         ]
 
         cmd += [
@@ -904,8 +910,6 @@ class VideoGenerationRuntime:
             "-map",
             f"[{last}]",
             *video_codec,
-            "-crf",
-            "18",
             "-pix_fmt",
             "yuv420p",
             str(output_path),
@@ -938,11 +942,19 @@ class VideoGenerationRuntime:
         use_nvenc: bool = True,
     ) -> None:
         normalized_srt_path = Path(srt_path).as_posix().replace("\\", "/").replace(":", r"\:")
-        video_codec = ["-c:v", "h264_nvenc", "-preset", "p1"] if use_nvenc else [
+        video_codec = ["-c:v", "h264_nvenc", "-preset", "p1", "-b:v", "4M", "-maxrate", "5M", "-bufsize", "6M", "-g", "30", "-profile:v", "baseline"] if use_nvenc else [
             "-c:v",
             "libx264",
             "-preset",
             "slow",
+            "-crf",
+            "22",
+            "-g",
+            "30",
+            "-profile:v",
+            "baseline",
+            "-tune",
+            "fastdecode",
         ]
 
         self.run_ffmpeg(
@@ -962,6 +974,8 @@ class VideoGenerationRuntime:
                 "1",
                 "-c:a",
                 "copy",
+                "-movflags",
+                "+faststart",
                 str(output_path),
             ]
         )
@@ -990,8 +1004,19 @@ class VideoGenerationRuntime:
         config: VideoPipelineConfig | None = None,
     ) -> str:
         config = config or VideoPipelineConfig()
+        safe_name = entity_name.replace(" ", "_")
+        
+        # Define unique paths for this specific generation job
         output_dir = Path(config.output_dir)
+        job_temp_dir = output_dir / "temp" / safe_name
+        temp_frames_dir = job_temp_dir / "frames"
+        temp_clips_dir = job_temp_dir / "clips"
+        
+        # Ensure directories exist
         output_dir.mkdir(exist_ok=True)
+        job_temp_dir.mkdir(parents=True, exist_ok=True)
+        temp_frames_dir.mkdir(parents=True, exist_ok=True)
+        temp_clips_dir.mkdir(parents=True, exist_ok=True)
         stage_times: dict[str, float] = {}
         total_start = time.time()
 
@@ -1005,17 +1030,18 @@ class VideoGenerationRuntime:
         asyncio.run(
             self.generate_tts_audio(
                 sentence_groups=sentence_groups,
-                output_dir=config.output_dir,
+                output_dir=str(job_temp_dir),
                 voice=config.voice,
                 rate=config.rate,
                 trim_top_db=config.trim_top_db,
             )
         )
-
-        final_audio_path = self.combine_audio_files(config.output_dir, "Final audio.wav")
+        
+        final_audio_filename = f"{safe_name}_audio.wav"
+        final_audio_path = self.combine_audio_files(str(job_temp_dir), final_audio_filename)
         _, sentence_durations, images_needed = self.compute_audio_durations(
             sentence_groups=sentence_groups,
-            output_dir=config.output_dir,
+            output_dir=str(job_temp_dir),
             seconds_per_image=config.seconds_per_image,
             delete_sentence_files=True,
         )
@@ -1038,7 +1064,7 @@ class VideoGenerationRuntime:
 
         image_files = self.download_images_from_r2(
             remote_paths=fetched_image_paths,
-            local_frames_dir=config.temp_frames_dir,
+            local_frames_dir=str(temp_frames_dir),
         )
         image_files = self.normalize_images_to_jpeg(image_files)
         stage_times["Retrieval"] = time.time() - retrieval_start
@@ -1047,7 +1073,7 @@ class VideoGenerationRuntime:
         srt_path = self.generate_srt(
             paragraphs=paragraphs,
             sentence_durations=sentence_durations,
-            output_path=str(output_dir / "output_subtitles.srt"),
+            output_path=str(job_temp_dir / f"{safe_name}_subtitles.srt"),
             max_chars_per_line=config.max_chars_per_line,
             max_lines=config.max_lines,
             min_duration=config.min_subtitle_duration,
@@ -1063,7 +1089,7 @@ class VideoGenerationRuntime:
         clips = self.generate_all_clips(
             image_files=image_files,
             durations=seconds,
-            temp_dir=config.temp_clips_dir,
+            temp_dir=str(temp_clips_dir),
             fps=config.fps,
             target_w=config.target_w,
             target_h=config.target_h,
@@ -1072,17 +1098,17 @@ class VideoGenerationRuntime:
         stage_times["Motion"] = time.time() - motion_start
 
         rendering_start = time.time()
-        combined_video = output_dir / "combined.mp4"
+        combined_video = job_temp_dir / f"{safe_name}_combined.mp4"
         self.concatenate_clips(
             clips=clips,
             output_path=combined_video,
             fade=config.fade,
         )
 
-        with_audio = output_dir / "with_audio.mp4"
+        with_audio = job_temp_dir / f"{safe_name}_with_audio.mp4"
         self.add_audio(combined_video, final_audio_path, with_audio)
 
-        final_output = output_dir / f"{entity_name.replace(' ', '_')}_final_video.mp4"
+        final_output = output_dir / f"{safe_name}_final_video.mp4"
         self.add_subtitles(
             video_path=with_audio,
             srt_path=srt_path,
@@ -1092,11 +1118,8 @@ class VideoGenerationRuntime:
         stage_times["Total"] = time.time() - total_start
 
         if config.cleanup_intermediate:
-            self.cleanup_files(
-                output_dir=config.output_dir,
-                temp_clips_dir=config.temp_clips_dir,
-                temp_frames_dir=config.temp_frames_dir,
-            )
+            if job_temp_dir.exists():
+                shutil.rmtree(job_temp_dir)
 
         print(f"Done: {final_output}")
         print("\nStage Times:")
