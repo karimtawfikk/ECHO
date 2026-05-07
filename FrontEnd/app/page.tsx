@@ -220,10 +220,10 @@ export default function HomePage() {
 
         <div className="space-y-4">
           {[
-            { label: "Recognition", text: "Recognizes landmarks and artifacts from images, using models trained on curated archaeological data." },
-            { label: "Video", text: "Generates documentary-style videos with historically accurate narration." },
-            { label: "Dialogue", text: "Enables interactive conversations grounded in historical context, allowing you to explore each entity in depth." },
-            { label: "Translation", text: "Translates ancient Egyptian hieroglyphic inscriptions into modern language using OCR and language models." },
+            { label: "Entity Recognition", text: "Recognizes landmarks and artifacts from images, using models trained on curated archaeological data." },
+            { label: "Video Generation", text: "Generates documentary-style videos with historically accurate narration." },
+            { label: "Interactive Dialogue", text: "Enables interactive conversations grounded in historical context, allowing you to explore each entity in depth." },
+            { label: "Hieroglyphics Translation", text: "Translates ancient Egyptian hieroglyphic inscriptions into modern language using advanced language models." },
           ].map((item, i) => (
             <ScrollReveal
               key={item.label}

@@ -1,10 +1,10 @@
 "use client";
 
-import { useState, useMemo, useEffect } from "react";
+import { useState, useMemo, useEffect, useRef } from "react";
 import { useRouter, useSearchParams } from "next/navigation";
 import PageShell from "../../components/layout/PageShell";
-import { motion, AnimatePresence } from "framer-motion";
-import { Search, Crown, MapPin, ChevronDown, ChevronRight, MessageSquare, Video, Scroll, Sparkles, X } from "lucide-react";
+import { motion, AnimatePresence, useScroll, useTransform, useSpring } from "framer-motion";
+import { Search, Crown, MapPin, ChevronDown, ChevronRight, MessageSquare, Video, Scroll, Sparkles, X, History } from "lucide-react";
 import { ALL_PHARAOHS, ALL_LANDMARKS } from "../../lib/mock/mock-all-entities";
 import { saveResultToSession } from "../../lib/services/recognition";
 import type { RecognitionEntity, RecognitionResult } from "../../lib/types";
@@ -189,6 +189,14 @@ function EgyptMap({
                 onClick={() => onSelectCity(isActive ? null : pin.label)}
                 className="cursor-pointer group"
               >
+                {/* Pulsing Base (Implier) */}
+                {!isActive && (
+                  <circle cx={x} cy={y} r="6" fill="#1A1005" fillOpacity="0.2">
+                    <animate attributeName="r" values="4;8;4" dur="3s" repeatCount="indefinite" />
+                    <animate attributeName="fill-opacity" values="0.4;0.1;0.4" dur="3s" repeatCount="indefinite" />
+                  </circle>
+                )}
+
                 {/* Selection Pulse Ring */}
                 {isActive && (
                   <circle cx={x} cy={y} r="14" fill="none" stroke="#E6B23C" strokeWidth="1" strokeOpacity="0.4">
@@ -244,6 +252,38 @@ function ExploreContent() {
   const [landmarks] = useState<RecognitionEntity[]>(ALL_LANDMARKS as unknown as RecognitionEntity[]);
   const isLoading = false;
   const [selectedCity, setSelectedCity] = useState<string | null>(null);
+
+  const containerRef = useRef<HTMLDivElement>(null);
+  const { scrollYProgress } = useScroll({
+    target: containerRef,
+    offset: ["start 20%", "end end"]
+  });
+
+  const scaleY = useSpring(scrollYProgress, {
+    stiffness: 100,
+    damping: 30,
+    restDelta: 0.001
+  });
+
+  // ── Render Helpers ──────────────────────────────────────────────────
+  const ScrollLine = () => (
+    <div className="absolute left-5 md:left-1/2 top-0 bottom-0 w-0.5 -translate-x-1/2 pointer-events-none z-0">
+      {/* Background track */}
+      <div className="absolute inset-0 bg-white/[0.05]" />
+
+      {/* Active shining line */}
+      <motion.div
+        style={{ scaleY, originY: 0 }}
+        className="absolute inset-0 bg-gradient-to-b from-[#E6B23C] via-[#E6B23C] to-white/50 shadow-[0_0_15px_rgba(230,178,60,0.5)]"
+      />
+
+      {/* Scrolling dot */}
+      <motion.div
+        style={{ top: useTransform(scaleY, [0, 1], ["0%", "100%"]) }}
+        className="absolute left-1/2 -translate-x-1/2 w-2.5 h-2.5 bg-[#E6B23C] rounded-full shadow-[0_0_15px_rgba(230,178,60,0.8)] z-10"
+      />
+    </div>
+  );
 
   // Sync tab with URL on mount and param changes
   useEffect(() => {
@@ -482,7 +522,7 @@ function ExploreContent() {
           )}
         </AnimatePresence>
       </div>
-      <div className={`transition-all duration-700 ${search ? 'blur-3xl pointer-events-none' : ''}`}>
+      <div ref={containerRef} className={`transition-all duration-700 ${search ? 'blur-3xl pointer-events-none' : ''}`}>
         {/* Loading */}
         {isLoading && (
           <div className="flex justify-center py-20">
@@ -509,7 +549,8 @@ function ExploreContent() {
               </div>
             )}
 
-            <div className="relative before:absolute before:inset-0 before:ml-5 md:before:mx-auto md:before:translate-x-0 before:-translate-x-1/2 before:w-[2px] before:bg-gradient-to-b before:from-transparent before:via-[#E6B23C]/20 before:to-transparent pt-10 pb-10">
+            <div className="relative pt-10 pb-10">
+              <ScrollLine />
               {pharaohsByPeriod.map(({ period, dynasties }, idx) => {
                 const isLeft = idx % 2 === 0;
                 return (
@@ -570,11 +611,24 @@ function ExploreContent() {
             animate={{ opacity: 1 }}
             className="max-w-6xl mx-auto px-4"
           >
-            <div className="text-center mb-10">
-              <span className="text-[11px] font-bold tracking-[0.4em] text-[#E6B23C] uppercase bg-[#E6B23C]/5 px-4 py-2 rounded-full border border-[#E6B23C]/10">
-                Interactive Archaeological Map
-              </span>
-            </div>
+
+
+            <AnimatePresence>
+              {!selectedCity && (
+                <motion.div
+                  initial={{ opacity: 0, y: 10 }}
+                  animate={{ opacity: 1, y: 0 }}
+                  exit={{ opacity: 0, y: -10 }}
+                  className="flex justify-center mb-8"
+                >
+                  <div className="inline-flex items-center gap-3 px-6 py-2.5 rounded-full bg-[#E6B23C]/5 border border-[#E6B23C]/10 backdrop-blur-sm">
+                    <span className="text-[11px] font-bold tracking-[0.2em] text-[#A08E70] uppercase">
+                      Select a region to discover its landmarks
+                    </span>
+                  </div>
+                </motion.div>
+              )}
+            </AnimatePresence>
 
             <div className="relative flex flex-col md:flex-row items-start justify-center gap-8">
               {/* Centered Large Map */}

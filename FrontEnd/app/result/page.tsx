@@ -226,9 +226,7 @@ function ResultContent() {
               transition={{ delay: 0.5, type: "spring", damping: 20 }}
               className="papyrus-paper relative group"
             >
-              <div className="text-[10px] font-bold tracking-[0.3em] text-[#1A1005]/50 mb-4 uppercase flex items-center gap-2">
-                <Scroll size={11} /> Eternal Record
-              </div>
+
 
               {/* Entity name heading */}
               <h2
@@ -281,8 +279,7 @@ function ResultContent() {
               )}
 
               <div className="mt-8 pt-5 border-t border-[#1A1005]/8 flex justify-between items-center opacity-40">
-                <div className="text-[9px] font-bold tracking-[0.2em] text-[#1A1005] uppercase">Origin Verified</div>
-                <div className="text-[9px] font-bold tracking-[0.2em] text-[#1A1005] uppercase">E.C.H.O Archive</div>
+
               </div>
             </motion.div>
 
@@ -334,9 +331,8 @@ function ResultContent() {
 
               <Button
                 onClick={() => router.push(isFromExplore ? `/explore?tab=${displayType}s` : isFromTrending ? "/" : "/upload")}
-                className="h-14 rounded-2xl bg-gradient-to-r from-[#C1840A] to-[#A06A00] hover:from-[#D4A030] hover:to-[#C1840A] text-white font-bold text-base transition-all hover:scale-[1.02] shadow-[0_4px_30px_rgba(230,178,60,0.15)] flex items-center justify-center gap-2"
+                className="h-14 rounded-2xl bg-[#D8C09A] hover:bg-[#C8B08A] text-[#1A1005] font-bold text-base transition-all hover:scale-[1.02] shadow-[0_4px_30px_rgba(0,0,0,0.2)] flex items-center justify-center"
               >
-                <Sparkles size={20} />
                 {isFromExplore ? "Back to Explore" : isFromTrending ? "Explore More" : "Recognize Another Entity"}
               </Button>
             </div>

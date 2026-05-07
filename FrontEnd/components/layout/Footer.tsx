@@ -92,7 +92,7 @@ export default function Footer() {
                 {/* Bottom Bar */}
                 <div className="mt-16 pt-8 border-t border-[#E6B23C]/5 flex flex-col sm:flex-row justify-between items-center gap-4">
                     <p className="text-[#A08E70]/50 text-[11px] font-bold tracking-[0.1em] uppercase">
-                        © 2026 ECHO Project. Built with AI.
+                        © 2026 ECHO Project.
                     </p>
                     <div className="flex gap-6">
                         <Link href="#" className="text-[#A08E70]/40 hover:text-[#E6B23C] text-[10px] font-bold tracking-[0.2em] uppercase transition-colors">
