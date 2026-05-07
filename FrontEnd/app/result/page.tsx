@@ -279,7 +279,8 @@ function ResultContent() {
               )}
 
               <div className="mt-8 pt-5 border-t border-[#1A1005]/8 flex justify-between items-center opacity-40">
-
+                <div className="text-[9px] font-bold tracking-[0.2em] text-[#1A1005] uppercase">Origin Verified</div>
+                <div className="text-[9px] font-bold tracking-[0.2em] text-[#1A1005] uppercase">E.C.H.O Archive</div>
               </div>
             </motion.div>
 
@@ -331,8 +332,9 @@ function ResultContent() {
 
               <Button
                 onClick={() => router.push(isFromExplore ? `/explore?tab=${displayType}s` : isFromTrending ? "/" : "/upload")}
-                className="h-14 rounded-2xl bg-[#D8C09A] hover:bg-[#C8B08A] text-[#1A1005] font-bold text-base transition-all hover:scale-[1.02] shadow-[0_4px_30px_rgba(0,0,0,0.2)] flex items-center justify-center"
+                className="h-14 rounded-2xl bg-[#D8C09A] hover:bg-[#C8B08A] text-[#1A1005] font-bold text-base transition-all hover:scale-[1.02] shadow-[0_4px_30px_rgba(0,0,0,0.2)] flex items-center justify-center gap-2"
               >
+                <Sparkles size={20} />
                 {isFromExplore ? "Back to Explore" : isFromTrending ? "Explore More" : "Recognize Another Entity"}
               </Button>
             </div>
