@@ -106,7 +106,7 @@ function DynastyGroup({ dynasty, entities, type, onNavigate }: {
         className="w-full flex items-center justify-between px-5 py-4 hover:bg-[#E6B23C]/5 transition-colors"
       >
         <div className="flex items-center gap-3">
-          <Crown size={14} className="text-[#E6B23C]/60" />
+          <Scroll size={15} className="text-[#B8860B] shrink-0" />
           <span className="text-sm font-bold text-[#F5E6D0] tracking-wide">{dynasty}</span>
           <span className="text-[10px] text-[#A08E70]/50 font-bold tracking-widest uppercase ml-1">
             {entities.length} {entities.length === 1 ? "entity" : "entities"}
