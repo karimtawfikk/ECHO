@@ -9,9 +9,12 @@ load_dotenv(_ECHO_ROOT / ".env")
 class Settings:
     BASE_DIR: str = Path(__file__).resolve().parent.parent.parent
 
-    CORS_ORIGINS: list = ["https://echo-wheat-phi.vercel.app"]
-    # Path to static folder (absolute)
-    STATIC_DIR: str = os.path.join(BASE_DIR, "static")
+    CORS_ORIGINS: list = [
+        "https://echo-wheat-phi.vercel.app",
+        "http://localhost:3000",
+        "http://127.0.0.1:3000"
+    ]
+    # Path to models (absolute)
     MODEL_PATH: str = os.path.join(BASE_DIR, "recognition_models")
     
 settings = Settings()

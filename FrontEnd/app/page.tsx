@@ -4,7 +4,7 @@ import Link from "next/link";
 import PageShell from "../components/layout/PageShell";
 import { Button } from "../components/ui/button";
 import { motion } from "framer-motion";
-import { ArrowRight, DoorOpen, Sparkles } from "lucide-react";
+import { DoorOpen, Sparkles } from "lucide-react";
 import TrendingRow from "../components/trending/TrendingRow";
 import ScrollReveal from "../components/animations/ScrollReveal";
 import ParallaxLayer from "../components/animations/ParallaxLayer";
@@ -131,7 +131,7 @@ export default function HomePage() {
           initial={{ opacity: 0, y: 20 }}
           animate={{ opacity: 1, y: 0 }}
           transition={{ delay: 0.65, duration: 0.5 }}
-          className="flex flex-col sm:flex-row gap-5"
+          className="flex flex-col sm:flex-row flex-wrap justify-center gap-5"
         >
           <Button
             asChild
@@ -151,6 +151,7 @@ export default function HomePage() {
               Translate Hieroglyphs
             </Link>
           </Button>
+
         </motion.div>
 
         {/* Decorative Egyptian line */}

@@ -48,26 +48,25 @@ function ChatContent() {
   const entityName = sp.get("entity") ?? "Ancient Spirit";
   const entityType = sp.get("type") || "pharaoh";
 
-  const getEntityImageUrl = (name: string, type: string) => {
-    const baseUrl = process.env.NEXT_PUBLIC_API_URL?.replace(/\/api\/v1\/?$/, "") ?? "http://localhost:8010";
-    const isPharaoh = type === "pharaoh" || type === "king";
+  const getAssumedImageUrl = (name: string, isPharaoh: boolean) => {
     if (isPharaoh) {
-      if (name === "Akhenaton") return `${baseUrl}/static/images/pharaohs/Akhenaton.JPG`;
-      if (name === "Cleopatra VII Philopator") return `${baseUrl}/static/images/pharaohs/Cleopatra%20VII%20Philopator.jpg`;
-      if (name === "Hatshepsut") return `${baseUrl}/static/images/pharaohs/Hatshepsut.JPG`;
-      if (name === "Ramesses II") return `${baseUrl}/static/images/pharaohs/Ramesses%20II.jpg`;
-      if (name === "Tutankhamun") return `${baseUrl}/static/images/pharaohs/Tutankhamun.jpg`;
+      if (name === "Akhenaton") return `/images/pharaohs/Akhenaton.JPG`;
+      if (name === "Cleopatra VII Philopator") return `/images/pharaohs/Cleopatra VII Philopator.jpg`;
+      if (name === "Hatshepsut") return `/images/pharaohs/Hatshepsut.JPG`;
+      if (name === "Ramesses II") return `/images/pharaohs/Ramesses II.jpg`;
+      if (name === "Tutankhamun") return `/images/pharaohs/Tutankhamun.jpg`;
     } else {
-      if (name === "Pyramids of Giza") return `${baseUrl}/static/images/landmarks/Pyramids%20of%20Giza.webp`;
-      if (name === "Sphinx") return `${baseUrl}/static/images/landmarks/Sphinx.jpg`;
-      if (name === "Temple of Karnak") return `${baseUrl}/static/images/landmarks/Temple%20of%20Karnak.jpg`;
-      if (name === "Temple of Luxor") return `${baseUrl}/static/images/landmarks/Temple%20of%20Luxor.jpg`;
-      if (name === "The Great Temple of Ramesses II at Abu Simbel") return `${baseUrl}/static/images/landmarks/The%20Great%20Temple%20of%20Ramesses%20II%20at%20Abu%20Simbel.webp`;
+      if (name === "Pyramids of Giza") return `/images/landmarks/Pyramids of Giza.webp`;
+      if (name === "Sphinx") return `/images/landmarks/Sphinx.jpg`;
+      if (name === "Temple of Karnak") return `/images/landmarks/Temple of Karnak.jpg`;
+      if (name === "Temple of Luxor") return `/images/landmarks/Temple of Luxor.jpg`;
+      if (name === "The Great Temple of Ramesses II at Abu Simbel") return `/images/landmarks/The Great Temple of Ramesses II at Abu Simbel.webp`;
     }
     return null;
   };
 
-  const staticUrl = getEntityImageUrl(entityName, entityType);
+  const isPharaoh = entityType === "pharaoh" || entityType === "king";
+  const staticUrl = getAssumedImageUrl(entityName, isPharaoh);
 
   // Fallback: if no static image, try the user's uploaded image from sessionStorage
   const [avatarUrl, setAvatarUrl] = useState<string | null>(staticUrl);

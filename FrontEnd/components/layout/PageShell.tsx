@@ -13,9 +13,8 @@ export default function PageShell({ children, fullScreen = false }: { children: 
   const pathname = usePathname();
 
   const navLinks = [
+    { name: "Explore", href: "/explore" },
     { name: "Recognize", href: "/upload" },
-    { name: "Video", href: "/video" },
-    { name: "Chat", href: "/chat" },
     { name: "Translate", href: "/translate" },
   ];
 

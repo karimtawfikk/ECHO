@@ -10,7 +10,7 @@ from fastapi.middleware.cors import CORSMiddleware
 from fastapi.staticfiles import StaticFiles
 from fastapi.responses import RedirectResponse
 from src.app.core.config import settings
-from src.app.api.routes import recognize, health, trending_entities, chat, video
+from src.app.api.routes import recognize, health, trending_entities, chat, video, assets
 from src.app.services.recognition_inference import recognition_inference
 
 app = FastAPI(
@@ -41,9 +41,8 @@ app.include_router(health.router,         prefix="/api/v1/health",    tags=["hea
 app.include_router(trending_entities.router,    prefix="/api/v1/entities",  tags=["entities"])
 app.include_router(chat.router,           prefix="/api/v1/chat",      tags=["chat"])
 app.include_router(video.router,          prefix="/api/v1/video",     tags=["video"])
+app.include_router(assets.router,         prefix="/api/v1/assets",    tags=["assets"])
 
-# Mount Static Files — MUST come AFTER all routers so it doesn't shadow /docs
-app.mount("/static", StaticFiles(directory=settings.STATIC_DIR), name="static")
 
 @app.on_event("startup")
 async def startup_event():

@@ -78,3 +78,31 @@ def get_trending_entities(db: Session = Depends(get_db)):
         }
     except Exception as e:
         return {"pharaohs": [], "landmarks": [], "error": str(e)}
+
+
+@router.get("/all")
+def get_all_entities(db: Session = Depends(get_db), search: str = ""):
+    """
+    Returns ALL pharaohs and landmarks from the DB.
+    Optional `search` query param filters by name (case-insensitive).
+    """
+    try:
+        pharaoh_query = select(Pharaoh).order_by(Pharaoh.name)
+        landmark_query = select(Landmark).order_by(Landmark.name)
+
+        if search:
+            pharaoh_query = pharaoh_query.where(Pharaoh.name.ilike(f"%{search}%"))
+            landmark_query = landmark_query.where(Landmark.name.ilike(f"%{search}%"))
+
+        pharaoh_rows = db.execute(pharaoh_query).scalars().all()
+        landmark_rows = db.execute(landmark_query).scalars().all()
+
+        pharaohs = [_serialize_pharaoh(p) for p in pharaoh_rows]
+        landmarks = [_serialize_landmark(l) for l in landmark_rows]
+
+        return {
+            "pharaohs": pharaohs,
+            "landmarks": landmarks,
+        }
+    except Exception as e:
+        return {"pharaohs": [], "landmarks": [], "error": str(e)}

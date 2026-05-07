@@ -20,3 +20,12 @@ export async function fetchTrendingEntities(): Promise<TrendingEntitiesResponse>
     if (!res.ok) throw new Error(`Entities API error ${res.status}`);
     return res.json();
 }
+
+export async function fetchAllEntities(search: string = ""): Promise<TrendingEntitiesResponse> {
+    const params = search ? `?search=${encodeURIComponent(search)}` : "";
+    const res = await fetch(`${API_BASE}/api/v1/entities/all${params}`, {
+        cache: "no-store",
+    });
+    if (!res.ok) throw new Error(`Entities API error ${res.status}`);
+    return res.json();
+}

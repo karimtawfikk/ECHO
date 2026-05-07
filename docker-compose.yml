@@ -54,6 +54,34 @@ services:
       - "8005:8005"
     gpus: all
 
+    hieroglyph:
+      build:
+        context: .
+        dockerfile: infra/Dockerfile.hieroglyph
+      container_name: "${HIEROGLYPH_CONTAINER_NAME:-echo-hieroglyph-api}"
+      environment:
+        APP_ENV: "production"
+        DATABASE_URL: "${DATABASE_URL}"
+        NVIDIA_DRIVER_CAPABILITIES: "compute,utility"
+        HIEROGLYPH_DETECTION_MODEL: "${HIEROGLYPH_DETECTION_MODEL:-src/hieroglyph_models/hieroglyph_detection.pt}"
+        HIEROGLYPH_CLASSIFICATION_MODEL: "${HIEROGLYPH_CLASSIFICATION_MODEL:-src/hieroglyph_models/hieroglyph_classification.pt}"
+        HIEROGLYPH_DBSCAN_EPS: "${HIEROGLYPH_DBSCAN_EPS:-50.0}"
+        HIEROGLYPH_DBSCAN_MIN_SAMPLES: "${HIEROGLYPH_DBSCAN_MIN_SAMPLES:-1}"
+        HIEROGLYPH_LLM_MODEL: "${HIEROGLYPH_LLM_MODEL:-meta-llama/llama-4-maverick-17b-128e-instruct}"
+        # Reuse the same Groq API keys as the chatbot
+        GROQ_API_KEY1: "${GROQ_API_KEY1}"
+        GROQ_API_KEY2: "${GROQ_API_KEY2}"
+        GROQ_API_KEY3: "${GROQ_API_KEY3}"
+        GROQ_API_KEY4: "${GROQ_API_KEY4}"
+        GROQ_API_KEY5: "${GROQ_API_KEY5}"
+        GROQ_API_KEY6: "${GROQ_API_KEY6}"
+        GROQ_API_KEY7: "${GROQ_API_KEY7}"
+        GROQ_API_KEY8: "${GROQ_API_KEY8}"
+        GROQ_API_KEY9: "${GROQ_API_KEY9}"
+      ports:
+        - "8003:8003"
+      gpus: all
+
 volumes:
   hf_cache_video:
   hf_cache_chatbot:

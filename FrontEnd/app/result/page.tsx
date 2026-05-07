@@ -29,6 +29,7 @@ function findMockDescription(type: string | null, name: string): string {
 function ResultContent() {
   const router = useRouter();
   const searchParams = useSearchParams();
+  const baseUrl = process.env.NEXT_PUBLIC_API_URL?.replace(/\/api\/v1\/?$/, "") ?? "http://localhost:8010";
 
   // ── 1. Check for session-stored recognition result (upload flow) ──────
   const [sessionResult, setSessionResult] = useState<RecognitionResult | null>(null);
@@ -51,7 +52,9 @@ function ResultContent() {
   // ── 3. Derive display data from whichever source we have ─────────────
   const isApiFlow = !!sessionResult;
   const isQuickLink = !isApiFlow && !!entityNameParam;
+  const isFromExplore = sessionResult?.source === "explore";
   const isFromTrending = sessionResult?.source === "quick-link" || isQuickLink;
+  const isFromHome = isFromTrending || isFromExplore;
 
   const mockMatch = useMemo(() => {
     if (isApiFlow || !entityNameParam) return null;
@@ -99,19 +102,18 @@ function ResultContent() {
   const typeLabel = displayType === "pharaoh" ? "PHARAOH" : "LANDMARK";
 
   const getAssumedImageUrl = (name: string, isPharaoh: boolean) => {
-    const baseUrl = process.env.NEXT_PUBLIC_API_URL?.replace(/\/api\/v1\/?$/, "") ?? "http://localhost:8010";
     if (isPharaoh) {
-      if (name === "Akhenaton") return `${baseUrl}/static/images/pharaohs/Akhenaton.JPG`;
-      if (name === "Cleopatra VII Philopator") return `${baseUrl}/static/images/pharaohs/Cleopatra%20VII%20Philopator.jpg`;
-      if (name === "Hatshepsut") return `${baseUrl}/static/images/pharaohs/Hatshepsut.JPG`;
-      if (name === "Ramesses II") return `${baseUrl}/static/images/pharaohs/Ramesses%20II.jpg`;
-      if (name === "Tutankhamun") return `${baseUrl}/static/images/pharaohs/Tutankhamun.jpg`;
+      if (name === "Akhenaton") return `/images/pharaohs/Akhenaton.JPG`;
+      if (name === "Cleopatra VII Philopator") return `/images/pharaohs/Cleopatra%20VII%20Philopator.jpg`;
+      if (name === "Hatshepsut") return `/images/pharaohs/Hatshepsut.JPG`;
+      if (name === "Ramesses II") return `/images/pharaohs/Ramesses%20II.jpg`;
+      if (name === "Tutankhamun") return `/images/pharaohs/Tutankhamun.jpg`;
     } else {
-      if (name === "Pyramids of Giza") return `${baseUrl}/static/images/landmarks/Pyramids%20of%20Giza.webp`;
-      if (name === "Sphinx") return `${baseUrl}/static/images/landmarks/Sphinx.jpg`;
-      if (name === "Temple of Karnak") return `${baseUrl}/static/images/landmarks/Temple%20of%20Karnak.jpg`;
-      if (name === "Temple of Luxor") return `${baseUrl}/static/images/landmarks/Temple%20of%20Luxor.jpg`;
-      if (name === "The Great Temple of Ramesses II at Abu Simbel") return `${baseUrl}/static/images/landmarks/The%20Great%20Temple%20of%20Ramesses%20II%20at%20Abu%20Simbel.webp`;
+      if (name === "Pyramids of Giza") return `/images/landmarks/Pyramids%20of%20Giza.webp`;
+      if (name === "Sphinx") return `/images/landmarks/Sphinx.jpg`;
+      if (name === "Temple of Karnak") return `/images/landmarks/Temple%20of%20Karnak.jpg`;
+      if (name === "Temple of Luxor") return `/images/landmarks/Temple%20of%20Luxor.jpg`;
+      if (name === "The Great Temple of Ramesses II at Abu Simbel") return `/images/landmarks/The%20Great%20Temple%20of%20Ramesses%20II%20at%20Abu%20Simbel.webp`;
     }
     return null;
   };
@@ -123,10 +125,23 @@ function ResultContent() {
   } else if (assumedUrl) {
     finalImageUrl = assumedUrl;
   } else if (sessionResult?.entity?.images && sessionResult.entity.images.length > 0 && sessionResult.entity.images[0].url) {
-    finalImageUrl = sessionResult.entity.images[0].url.startsWith("/static")
-      ? `${process.env.NEXT_PUBLIC_API_URL?.replace(/\/api\/v1\/?$/, "") ?? "http://localhost:8010"}${sessionResult.entity.images[0].url}`
-      : sessionResult.entity.images[0].url;
+    // Database API images
+    const imgUrl = sessionResult.entity.images[0].url;
+    finalImageUrl = imgUrl.startsWith("/static")
+      ? `${baseUrl}${imgUrl}`
+      : imgUrl;
+  } else if ((sessionResult?.entity as any)?.image) {
+    // Support the singular 'image' field from mock-all-entities.ts
+    const imgPath = (sessionResult?.entity as any)?.image;
+    if (imgPath && typeof imgPath === 'string' && imgPath.startsWith("data/")) {
+      // Use our new R2 proxy route on the backend for Cloudflare assets
+      finalImageUrl = `${baseUrl}/api/v1/assets/r2/${imgPath}`;
+    } else {
+      finalImageUrl = imgPath;
+    }
   }
+
+  const hasImage = !!finalImageUrl;
 
   if (!mounted) {
     return <div className="min-h-screen" style={{ background: "#0D0A07" }} />;
@@ -137,77 +152,65 @@ function ResultContent() {
       <motion.div initial={{ opacity: 0 }} animate={{ opacity: 1 }} className="max-w-6xl mx-auto">
         {/* Breadcrumb */}
         <motion.div initial={{ opacity: 0, x: -20 }} animate={{ opacity: 1, x: 0 }} className="mb-8">
-          <Link href={isFromTrending ? "/" : "/upload"} className="group inline-flex items-center gap-2 text-xs font-semibold tracking-[0.15em] uppercase text-[#A08E70] hover:text-[#E6B23C] transition-colors">
+          <Link href={isFromExplore ? `/explore?tab=${displayType}s` : isFromTrending ? "/" : "/upload"} className="group inline-flex items-center gap-2 text-xs font-semibold tracking-[0.15em] uppercase text-[#A08E70] hover:text-[#E6B23C] transition-colors">
             <span className="group-hover:-translate-x-1 transition-transform">←</span>
-            {isFromTrending ? "Back to Home" : "Return"}
+            {isFromExplore ? "Back to Explore" : isFromTrending ? "Back to Home" : "Return"}
           </Link>
         </motion.div>
 
-        <div className="grid lg:grid-cols-[0.75fr_1.25fr] gap-12 items-start">
+        <div className={`grid ${hasImage ? 'lg:grid-cols-[0.75fr_1.25fr]' : 'lg:grid-cols-1 max-w-2xl mx-auto'} gap-12 items-start`}>
 
           {/* ── Left: Image card ──────────────────────────────────────── */}
-          <motion.div
-            initial={{ opacity: 0, x: -40 }}
-            animate={{ opacity: 1, x: 0 }}
-            transition={{ delay: 0.2, duration: 0.7 }}
-            className="relative group lg:max-w-sm"
-          >
-            <div className={`aspect-[4/5] rounded-3xl overflow-hidden border relative shadow-[0_20px_60px_rgba(0,0,0,0.5)]
-              ${displayType === "pharaoh" ? "border-[#E6B23C]/10 bg-[#1E160E]" : "border-[#A08E70]/10 bg-[#12150E]"}`}>
+          {hasImage && (
+            <motion.div
+              initial={{ opacity: 0, x: -40 }}
+              animate={{ opacity: 1, x: 0 }}
+              transition={{ delay: 0.2, duration: 0.7 }}
+              className="relative group lg:max-w-sm"
+            >
+              <div className={`aspect-[4/5] rounded-3xl overflow-hidden border relative shadow-[0_20px_60px_rgba(0,0,0,0.5)]
+                ${displayType === "pharaoh" ? "border-[#E6B23C]/10 bg-[#1E160E]" : "border-[#A08E70]/10 bg-[#12150E]"}`}>
 
-              <div className="absolute inset-0 bg-gradient-to-t from-[#0D0A07] via-[#0D0A07]/10 to-transparent z-10" />
+                <div className="absolute inset-0 bg-gradient-to-t from-[#0D0A07] via-[#0D0A07]/10 to-transparent z-10" />
 
-              {finalImageUrl ? (
-                <img
-                  src={finalImageUrl}
-                  alt={cleanDisplayName}
-                  className="absolute inset-0 w-full h-full object-cover transition-transform duration-700 group-hover:scale-110"
-                  onError={(e) => {
-                    (e.target as HTMLImageElement).style.opacity = '0';
-                  }}
-                />
-              ) : (
-                <div className="absolute inset-0 flex items-center justify-center">
-                  <motion.div
-                    animate={{ rotate: [0, 5, -5, 0], scale: [1, 1.05, 1] }}
-                    transition={{ duration: 6, repeat: Infinity, ease: "easeInOut" }}
-                    className="flex flex-col items-center gap-4"
-                  >
-                    {displayType === "pharaoh" ? (
-                      <Crown size={100} className="text-[#E6B23C]/20" />
-                    ) : (
-                      <Scroll size={100} className="text-[#A08E70]/20" />
-                    )}
-                  </motion.div>
-                </div>
-              )}
-
-              {/* Type badge — dynamic */}
-              <div className="absolute top-5 left-5 z-20 flex flex-col gap-2">
-                <div className="px-3 py-1.5 bg-gradient-to-r from-[#E6B23C] to-[#D4A030] rounded-full text-[10px] font-bold tracking-[0.2em] text-[#0D0A07] uppercase shadow-[0_4px_15px_rgba(230,178,60,0.3)] flex items-center gap-1.5">
-                  {displayType === "pharaoh" ? <Crown size={10} /> : <MapPin size={10} />}
-                  {typeLabel}
-                </div>
-                {isQuickLink && (
-                  <div className="px-3 py-1 bg-[#E6B23C]/10 border border-[#E6B23C]/15 backdrop-blur-md rounded-full text-[9px] font-bold tracking-[0.15em] text-[#E6B23C] uppercase flex items-center gap-1.5 w-fit">
-                    <Sparkles size={8} /> Neural Quick-Link
-                  </div>
+                {finalImageUrl && (
+                  <img
+                    src={finalImageUrl}
+                    alt={cleanDisplayName}
+                    className="absolute inset-0 w-full h-full object-cover transition-transform duration-700 group-hover:scale-110"
+                    onError={(e) => {
+                      (e.target as HTMLImageElement).style.opacity = '0';
+                    }}
+                  />
                 )}
-              </div>
 
-              {/* Title overlay on card */}
-              <div className="absolute bottom-10 left-8 z-20 right-8">
-                <motion.h1
-                  initial={{ y: 20, opacity: 0 }}
-                  animate={{ y: 0, opacity: 1 }}
-                  transition={{ delay: 0.5 }}
-                  className="font-heading text-3xl font-bold text-white tracking-wide drop-shadow-lg"
-                >
-                  {cleanDisplayName}
-                </motion.h1>
+                {/* Type badge — dynamic */}
+                <div className="absolute top-5 left-5 z-20 flex flex-col gap-2">
+                  <div className="px-3 py-1.5 bg-gradient-to-r from-[#E6B23C] to-[#D4A030] rounded-full text-[10px] font-bold tracking-[0.2em] text-[#0D0A07] uppercase shadow-[0_4px_15px_rgba(230,178,60,0.3)] flex items-center gap-1.5">
+                    {displayType === "pharaoh" ? <Crown size={10} /> : <MapPin size={10} />}
+                    {typeLabel}
+                  </div>
+                  {isQuickLink && (
+                    <div className="px-3 py-1 bg-[#E6B23C]/10 border border-[#E6B23C]/15 backdrop-blur-md rounded-full text-[9px] font-bold tracking-[0.15em] text-[#E6B23C] uppercase flex items-center gap-1.5 w-fit">
+                      <Sparkles size={8} /> Neural Quick-Link
+                    </div>
+                  )}
+                </div>
+
+                {/* Title overlay on card */}
+                <div className="absolute bottom-10 left-8 z-20 right-8">
+                  <motion.h1
+                    initial={{ y: 20, opacity: 0 }}
+                    animate={{ y: 0, opacity: 1 }}
+                    transition={{ delay: 0.5 }}
+                    className="font-heading text-3xl font-bold text-white tracking-wide drop-shadow-lg"
+                  >
+                    {cleanDisplayName}
+                  </motion.h1>
+                </div>
               </div>
-            </div>
-          </motion.div>
+            </motion.div>
+          )}
 
           {/* ── Right: Papyrus panel + Actions ───────────────────────── */}
           <motion.div
@@ -330,11 +333,11 @@ function ResultContent() {
               )}
 
               <Button
-                onClick={() => router.push(isFromTrending ? "/" : "/upload")}
+                onClick={() => router.push(isFromExplore ? `/explore?tab=${displayType}s` : isFromTrending ? "/" : "/upload")}
                 className="h-14 rounded-2xl bg-gradient-to-r from-[#C1840A] to-[#A06A00] hover:from-[#D4A030] hover:to-[#C1840A] text-white font-bold text-base transition-all hover:scale-[1.02] shadow-[0_4px_30px_rgba(230,178,60,0.15)] flex items-center justify-center gap-2"
               >
                 <Sparkles size={20} />
-                {isFromTrending ? "Explore More" : "Recognize Another Entity"}
+                {isFromExplore ? "Back to Explore" : isFromTrending ? "Explore More" : "Recognize Another Entity"}
               </Button>
             </div>
 
