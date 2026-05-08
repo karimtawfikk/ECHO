@@ -2,8 +2,11 @@
 
 import Link from "next/link";
 import { Github, Sparkles } from "lucide-react";
+import { useLanguage } from "../../context/LanguageContext";
 
 export default function Footer() {
+    const { t } = useLanguage();
+
     return (
         <footer className="mt-40 border-t border-[#E6B23C]/10 bg-[#0D0A07] relative overflow-hidden">
             {/* Subtle glow background */}
@@ -28,33 +31,32 @@ export default function Footer() {
                             </span>
                         </Link>
                         <p className="max-w-md text-[#A08E70] leading-relaxed text-sm lg:text-base">
-                            Every Capture Has Origins — an AI-powered interactive
-                            exploration of Ancient Egypt through captured moments, stories, and dialogue.
+                            {t("footer.desc")}
                         </p>
                     </div>
 
                     {/* Explore Column */}
                     <div className="space-y-6">
-                        <h3 className="text-[#F5E6D0] font-bold tracking-[0.1em] uppercase text-sm">Explore</h3>
+                        <h3 className="text-[#F5E6D0] font-bold tracking-[0.1em] uppercase text-sm">{t("footer.explore")}</h3>
                         <ul className="space-y-4">
                             <li>
                                 <Link href="/upload" className="text-[#A08E70] hover:text-[#E6B23C] transition-colors text-sm font-medium">
-                                    Recognition
+                                    {t("footer.recognition")}
                                 </Link>
                             </li>
                             <li>
                                 <Link href="/video" className="text-[#A08E70] hover:text-[#E6B23C] transition-colors text-sm font-medium">
-                                    Video Generation
+                                    {t("footer.video")}
                                 </Link>
                             </li>
                             <li>
                                 <Link href="/chat" className="text-[#A08E70] hover:text-[#E6B23C] transition-colors text-sm font-medium">
-                                    Chatbot
+                                    {t("footer.chat")}
                                 </Link>
                             </li>
                             <li>
                                 <Link href="/translate" className="text-[#A08E70] hover:text-[#E6B23C] transition-colors text-sm font-medium">
-                                    Hieroglyphs
+                                    {t("footer.hieroglyphs")}
                                 </Link>
                             </li>
                         </ul>
@@ -62,25 +64,25 @@ export default function Footer() {
 
                     {/* Project Column */}
                     <div className="space-y-6">
-                        <h3 className="text-[#F5E6D0] font-bold tracking-[0.1em] uppercase text-sm">Project</h3>
+                        <h3 className="text-[#F5E6D0] font-bold tracking-[0.1em] uppercase text-sm">{t("footer.project")}</h3>
                         <ul className="space-y-4">
                             <li>
                                 <Link href="#" className="text-[#A08E70] hover:text-[#E6B23C] transition-colors text-sm font-medium">
-                                    About
+                                    {t("footer.about")}
                                 </Link>
                             </li>
                             <li>
                                 <Link href="#" className="text-[#A08E70] hover:text-[#E6B23C] transition-colors text-sm font-medium">
-                                    Team
+                                    {t("footer.team")}
                                 </Link>
                             </li>
                             <li>
                                 <Link href="#" className="text-[#A08E70] hover:text-[#E6B23C] transition-colors text-sm font-medium">
-                                    Contact
+                                    {t("footer.contact")}
                                 </Link>
                             </li>
                             <li>
-                                <Link href="#" className="text-[#A08E70] hover:text-[#E6B23C] transition-colors flex items-center gap-2 text-sm font-medium">
+                                <Link href="https://github.com/karimtawfikk/ECHO" target="_blank" className="text-[#A08E70] hover:text-[#E6B23C] transition-colors flex items-center gap-2 text-sm font-medium">
                                     <Github size={14} /> GitHub
                                 </Link>
                             </li>
@@ -92,14 +94,14 @@ export default function Footer() {
                 {/* Bottom Bar */}
                 <div className="mt-16 pt-8 border-t border-[#E6B23C]/5 flex flex-col sm:flex-row justify-between items-center gap-4">
                     <p className="text-[#A08E70]/50 text-[11px] font-bold tracking-[0.1em] uppercase">
-                        © 2026 ECHO Project.
+                        {t("footer.copyright")}
                     </p>
                     <div className="flex gap-6">
                         <Link href="#" className="text-[#A08E70]/40 hover:text-[#E6B23C] text-[10px] font-bold tracking-[0.2em] uppercase transition-colors">
-                            Privacy Policy
+                            {t("footer.privacy")}
                         </Link>
                         <Link href="#" className="text-[#A08E70]/40 hover:text-[#E6B23C] text-[10px] font-bold tracking-[0.2em] uppercase transition-colors">
-                            Terms of Use
+                            {t("footer.terms")}
                         </Link>
                     </div>
                 </div>

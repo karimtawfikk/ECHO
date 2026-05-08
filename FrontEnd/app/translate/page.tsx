@@ -5,6 +5,7 @@ import Link from "next/link";
 import PageShell from "../../components/layout/PageShell";
 import { Button } from "../../components/ui/button";
 import { motion, AnimatePresence } from "framer-motion";
+import { useLanguage } from "../../context/LanguageContext";
 import { Camera, Languages, Trash2, Upload, Scroll, Zap, BookOpen, Search, Image as ImageIcon } from "lucide-react";
 
 type TranslateResponse = {
@@ -15,6 +16,7 @@ type TranslateResponse = {
 };
 
 export default function TranslatePage() {
+  const { t, isRTL } = useLanguage();
   const fileInputRef = useRef<HTMLInputElement | null>(null);
   const [isLoading, setIsLoading] = useState(false);
   const [dragActive, setDragActive] = useState(false);
@@ -52,10 +54,12 @@ export default function TranslatePage() {
 
   return (
     <PageShell>
-      <motion.div initial={{ opacity: 0, x: -20 }} animate={{ opacity: 1, x: 0 }} className="mb-8">
+      <motion.div initial={{ opacity: 0, x: isRTL ? 20 : -20 }} animate={{ opacity: 1, x: 0 }} className="mb-8">
         <Link href="/" className="group inline-flex items-center gap-2 text-xs font-semibold tracking-[0.15em] uppercase text-[#A08E70] hover:text-[#E6B23C] transition-colors">
-          <span className="group-hover:-translate-x-1 transition-transform">←</span>
-          Return
+          <span className={`transition-transform ${isRTL ? 'group-hover:translate-x-1' : 'group-hover:-translate-x-1'}`}>
+            {isRTL ? '→' : '←'}
+          </span>
+          {t("common.return")}
         </Link>
       </motion.div>
 
@@ -65,9 +69,9 @@ export default function TranslatePage() {
             <span className="text-5xl leading-none -translate-y-4">𓁹</span>
           </div>
           <div>
-            <div className="text-xs font-bold tracking-[0.25em] text-[#E6B23C] uppercase mb-1">Ancient Linguistics</div>
+            <div className="text-xs font-bold tracking-[0.25em] text-[#E6B23C] uppercase mb-1">{t("translate.badge")}</div>
             <h1 className="font-heading text-3xl md:text-4xl font-bold text-[#F5E6D0] tracking-tight" style={{ fontFamily: 'var(--font-cormorant), serif' }}>
-              Hieroglyphs <span className="text-[#E6B23C] gold-glow" >Decoder</span>
+              {t("translate.title.part1")} <span className="text-[#E6B23C] gold-glow" >{t("translate.title.part2")}</span>
             </h1>
           </div>
         </div>
@@ -92,7 +96,7 @@ export default function TranslatePage() {
                   <motion.div key="preview" initial={{ opacity: 0 }} animate={{ opacity: 1 }} exit={{ opacity: 0 }} className="absolute inset-0">
                     <img src={previewUrl} alt="Artifact" className="h-full w-full object-cover" />
                     <div className="absolute inset-0 bg-black/40 group-hover:bg-black/60 transition-colors flex items-center justify-center">
-                      <div className="text-[10px] font-bold text-white px-3 py-1.5 bg-black/40 border border-white/10 rounded-full backdrop-blur-md uppercase tracking-[0.15em]">Update</div>
+                      <div className="text-[10px] font-bold text-white px-3 py-1.5 bg-black/40 border border-white/10 rounded-full backdrop-blur-md uppercase tracking-[0.15em]">{t("translate.dropzone.update")}</div>
                     </div>
                   </motion.div>
                 ) : (
@@ -100,8 +104,8 @@ export default function TranslatePage() {
                     <div className="w-14 h-14 rounded-full bg-[#E6B23C]/8 flex items-center justify-center text-[#E6B23C] mb-5 group-hover:scale-110 transition-transform">
                       <ImageIcon size={24} />
                     </div>
-                    <div className="text-sm font-semibold text-[#F5E6D0] mb-1">Place Image</div>
-                    <p className="text-[10px] text-[#A08E70]">Drop image or Capture a Photo</p>
+                    <div className="text-sm font-semibold text-[#F5E6D0] mb-1">{t("translate.dropzone.title")}</div>
+                    <p className="text-[10px] text-[#A08E70]">{t("translate.dropzone.subtitle")}</p>
                   </motion.div>
                 )}
               </AnimatePresence>
@@ -110,23 +114,23 @@ export default function TranslatePage() {
 
             <div className="mt-6 flex gap-3">
               <Button onClick={pickFile} className="flex-[2] h-12 rounded-2xl bg-gradient-to-r from-[#E6B23C] to-[#D4A030] text-[#0D0A07] font-bold text-sm hover:scale-[1.02] transition-all flex items-center justify-center">
-                <Upload size={18} className="mr-2" /> Upload
+                <Upload size={18} className={isRTL ? "ml-2" : "mr-2"} /> {t("upload.button.upload")}
               </Button>
               <Button variant="outline" className="flex-1 h-12 border-[#E6B23C]/10 hover:border-[#E6B23C]/25 rounded-2xl bg-transparent flex items-center justify-center text-[#A08E70] font-bold text-sm transition-all hover:scale-[1.02]" onClick={() => alert("Lens Active...")}>
-                <Camera size={18} className="mr-2" /> Capture
+                <Camera size={18} className={isRTL ? "ml-2" : "mr-2"} /> {t("upload.button.capture")}
               </Button>
             </div>
           </div>
 
           <div className="glass-surface rounded-2xl p-5">
             <div className="flex items-start gap-3">
-              <div className="h-9 w-9 flex-shrink-0 bg-[#E6B23C]/8 border border-[#E6B23C]/15 rounded-xl flex items-center justify-center text-[#E6B23C]"><BookOpen size={16} /></div>
+              <div className={`h-9 w-9 flex-shrink-0 bg-[#E6B23C]/8 border border-[#E6B23C]/15 rounded-xl flex items-center justify-center text-[#E6B23C] ${isRTL ? 'ml-0' : 'mr-0'}`}><BookOpen size={16} /></div>
               <div>
-                <h4 className="text-xs font-bold tracking-[0.15em] text-[#F5E6D0] uppercase mb-1">Status</h4>
+                <h4 className="text-xs font-bold tracking-[0.15em] text-[#F5E6D0] uppercase mb-1">{t("translate.status.label")}</h4>
                 <div className="flex items-center gap-2">
                   <div className={`h-2 w-2 rounded-full ${isLoading ? "bg-[#E6B23C] animate-pulse shadow-[0_0_6px_rgba(230,178,60,0.8)]" : result ? "bg-[#2A7B6F]" : "bg-[#A08E70]/40"}`} />
                   <span className="text-[10px] font-semibold text-[#A08E70]">
-                    {isLoading ? "Synthesizing..." : result ? "Decoding Complete" : "Standby"}
+                    {isLoading ? t("translate.status.loading") : result ? t("translate.status.success") : t("translate.status.standby")}
                   </span>
                 </div>
               </div>
@@ -141,7 +145,7 @@ export default function TranslatePage() {
               {(["translation"] as const).map((tab) => (
                 <button key={tab} onClick={() => setActiveTab(tab)}
                   className={`flex-1 py-5 text-xs font-bold tracking-[0.2em] uppercase transition-all relative ${activeTab === tab ? "text-[#E6B23C]" : "text-[#A08E70] hover:text-[#F5E6D0]"}`}>
-                  {tab}
+                  {t("translate.tabs.translation")}
                   {activeTab === tab && (
                     <motion.div layoutId="tab-line" className="absolute bottom-0 left-0 right-0 h-[2px]"
                       style={{ background: "linear-gradient(90deg, transparent, #E6B23C, transparent)", boxShadow: "0 0 10px rgba(230,178,60,0.4)" }}
@@ -165,14 +169,14 @@ export default function TranslatePage() {
                 ) : result ? (
                   <motion.div key="result" initial={{ opacity: 0, y: 10 }} animate={{ opacity: 1, y: 0 }} className="space-y-10">
                     <div>
-                      <div className="text-xs font-bold tracking-[0.25em] text-[#E6B23C] uppercase mb-4">Raw Recognition</div>
+                      <div className="text-xs font-bold tracking-[0.25em] text-[#E6B23C] uppercase mb-4">{t("translate.result.raw")}</div>
                       <div className="text-3xl md:text-4xl font-bold text-[#F5E6D0] leading-tight font-display tracking-widest bg-[#E6B23C]/[0.03] p-7 rounded-2xl border border-[#E6B23C]/8">
                         {result.ocr_text}
                       </div>
                     </div>
                     <div>
                       <div className="text-xs font-bold tracking-[0.25em] text-[#E6B23C] uppercase mb-4">
-                        Historical Meaning
+                        {t("translate.result.meaning")}
                       </div>
                       <div className="relative group">
                         <div className="absolute -inset-1 bg-[#E6B23C]/10 blur opacity-20 rounded-2xl group-hover:opacity-35 transition-opacity" />
@@ -185,16 +189,16 @@ export default function TranslatePage() {
                     </div>
                     <div className="pt-8 border-t border-[#E6B23C]/[0.06]">
                       <div className="flex items-center gap-2 mb-3">
-                        <Search size={14} className="text-[#E6B23C]" />
-                        <span className="text-xs font-bold tracking-[0.15em] text-[#F5E6D0] uppercase">Explanation</span>
+                        <Search size={14} className={`${isRTL ? 'ml-0' : 'mr-0'} text-[#E6B23C]`} />
+                        <span className="text-xs font-bold tracking-[0.15em] text-[#F5E6D0] uppercase">{t("translate.result.explanation")}</span>
                       </div>
-                      <p className="text-sm text-[#A08E70] leading-relaxed italic border-l-2 border-[#E6B23C]/20 pl-5">{result.explanation}</p>
+                      <p className={`text-sm text-[#A08E70] leading-relaxed italic ${isRTL ? 'border-r-2 pr-5' : 'border-l-2 pl-5'} border-[#E6B23C]/20`}>{result.explanation}</p>
                     </div>
                   </motion.div>
                 ) : (
                   <motion.div key="empty" initial={{ opacity: 0 }} animate={{ opacity: 1 }} className="h-full flex flex-col items-center justify-center text-center opacity-30 select-none py-20">
                     <Languages size={56} className="mb-6 text-[#E6B23C]/50" />
-                    <p className="text-xs font-bold tracking-[0.15em] text-[#A08E70] uppercase max-w-xs">Upload an inscription to translate</p>
+                    <p className="text-xs font-bold tracking-[0.15em] text-[#A08E70] uppercase max-w-xs">{t("translate.empty")}</p>
                   </motion.div>
                 )}
               </AnimatePresence>
@@ -203,8 +207,8 @@ export default function TranslatePage() {
             {result && (
               <div className="p-5 border-t border-[#E6B23C]/[0.06] flex justify-end">
                 <Button variant="ghost" className="text-[#E6B23C] hover:text-[#FFD369] hover:bg-[#E6B23C]/5 rounded-xl h-10 px-5" onClick={resetAll}>
-                  <Trash2 size={14} className="mr-2" />
-                  <span className="text-xs font-bold tracking-[0.15em] uppercase">Purge Session</span>
+                  <Trash2 size={14} className={isRTL ? "ml-2" : "mr-2"} />
+                  <span className="text-xs font-bold tracking-[0.15em] uppercase">{t("translate.button.purge")}</span>
                 </Button>
               </div>
             )}

@@ -6,10 +6,12 @@ import { useRouter } from "next/navigation";
 import PageShell from "../../components/layout/PageShell";
 import { Button } from "../../components/ui/button";
 import { motion, AnimatePresence } from "framer-motion";
+import { useLanguage } from "../../context/LanguageContext";
 import { Image, Upload, Camera, X, ArrowRight, Loader2, AlertCircle } from "lucide-react";
 import { recognizeImage, saveResultToSession } from "../../lib/services/recognition";
 
 export default function UploadPage() {
+  const { t, isRTL } = useLanguage();
   const router = useRouter();
   const inputRef = useRef<HTMLInputElement | null>(null);
   const [selectedFile, setSelectedFile] = useState<File | null>(null);
@@ -76,7 +78,7 @@ export default function UploadPage() {
       };
       reader.readAsDataURL(selectedFile);
     } catch (err: unknown) {
-      const msg = err instanceof Error ? err.message : "Recognition failed. Please try again.";
+      const msg = err instanceof Error ? err.message : t("upload.error.failed");
       setError(msg);
       setIsLoading(false);
     }
@@ -85,10 +87,12 @@ export default function UploadPage() {
   return (
     <PageShell>
       {/* Breadcrumb */}
-      <motion.div initial={{ opacity: 0, x: -20 }} animate={{ opacity: 1, x: 0 }} className="mb-8">
+      <motion.div initial={{ opacity: 0, x: isRTL ? 20 : -20 }} animate={{ opacity: 1, x: 0 }} className="mb-8">
         <Link href="/" className="group inline-flex items-center gap-2 text-xs font-semibold tracking-[0.15em] uppercase text-[#A08E70] hover:text-[#E6B23C] transition-colors">
-          <span className="group-hover:-translate-x-1 transition-transform">←</span>
-          Return
+          <span className={`transition-transform ${isRTL ? 'group-hover:translate-x-1' : 'group-hover:-translate-x-1'}`}>
+            {isRTL ? '→' : '←'}
+          </span>
+          {t("common.return")}
         </Link>
       </motion.div>
 
@@ -150,7 +154,7 @@ export default function UploadPage() {
               className="font-display text-4xl md:text-5xl font-bold text-[#F5E6D0] tracking-[0.05em] uppercase mb-4"
               style={{ fontFamily: 'var(--font-cormorant), serif' }}
             >
-              Unveil the <span className="text-[#E6B23C] gold-glow">Past</span>
+              {t("upload.title")}
             </motion.h1>
 
             <motion.div
@@ -167,7 +171,7 @@ export default function UploadPage() {
               transition={{ delay: 0.7 }}
               className="text-[#A08E70] text-base max-w-md mx-auto"
             >
-              place your artifact before the Eye, and uncover its origins and the story it holds
+              {t("upload.subtitle")}
             </motion.p>
           </div>
 
@@ -250,10 +254,10 @@ export default function UploadPage() {
                     </motion.div>
 
                     <h3 className="font-heading text-2xl font-bold text-[#F5E6D0] mb-2">
-                      Place Your Image
+                      {t("upload.dropzone.title")}
                     </h3>
                     <p className="text-sm text-[#A08E70] mb-2 max-w-sm mx-auto">
-                      Drop an image or Use your camera
+                      {t("upload.dropzone.subtitle")}
                     </p>
 
                     {/* Decorative hieroglyph row */}
@@ -308,12 +312,12 @@ export default function UploadPage() {
                     {isLoading ? (
                       <>
                         <Loader2 size={20} className="animate-spin" />
-                        Consulting History
+                        {t("upload.button.loading")}
                       </>
                     ) : (
                       <>
-                        <ArrowRight size={20} />
-                        Reveal the Origin
+                        {isRTL ? <ArrowRight size={20} className="rotate-180" /> : <ArrowRight size={20} />}
+                        {t("upload.button.recognize")}
                       </>
                     )}
                   </Button>
@@ -331,8 +335,8 @@ export default function UploadPage() {
                     disabled={isLoading}
                     className="h-14 px-12 rounded-2xl bg-gradient-to-r from-[#E6B23C] to-[#D4A030] hover:from-[#FFD369] hover:to-[#E6B23C] text-[#0D0A07] font-bold text-base transition-all hover:scale-105 shadow-[0_4px_30px_rgba(230,178,60,0.2)] disabled:opacity-50 disabled:cursor-not-allowed"
                   >
-                    <Upload className="mr-3" size={20} />
-                    Upload
+                    <Upload className={isRTL ? "ml-3" : "mr-3"} size={20} />
+                    {t("upload.button.upload")}
                   </Button>
 
                   <Button
@@ -341,8 +345,8 @@ export default function UploadPage() {
                     onClick={() => alert("Initializing Ancient Scanner...")}
                     disabled={isLoading}
                   >
-                    <Camera className="mr-3" size={20} />
-                    Capture
+                    <Camera className={isRTL ? "ml-3" : "mr-3"} size={20} />
+                    {t("upload.button.capture")}
                   </Button>
                 </motion.div>
               )}

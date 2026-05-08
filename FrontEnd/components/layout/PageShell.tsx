@@ -1,21 +1,43 @@
 "use client";
 
-import type { ReactNode } from "react";
+import { ReactNode, useState } from "react";
 import Link from "next/link";
 import { usePathname } from "next/navigation";
 import RouteTransition from "../animations/RouteTransition";
-import { motion } from "framer-motion";
-import { Sparkles } from "lucide-react";
+import { motion, AnimatePresence } from "framer-motion";
+import { Sparkles, User, Globe, ChevronDown } from "lucide-react";
+import { useLanguage } from "../../context/LanguageContext";
+import type { Language } from "../../lib/i18n/dictionaries";
 
 import Footer from "./Footer";
 
-export default function PageShell({ children, fullScreen = false, fullWidth = false }: { children: ReactNode, fullScreen?: boolean, fullWidth?: boolean }) {
+export default function PageShell({ 
+  children, 
+  fullScreen = false, 
+  fullWidth = false,
+  headerExtension
+}: { 
+  children: ReactNode, 
+  fullScreen?: boolean, 
+  fullWidth?: boolean,
+  headerExtension?: ReactNode
+}) {
   const pathname = usePathname();
+  const { language, setLanguage, t, isRTL } = useLanguage();
+  const [menuOpen, setMenuOpen] = useState(false);
+  const [langOpen, setLangOpen] = useState(false);
+
+  const languages: { code: Language; name: string }[] = [
+    { code: "EN", name: "English" },
+    { code: "AR", name: "العربية" },
+    { code: "FR", name: "Français" },
+  ];
 
   const navLinks = [
-    { name: "Explore", href: "/explore" },
-    { name: "Recognize", href: "/upload" },
-    { name: "Translate", href: "/translate" },
+    { name: t("nav.home"), href: "/" },
+    { name: t("nav.explore"), href: "/explore" },
+    { name: t("nav.recognize"), href: "/upload" },
+    { name: t("nav.translate"), href: "/translate" },
   ];
 
   return (
@@ -35,51 +57,119 @@ export default function PageShell({ children, fullScreen = false, fullWidth = fa
           backdropFilter: "blur(20px)",
         }}
       >
-        <div className="mx-auto max-w-7xl h-20 px-6 flex items-center justify-between">
-          {/* Logo */}
-          <Link href="/" className="flex items-center gap-3 group relative">
-            <div className="h-10 w-10 rounded-xl bg-gradient-to-br from-[#E6B23C] to-[#D4A030] flex items-center justify-center shadow-[0_0_25px_rgba(230,178,60,0.3)] group-hover:shadow-[0_0_35px_rgba(230,178,60,0.5)] transition-shadow">
-              <span className="text-[#0D0A07] text-2xl leading-none">☥</span>
-            </div>
-            <span
-              className="text-2xl font-bold tracking-[0.25em] text-[#E6B23C] gold-glow group-hover:text-[#FFD369] transition-colors"
-              style={{ fontFamily: 'var(--font-cormorant), serif' }}
-            >
-              ECHO
-            </span>
-          </Link>
-
-          {/* Nav Links */}
-          <div className="hidden md:flex items-center gap-8">
+        <div className="w-full h-20 px-8 grid grid-cols-3 items-center relative">
+          {/* Left Column: Horizontal Navigation */}
+          <div className="flex justify-start items-center gap-8">
             {navLinks.map((link) => {
               const isActive = pathname === link.href;
               return (
                 <Link
                   key={link.name}
                   href={link.href}
-                  className={`text-xs font-semibold tracking-[0.15em] uppercase transition-all relative py-2 ${isActive
-                    ? "text-[#E6B23C]"
-                    : "text-[#A08E70] hover:text-[#F5E6D0]"
-                    }`}
+                  className={`text-[11px] font-bold tracking-[0.2em] uppercase transition-all relative group py-2 ${
+                    isActive ? "text-[#E6B23C]" : "text-[#A08E70] hover:text-[#F5E6D0]"
+                  }`}
                 >
                   {link.name}
-                  {isActive && (
+                  {/* Glowing Tapered Underline */}
+                  <div className="absolute -bottom-1 left-0 right-0 flex justify-center pointer-events-none">
                     <motion.div
-                      layoutId="nav-active"
-                      className="absolute -bottom-0.5 left-0 right-0 h-[2px] rounded-full"
-                      style={{
-                        background: "linear-gradient(90deg, transparent, #E6B23C, transparent)",
-                        boxShadow: "0 0 12px rgba(230,178,60,0.5)",
+                      initial={false}
+                      animate={{ 
+                        width: isActive ? "100%" : "0%",
+                        opacity: isActive ? 1 : 0 
                       }}
-                      transition={{ type: "spring", stiffness: 380, damping: 30 }}
+                      className="h-[1.5px] bg-gradient-to-r from-transparent via-[#E6B23C] to-transparent shadow-[0_0_12px_rgba(230,178,60,0.6)]"
                     />
+                  </div>
+                  
+                  {/* Hover State: Subtle Glow Reveal */}
+                  {!isActive && (
+                    <div className="absolute -bottom-1 left-0 right-0 flex justify-center opacity-0 group-hover:opacity-100 transition-opacity duration-300">
+                      <div className="w-full h-[1px] bg-gradient-to-r from-transparent via-[#F5E6D0]/50 to-transparent" />
+                    </div>
                   )}
                 </Link>
               );
             })}
           </div>
+
+          {/* Center Column: Logo */}
+          <div className="flex justify-center">
+            <Link href="/" className="group">
+              <span
+                className="text-3xl font-bold tracking-[0.35em] text-[#E6B23C] gold-glow group-hover:text-[#FFD369] transition-colors"
+                style={{ fontFamily: 'var(--font-cormorant), serif' }}
+              >
+                ECHO
+              </span>
+            </Link>
+          </div>
+
+          {/* Right Column: Language & User */}
+          <div className="flex justify-end items-center gap-4">
+            {/* Language Switcher */}
+            <div className="relative">
+                <button
+                  onClick={() => setLangOpen(!langOpen)}
+                  className="h-10 px-3 flex items-center gap-2 rounded-full bg-[#E6B23C]/[0.04] border border-[#E6B23C]/10 text-[#E6B23C] hover:bg-[#E6B23C]/10 transition-all group"
+                >
+                  <Globe size={16} className="group-hover:rotate-12 transition-transform" />
+                  <span className="text-[10px] font-bold tracking-widest">{language}</span>
+                  <ChevronDown size={12} className={`transition-transform duration-300 ${langOpen ? 'rotate-180' : ''}`} />
+                </button>
+
+                <AnimatePresence>
+                  {langOpen && (
+                    <>
+                      <motion.div 
+                        initial={{ opacity: 0 }}
+                        animate={{ opacity: 1 }}
+                        exit={{ opacity: 0 }}
+                        onClick={() => setLangOpen(false)}
+                        className="fixed inset-0 z-[-1]"
+                      />
+                      <motion.div
+                        initial={{ opacity: 0, y: 10, scale: 0.95 }}
+                        animate={{ opacity: 1, y: 0, scale: 1 }}
+                        exit={{ opacity: 0, y: 10, scale: 0.95 }}
+                        className={`absolute top-full ${isRTL ? 'left-0' : 'right-0'} mt-4 w-40 py-2 bg-[#0D0A07]/95 backdrop-blur-2xl border border-[#E6B23C]/20 rounded-2xl shadow-[0_20px_50px_rgba(0,0,0,0.5)] overflow-hidden`}
+                      >
+                        <div className="px-4 py-2 mb-1 border-b border-[#E6B23C]/10">
+                          <span className="text-[9px] font-bold tracking-[0.2em] text-[#E6B23C]/50 uppercase">{t("nav.language")}</span>
+                        </div>
+                        {languages.map((lang) => (
+                          <button
+                            key={lang.code}
+                            onClick={() => {
+                              setLanguage(lang.code);
+                              setLangOpen(false);
+                            }}
+                            className={`w-full flex items-center justify-between px-4 py-2.5 text-[10px] font-bold tracking-widest uppercase transition-all hover:bg-[#E6B23C]/5 ${language === lang.code ? "text-[#E6B23C]" : "text-[#A08E70]"}`}
+                          >
+                            {lang.name}
+                            {language === lang.code && <div className="h-1 w-1 rounded-full bg-[#E6B23C] shadow-[0_0_5px_#E6B23C]" />}
+                          </button>
+                        ))}
+                      </motion.div>
+                    </>
+                  )}
+                </AnimatePresence>
+            </div>
+
+            {/* User Profile */}
+            <button className="h-10 w-10 flex items-center justify-center rounded-full bg-[#E6B23C]/10 border border-[#E6B23C]/20 text-[#E6B23C] hover:bg-[#E6B23C]/20 transition-all shadow-[0_0_15px_rgba(230,178,60,0.1)] group">
+              <User size={18} className="transition-transform group-hover:scale-110" />
+            </button>
+          </div>
         </div>
       </nav>
+      
+      {headerExtension && (
+        <div className="fixed top-0 left-0 right-0 z-[45] pointer-events-none">
+          {headerExtension}
+        </div>
+      )}
 
       {/* Content */}
       <div className={fullScreen ? "relative z-10 pt-20 h-screen w-full flex flex-col overflow-hidden" : (fullWidth ? "relative z-10 w-full" : "relative z-10 pt-32 pb-20 px-6 lg:px-12 max-w-7xl mx-auto")}>

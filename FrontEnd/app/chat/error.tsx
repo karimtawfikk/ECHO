@@ -1,7 +1,8 @@
 "use client";
 
 import { useEffect } from "react";
-import PageShell from "@/components/layout/PageShell";
+import PageShell from "../../components/layout/PageShell";
+import { useLanguage } from "../../context/LanguageContext";
 
 export default function ChatError({
   error,
@@ -10,6 +11,8 @@ export default function ChatError({
   error: Error & { digest?: string };
   reset: () => void;
 }) {
+  const { t } = useLanguage();
+
   useEffect(() => {
     console.error("[Chat Error]", error);
   }, [error]);
@@ -20,13 +23,12 @@ export default function ChatError({
         <div className="text-5xl">𓂀</div>
         <h2
           className="text-2xl font-bold"
-          style={{ fontFamily: "var(--font-playfair)", color: "#E6B23C" }}
+          style={{ fontFamily: "var(--font-cormorant), serif", color: "#E6B23C" }}
         >
-          The Ancient Scrolls Are Momentarily Veiled
+          {t("error.title")}
         </h2>
         <p className="max-w-md text-sm" style={{ color: "#A08E70" }}>
-          An unexpected disturbance has interrupted our connection to the past.
-          Please try again.
+          {t("error.desc")}
         </p>
         <button
           onClick={reset}
@@ -36,7 +38,7 @@ export default function ChatError({
             color: "#0D0A07",
           }}
         >
-          Try Again
+          {t("error.button")}
         </button>
       </div>
     </PageShell>

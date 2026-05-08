@@ -7,6 +7,7 @@ import { motion, AnimatePresence, useScroll, useTransform, useSpring } from "fra
 import { Search, Crown, MapPin, ChevronDown, ChevronRight, MessageSquare, Video, Scroll, Sparkles, X, History } from "lucide-react";
 import { ALL_PHARAOHS, ALL_LANDMARKS } from "../../lib/mock/mock-all-entities";
 import { saveResultToSession } from "../../lib/services/recognition";
+import { useLanguage } from "../../context/LanguageContext";
 import type { RecognitionEntity, RecognitionResult } from "../../lib/types";
 import { Suspense } from "react";
 
@@ -59,6 +60,7 @@ function getDynastyNumber(dynasty: string): number {
 
 // ── Entity Card ───────────────────────────────────────────────────────────
 function EntityCard({ entity, type, onNavigate }: { entity: RecognitionEntity; type: "pharaoh" | "landmark"; onNavigate: () => void }) {
+  const { t } = useLanguage();
   const cleanName = entity.name.includes("(") ? entity.name.split("(")[0].trim() : entity.name;
 
   return (
@@ -76,7 +78,9 @@ function EntityCard({ entity, type, onNavigate }: { entity: RecognitionEntity; t
             {cleanName}
           </h3>
           {entity.type && (
-            <span className="text-[10px] text-[#A08E70]/70 uppercase tracking-wider">{entity.type}</span>
+            <span className="text-[10px] text-[#A08E70]/70 uppercase tracking-wider">
+              {entity.type === "pharaoh" ? t("result.badge.pharaoh") : t("result.badge.landmark")}
+            </span>
           )}
           {entity.description && (
             <p className="text-[11px] text-[#A08E70]/60 mt-1.5 line-clamp-2 leading-relaxed">
@@ -97,6 +101,7 @@ function DynastyGroup({ dynasty, entities, type, onNavigate }: {
   type: "pharaoh" | "landmark";
   onNavigate: (entity: RecognitionEntity) => void;
 }) {
+  const { t, isRTL } = useLanguage();
   const [open, setOpen] = useState(false);
 
   return (
@@ -108,8 +113,8 @@ function DynastyGroup({ dynasty, entities, type, onNavigate }: {
         <div className="flex items-center gap-3">
           <Scroll size={15} className="text-[#B8860B] shrink-0" />
           <span className="text-sm font-bold text-[#F5E6D0] tracking-wide">{dynasty}</span>
-          <span className="text-[10px] text-[#A08E70]/50 font-bold tracking-widest uppercase ml-1">
-            {entities.length} {entities.length === 1 ? "entity" : "entities"}
+          <span className={`text-[10px] text-[#A08E70]/50 font-bold tracking-widest uppercase ${isRTL ? 'mr-1' : 'ml-1'}`}>
+            {entities.length} {entities.length === 1 ? t("common.entity") : t("common.entities")}
           </span>
         </div>
         <motion.div animate={{ rotate: open ? 180 : 0 }} transition={{ duration: 0.2 }}>
@@ -244,6 +249,7 @@ function EgyptMap({
 
 // ── Main Explore Content ──────────────────────────────────────────────────
 function ExploreContent() {
+  const { t, isRTL } = useLanguage();
   const router = useRouter();
   const searchParams = useSearchParams();
   const [activeTab, setActiveTab] = useState<"pharaohs" | "landmarks">("pharaohs");
@@ -431,10 +437,10 @@ function ExploreContent() {
           className="font-heading text-4xl md:text-5xl font-bold tracking-wide uppercase text-[#F5E6D0] mb-3"
           style={{ fontFamily: "var(--font-cormorant), serif" }}
         >
-          E.C.H.O's <span className="text-[#E6B23C]">Collections</span>
+          {t("explore.title").split("'s")[0]} <span className="text-[#E6B23C]">{t("explore.title").split("'s")[1] || "Collections"}</span>
         </h1>
         <p className="text-[#A08E70] text-base max-w-lg mx-auto" style={{ fontFamily: "var(--font-cormorant), serif" }}>
-          A curated exploration of Egypt's pharaohs, deities, and archaeological landmarks.
+          {t("explore.subtitle")}
         </p>
       </motion.div>
 
@@ -455,9 +461,9 @@ function ExploreContent() {
               }`}
           >
             {tab === "pharaohs" ? (
-              <span className="flex items-center gap-2"><Crown size={14} /> Pharaohs & Deities</span>
+              <span className="flex items-center gap-2"><Crown size={14} /> {t("explore.tab.pharaohs")}</span>
             ) : (
-              <span className="flex items-center gap-2"><MapPin size={14} /> Landmarks</span>
+              <span className="flex items-center gap-2"><MapPin size={14} /> {t("explore.tab.landmarks")}</span>
             )}
           </button>
         ))}
@@ -470,16 +476,16 @@ function ExploreContent() {
         transition={{ delay: 0.3 }}
         className="max-w-lg mx-auto mb-10 relative"
       >
-        <Search size={16} className="absolute left-4 top-1/2 -translate-y-1/2 text-[#A08E70]/40" />
+        <Search size={16} className={`absolute ${isRTL ? 'right-4' : 'left-4'} top-1/2 -translate-y-1/2 text-[#A08E70]/40`} />
         <input
           value={search}
           onChange={(e) => setSearch(e.target.value)}
-          placeholder={activeTab === "pharaohs" ? "Search pharaohs, gods, queens..." : "Search landmarks, temples, pyramids..."}
-          className="w-full h-12 pl-11 pr-10 rounded-xl bg-[#0D0A07] border border-[#E6B23C]/15 text-sm text-[#F5E6D0] placeholder:text-[#A08E70]/40 focus:outline-none focus:border-[#E6B23C]/30 focus:shadow-[0_0_15px_rgba(230,178,60,0.08)] transition-all"
+          placeholder={activeTab === "pharaohs" ? t("explore.search.pharaohs") : t("explore.search.landmarks")}
+          className={`w-full h-12 ${isRTL ? 'pr-11 pl-10' : 'pl-11 pr-10'} rounded-xl bg-[#0D0A07] border border-[#E6B23C]/15 text-sm text-[#F5E6D0] placeholder:text-[#A08E70]/40 focus:outline-none focus:border-[#E6B23C]/30 focus:shadow-[0_0_15px_rgba(230,178,60,0.08)] transition-all`}
           style={{ caretColor: "#E6B23C" }}
         />
         {search && (
-          <button onClick={() => setSearch("")} className="absolute right-4 top-1/2 -translate-y-1/2 text-[#A08E70]/40 hover:text-[#E6B23C] transition-colors">
+          <button onClick={() => setSearch("")} className={`absolute ${isRTL ? 'left-4' : 'right-4'} top-1/2 -translate-y-1/2 text-[#A08E70]/40 hover:text-[#E6B23C] transition-colors`}>
             <X size={14} />
           </button>
         )}
@@ -499,7 +505,7 @@ function ExploreContent() {
                 {(activeTab === "pharaohs" ? filteredPharaohs : filteredLandmarks).length === 0 ? (
                   <div className="max-w-md mx-auto text-center py-16 bg-[#0D0A07]/60 backdrop-blur-md rounded-3xl border border-[#E6B23C]/10 shadow-[0_20px_60px_rgba(0,0,0,0.5)]">
                     <Search size={40} className="mx-auto mb-4 opacity-30 text-[#E6B23C]" />
-                    <p className="text-sm text-[#A08E70]">No results match "{search}"</p>
+                    <p className="text-sm text-[#A08E70]">{t("explore.search.no_results", { search })}</p>
                   </div>
                 ) : (
                   <div className="flex flex-wrap justify-center gap-4 max-h-[70vh] overflow-y-auto pb-10 pt-2 px-2">
@@ -545,7 +551,7 @@ function ExploreContent() {
             {pharaohsByPeriod.length === 0 && (
               <div className="text-center py-16 text-[#A08E70]/50">
                 <Scroll size={40} className="mx-auto mb-4 opacity-30" />
-                <p className="text-sm">No pharaohs match your search</p>
+                <p className="text-sm">{t("explore.search.no_pharaohs")}</p>
               </div>
             )}
 
@@ -599,7 +605,7 @@ function ExploreContent() {
             </div>
 
             <div className="text-center pt-8 pb-4 text-[10px] text-[#A08E70]/30 uppercase tracking-widest">
-              {filteredPharaohs.length} of {pharaohs.length} entities
+              {filteredPharaohs.length} {t("common.entity")} / {pharaohs.length} {t("common.entities")}
             </div>
           </motion.div>
         )}
@@ -623,7 +629,7 @@ function ExploreContent() {
                 >
                   <div className="inline-flex items-center gap-3 px-6 py-2.5 rounded-full bg-[#E6B23C]/5 border border-[#E6B23C]/10 backdrop-blur-sm">
                     <span className="text-[11px] font-bold tracking-[0.2em] text-[#A08E70] uppercase">
-                      Select a region to discover its landmarks
+                      {t("explore.map.instruction")}
                     </span>
                   </div>
                 </motion.div>
@@ -664,7 +670,7 @@ function ExploreContent() {
                       <div>
                         <div className="flex items-center gap-2 text-[#E6B23C] mb-1">
                           <MapPin size={16} />
-                          <span className="text-[10px] font-bold tracking-[0.3em] uppercase">Region</span>
+                          <span className="text-[10px] font-bold tracking-[0.3em] uppercase">{t("explore.map.region")}</span>
                         </div>
                         <h2 className="text-2xl font-bold text-[#F5E6D0] uppercase tracking-wider font-heading">
                           {selectedCity.split(",")[0]}
@@ -700,7 +706,7 @@ function ExploreContent() {
                         onClick={() => setSelectedCity(null)}
                         className="text-xs text-[#A08E70] hover:text-[#E6B23C] transition-colors underline underline-offset-4 uppercase tracking-widest font-bold"
                       >
-                        Close Map View
+                        {t("explore.map.close")}
                       </button>
                     </div>
                   </motion.div>

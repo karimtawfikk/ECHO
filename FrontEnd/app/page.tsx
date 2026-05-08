@@ -9,6 +9,7 @@ import TrendingRow from "../components/trending/TrendingRow";
 import ScrollReveal from "../components/animations/ScrollReveal";
 import ParallaxLayer from "../components/animations/ParallaxLayer";
 import { useEffect, useState } from "react";
+import { useLanguage } from "../context/LanguageContext";
 import type { RecognitionEntity } from "../lib/types";
 
 // ── Minimal mock fallback (used only when the API is unreachable) ──────────
@@ -62,6 +63,7 @@ const FALLBACK_LANDMARKS: RecognitionEntity[] = LANDMARK_ORDER
 
 // ── Page ─────────────────────────────────────────────────────────────────
 export default function HomePage() {
+  const { t } = useLanguage();
   const [pharaohs] = useState<RecognitionEntity[]>(FALLBACK_PHARAOHS);
   const [landmarks] = useState<RecognitionEntity[]>(FALLBACK_LANDMARKS);
   const [isLoading] = useState(false);
@@ -118,15 +120,6 @@ export default function HomePage() {
           />
         </ParallaxLayer>
 
-        <motion.div
-          initial={{ opacity: 0, y: 20 }}
-          animate={{ opacity: 1, y: 0 }}
-          transition={{ delay: 0.2, duration: 0.6 }}
-          className="inline-flex items-center gap-2 px-5 py-2.5 rounded-full bg-[#E6B23C]/[0.08] border border-[#E6B23C]/15 mb-8"
-        >
-          <DoorOpen size={14} className="text-[#E6B23C]" />
-          <span className="text-xs font-bold tracking-[0.2em] text-[#E6B23C] uppercase">Gateway to Ancient Egypt</span>
-        </motion.div>
 
         <motion.div
           initial={{ opacity: 0, y: 30 }}
@@ -138,25 +131,22 @@ export default function HomePage() {
             className="font-display text-6xl md:text-8xl lg:text-[7rem] font-bold tracking-[0.15em] uppercase text-[#E6B23C] gold-glow mb-4"
             style={{ fontFamily: 'var(--font-cormorant), serif' }}
           >
-            E.C.H.O
+            {t("home.hero.title")}
           </h1>
           <p
             className="font-display text-2xl md:text-3xl lg:text-4xl font-bold leading-[1.2] tracking-[0.03em] uppercase text-[#F5E6D0]"
             style={{ fontFamily: 'var(--font-cormorant), serif' }}
           >
-            Every Capture Has <span className="text-[#E6B23C]">Origins</span>
+            {t("home.hero.subtitle")}
           </p>
         </motion.div>
 
-        <motion.p
-          initial={{ opacity: 0, y: 20 }}
-          animate={{ opacity: 1, y: 0 }}
-          transition={{ delay: 0.5, duration: 0.6 }}
+        <p
           className="text-[#A08E70] text-lg md:text-xl max-w-xl font-semibold leading-relaxed mb-12"
           style={{ fontFamily: 'var(--font-cormorant), serif' }}
         >
-          Upload a landmark or artifact to explore its origins, context, and story through visuals, narration, and conversation.
-        </motion.p>
+          {t("home.hero.description")}
+        </p>
 
         <motion.div
           initial={{ opacity: 0, y: 20 }}
@@ -169,7 +159,7 @@ export default function HomePage() {
             className="h-14 w-64 rounded-2xl bg-gradient-to-r from-[#E6B23C] to-[#D4A030] hover:from-[#FFD369] hover:to-[#E6B23C] text-[#0D0A07] font-bold text-base transition-all hover:scale-105 shadow-[0_4px_30px_rgba(230,178,60,0.25)] hover:shadow-[0_4px_40px_rgba(230,178,60,0.4)]"
           >
             <Link href="/upload">
-              Start Your Journey
+              {t("home.hero.cta.start")}
             </Link>
           </Button>
 
@@ -179,7 +169,7 @@ export default function HomePage() {
             className="h-14 w-64 rounded-2xl border-[#E6B23C]/15 bg-[#E6B23C]/[0.04] hover:bg-[#E6B23C]/[0.08] text-[#F5E6D0] font-bold text-base transition-all hover:scale-105 hover:border-[#E6B23C]/25"
           >
             <Link href="#how-it-works">
-              See How It Works
+              {t("home.hero.cta.how_it_works")}
             </Link>
           </Button>
 
@@ -200,9 +190,9 @@ export default function HomePage() {
       {/* =========== HOW IT WORKS =========== */}
       <section id="how-it-works" className="mt-10 max-w-6xl mx-auto px-4 sm:px-6 lg:px-8 pt-20">
         <div className="text-center mb-16">
-          <span className="text-xs font-bold tracking-[0.25em] text-[#E6B23C] uppercase">The Process</span>
+          <span className="text-xs font-bold tracking-[0.25em] text-[#E6B23C] uppercase">{t("home.process.badge")}</span>
           <h2 className="font-heading text-3xl md:text-4xl lg:text-5xl font-bold mt-4 text-[#F5E6D0]">
-            How ECHO Brings History to Life
+            {t("home.process.title")}
           </h2>
         </div>
         <div className="relative max-w-4xl mx-auto py-12">
@@ -211,16 +201,26 @@ export default function HomePage() {
 
           <div className="space-y-24 relative z-10">
             {[
-              { icon: Camera, title: "1. Capture", text: "Snap a photo of a landmark, statue, or temple wall for instant AI recognition.", isText: false },
-              { icon: Video, title: "2. Entertain", text: "Experience custom generated documentary-style videos that bring ancient history to life.", isText: false },
-              { icon: MessageSquare, title: "3. Engage", text: "Chat directly with pharaohs and iconic monuments.", isText: false },
-              { icon: Bird, title: "4. Discover", text: "Decode and translate complex ancient hieroglyphic inscriptions into modern text.", isText: false }
+              { icon: Camera, title: t("home.process.step1.title"), text: t("home.process.step1.desc"), isText: false },
+              { icon: Video, title: t("home.process.step2.title"), text: t("home.process.step2.desc"), isText: false },
+              { icon: MessageSquare, title: t("home.process.step3.title"), text: t("home.process.step3.desc"), isText: false },
+              { icon: Bird, title: t("home.process.step4.title"), text: t("home.process.step4.desc"), isText: false }
             ].map((step, i) => (
               <ScrollReveal key={step.title} direction={i % 2 === 0 ? "right" : "left"} delay={0.1} className="relative flex items-center">
 
                 {/* Timeline Center Node */}
                 <div className="absolute left-10 md:left-1/2 top-1/2 -translate-y-1/2 -translate-x-1/2 w-16 h-16 rounded-full bg-[#0D0A07] border border-[#E6B23C]/50 flex items-center justify-center shadow-[0_0_30px_rgba(230,178,60,0.15)] z-10">
-                  {step.isText ? (
+                  {step.title === t("home.process.step4.title") ? (
+                    <svg width="34" height="34" viewBox="0 0 50 50" fill="none" stroke="#E6B23C" strokeWidth="1.2" strokeLinecap="round" strokeLinejoin="round" className="opacity-90">
+                      {/* Accurate Minimalist Owl Hieroglyph */}
+                      <path d="M25 8c-3.5 0-6 2.5-6 6v4c0 3.5 2.5 6 6 6s6-2.5 6-6v-4c0-3.5-2.5-6-6-6z" />
+                      <path d="M19 12l-2-2M31 12l2-2" />
+                      <path d="M22 14h.01M28 14h.01" strokeWidth="2.5" />
+                      <path d="M25 18l-1 2h2l-1-2z" fill="#E6B23C" />
+                      <path d="M19 18c-6 0-11 4-11 14 0 10 5 18 11 18s8-4 13-4 13 4 13 4c0-14-5-28-13-28s-7 6-13 6z" />
+                      <path d="M21 48v2M29 48v2" />
+                    </svg>
+                  ) : step.isText ? (
                     <span className="text-4xl text-[#E6B23C] leading-none -translate-y-[10px]">{step.icon as any}</span>
                   ) : (
                     // @ts-ignore
@@ -245,12 +245,12 @@ export default function HomePage() {
       {/* =========== EXPLORE GALLERY =========== */}
       <section className="mt-40 max-w-6xl mx-auto px-4 sm:px-6 lg:px-8">
         <div className="text-center mb-16">
-          <h2 className="font-heading text-3xl md:text-4xl font-bold text-[#F5E6D0]">Experience ECHO</h2>
-          <p className="text-[#A08E70] mt-3 max-w-xl mx-auto text-lg">Choose an icon. Uncover its origins. Start a conversation.</p>
+          <h2 className="font-heading text-3xl md:text-4xl font-bold text-[#F5E6D0]">{t("home.experience.title")}</h2>
+          <p className="text-[#A08E70] mt-3 max-w-xl mx-auto text-lg">{t("home.experience.subtitle")}</p>
         </div>
         <ScrollReveal direction="up" delay={0.1}>
           <TrendingRow
-            title="Icons of Ancient Egypt"
+            title={t("home.experience.pharaohs")}
             items={pharaohs}
             type="pharaoh"
             isLoading={isLoading}
@@ -261,7 +261,7 @@ export default function HomePage() {
       {/* =========== TRENDING: LANDMARKS =========== */}
       <ScrollReveal direction="up" delay={0.1} className="mt-16 max-w-6xl mx-auto px-4 sm:px-6 lg:px-8">
         <TrendingRow
-          title="Must-See Ancient Sites"
+          title={t("home.experience.landmarks")}
           items={landmarks}
           type="landmark"
           isLoading={isLoading}
@@ -312,9 +312,9 @@ export default function HomePage() {
                     transition={{ duration: 4, repeat: Infinity, ease: "linear" }}
                     className="absolute left-0 right-0 h-[2px] bg-gradient-to-r from-transparent via-[#E6B23C] to-transparent shadow-[0_0_15px_#E6B23C] z-30"
                   />
-                  
+
                   {/* Floating Recognition Points */}
-                  <motion.div 
+                  <motion.div
                     initial={{ opacity: 0 }}
                     animate={{ opacity: [0, 1, 0] }}
                     transition={{ duration: 2, repeat: Infinity, delay: 0.5 }}
@@ -324,7 +324,7 @@ export default function HomePage() {
                     <div className="px-2 py-1 bg-[#0D0A07]/80 backdrop-blur-md border border-[#E6B23C]/30 rounded text-[8px] font-bold text-[#E6B23C] uppercase tracking-tighter">Surface Mapping...</div>
                   </motion.div>
 
-                  <motion.div 
+                  <motion.div
                     initial={{ opacity: 0 }}
                     animate={{ opacity: [0, 1, 0] }}
                     transition={{ duration: 2, repeat: Infinity, delay: 1.5 }}
@@ -346,13 +346,13 @@ export default function HomePage() {
             </div>
             <div className="space-y-6">
               <div className="inline-flex items-center gap-2 px-4 py-1.5 rounded-full bg-[#E6B23C]/10 border border-[#E6B23C]/20 text-[#E6B23C] text-xs font-bold tracking-widest uppercase">
-                <Camera size={14} /> Entity Recognition
+                <Camera size={14} /> {t("home.feature1.badge")}
               </div>
               <h2 className="font-heading text-4xl md:text-5xl font-bold text-[#F5E6D0]">
-                Instant Recognition
+                {t("home.feature1.title")}
               </h2>
               <p className="text-[#A08E70] text-lg leading-relaxed">
-                Capture any artifact or landmark and let ECHO's advanced AI identify its historical significance in real-time. Uncover names, dates, and dynasties in an instant.
+                {t("home.feature1.desc")}
               </p>
             </div>
           </ScrollReveal>
@@ -361,13 +361,13 @@ export default function HomePage() {
           <ScrollReveal direction="up" className="grid lg:grid-cols-2 gap-16 items-center">
             <div className="lg:text-right space-y-6">
               <div className="inline-flex items-center gap-2 px-4 py-1.5 rounded-full bg-[#E6B23C]/10 border border-[#E6B23C]/20 text-[#E6B23C] text-xs font-bold tracking-widest uppercase lg:flex-row-reverse">
-                <PlayCircle size={14} /> Video Generation
+                <PlayCircle size={14} /> {t("home.feature2.badge")}
               </div>
               <h2 className="font-heading text-4xl md:text-5xl font-bold text-[#F5E6D0]">
-                Cinematic Histories
+                {t("home.feature2.title")}
               </h2>
               <p className="text-[#A08E70] text-lg leading-relaxed">
-                Transform static artifacts into immersive documentaries. Our engine pieces together historical records to generate narrated videos, bringing the stories of the ancients directly to your screen.
+                {t("home.feature2.desc")}
               </p>
             </div>
             <div className="relative">
@@ -393,23 +393,46 @@ export default function HomePage() {
           <ScrollReveal direction="up" className="grid lg:grid-cols-2 gap-16 items-center">
             <div className="relative">
               <div className="aspect-[4/5] max-w-[320px] mx-auto rounded-3xl overflow-hidden border border-[#E6B23C]/20 bg-[#0D0A07] shadow-[0_0_50px_rgba(230,178,60,0.15)] flex flex-col relative z-10">
-                {/* Chat Header */}
-                <div className="p-4 border-b border-[#E6B23C]/10 bg-[#1A1208] flex items-center gap-4">
-                  <div className="h-10 w-10 rounded-full bg-gradient-to-br from-[#E6B23C]/30 to-transparent border border-[#E6B23C]/30 flex items-center justify-center">
-                    <span className="text-xl">𓁹</span>
+                {/* Chat Atmosphere Background */}
+                <div className="absolute inset-0 opacity-40 pointer-events-none">
+                  <div className="absolute inset-0 bg-[url('/images/patterns/egyptian-pattern.png')] opacity-20" />
+                  <div className="absolute inset-0 bg-gradient-to-b from-[#E6B23C]/5 via-transparent to-transparent" />
+                </div>
+
+                {/* Chat Header (Simplified Identity Bar) */}
+                <div className="pt-8 pb-4 border-b border-[#E6B23C]/10 bg-[#0D0A07]/50 backdrop-blur-md flex flex-col items-center gap-2 relative z-10">
+                  <div className="h-12 w-12 rounded-full bg-gradient-to-br from-[#E6B23C] to-[#D4A030] p-[1.5px]">
+                    <div className="h-full w-full rounded-full bg-[#0D0A07] overflow-hidden flex items-center justify-center">
+                      <img src="/images/pharaohs/Ramesses II.jpg" alt="Ramesses II" className="w-full h-full object-cover scale-110" onError={(e) => { e.currentTarget.style.display = 'none'; }} />
+                    </div>
                   </div>
-                  <div>
-                    <div className="text-[#F5E6D0] font-bold text-sm">Ramesses II</div>
-                    <div className="text-[#A08E70] text-[10px] tracking-wider uppercase">New Kingdom</div>
+                  <div className="text-center">
+                    <div className="text-[#F5E6D0] font-bold text-xs tracking-wide">Ramesses II</div>
+                    <div className="text-[#E6B23C] text-[8px] font-bold tracking-[0.2em] uppercase opacity-60">New Kingdom</div>
                   </div>
                 </div>
+
                 {/* Chat Body Mockup */}
-                <div className="flex-1 p-5 space-y-4 bg-[#0D0A07] flex flex-col justify-end">
-                  <div className="ml-auto w-[85%] p-3.5 rounded-2xl rounded-tr-sm bg-gradient-to-br from-[#E6B23C] to-[#C1840A] text-[#0D0A07] text-sm font-medium">
+                <div className="flex-1 p-5 space-y-6 flex flex-col justify-start relative z-10">
+                  {/* User Message Bubble */}
+                  <div className="ml-auto px-4 py-2 rounded-[18px] bg-[#E6B23C]/10 border border-[#E6B23C]/20 text-[#E6B23C] text-[11px] shadow-[0_4px_15px_rgba(230,178,60,0.05)]">
                     Tell me about your greatest victory.
                   </div>
-                  <div className="w-[90%] p-3.5 rounded-2xl rounded-tl-sm bg-[#1A1208] border border-[#E6B23C]/20 text-[#F5E6D0] text-sm leading-relaxed">
+                  {/* Assistant Message (Clean Text) */}
+                  <div className="w-full text-[#F5E6D0] text-[12px] leading-relaxed font-light tracking-wide">
                     The Battle of Kadesh was a triumph of the gods. Though the Hittites sought to ambush us, Amun gave me the strength of Montu.
+                  </div>
+
+                  {/* Input Bar Mockup - Updated with Voice Icon */}
+                  <div className="mt-auto flex gap-2 items-center">
+                    <div className="flex-1 px-4 py-2.5 rounded-full bg-[#1A1208]/80 border border-[#E6B23C]/10 flex items-center shadow-inner">
+                      <span className="text-[#A08E70]/40 text-[10px] font-medium">Ask Ramesses II...</span>
+                    </div>
+                    <div className="h-8 w-8 rounded-full bg-[#0D0A07] border border-[#E6B23C]/30 flex items-center justify-center shadow-[0_0_10px_rgba(230,178,60,0.15)]">
+                      <svg width="14" height="12" viewBox="0 0 24 20" fill="none" stroke="#E6B23C" strokeWidth="2.5" strokeLinecap="round">
+                        <path d="M2 9v2" /><path d="M6 5v10" /><path d="M10 2v16" /><path d="M14 5v10" /><path d="M18 9v2" /><path d="M22 7v6" />
+                      </svg>
+                    </div>
                   </div>
                 </div>
               </div>
@@ -418,13 +441,13 @@ export default function HomePage() {
             </div>
             <div className="space-y-6">
               <div className="inline-flex items-center gap-2 px-4 py-1.5 rounded-full bg-[#E6B23C]/10 border border-[#E6B23C]/20 text-[#E6B23C] text-xs font-bold tracking-widest uppercase">
-                <MessageSquare size={14} /> Interactive Dialogue
+                <MessageSquare size={14} /> {t("home.feature3.badge")}
               </div>
               <h2 className="font-heading text-4xl md:text-5xl font-bold text-[#F5E6D0]">
-                Converse with Antiquity
+                {t("home.feature3.title")}
               </h2>
               <p className="text-[#A08E70] text-lg leading-relaxed">
-                Step back in time and speak directly with historical figures. Grounded in curated archaeological data, our interactive chat lets you explore the personal histories and reigns of pharaohs.
+                {t("home.feature3.desc")}
               </p>
             </div>
           </ScrollReveal>
@@ -433,30 +456,89 @@ export default function HomePage() {
           <ScrollReveal direction="up" className="grid lg:grid-cols-2 gap-16 items-center">
             <div className="lg:text-right space-y-6">
               <div className="inline-flex items-center gap-2 px-4 py-1.5 rounded-full bg-[#E6B23C]/10 border border-[#E6B23C]/20 text-[#E6B23C] text-xs font-bold tracking-widest uppercase lg:flex-row-reverse">
-                <Bird size={14} /> Hieroglyphics Translation
+                <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
+                  <path d="M12 2v4M12 18v4M4.93 4.93l2.83 2.83M16.24 16.24l2.83 2.83M2 12h4M18 12h4M4.93 19.07l2.83-2.83M16.24 7.76l2.83-2.83" />
+                  <circle cx="12" id="bird-eye-final" cy="12" r="3" />
+                </svg> {t("home.feature4.badge")}
               </div>
               <h2 className="font-heading text-4xl md:text-5xl font-bold text-[#F5E6D0]">
-                Decipher the Past
+                {t("home.feature4.title")}
               </h2>
               <p className="text-[#A08E70] text-lg leading-relaxed">
-                Uncover the hidden meanings within ancient inscriptions. Our engine translates hieroglyphs directly into modern language, revealing the prayers, laws, and records of the ancients.
+                {t("home.feature4.desc")}
               </p>
             </div>
             <div className="relative">
               <div className="aspect-[4/3] max-w-[480px] mx-auto rounded-3xl overflow-hidden border border-[#E6B23C]/20 bg-[#0D0A07] shadow-[0_0_50px_rgba(230,178,60,0.15)] relative z-10 flex items-center justify-center">
                 <img
-                  src="/images/cards/Tutankhamun(1).jpg"
+                  src="/images/cards/hieroglyphs.jpg"
                   alt="Hieroglyphic Script"
                   className="absolute inset-0 w-full h-full object-cover opacity-40"
-                  onError={(e) => { e.currentTarget.style.display = 'none'; }}
+                  onError={(e) => { e.currentTarget.src = "/images/cards/Tutankhamun(1).jpg"; }}
                 />
                 <div className="absolute inset-0 opacity-10 bg-[url('https://www.transparenttextures.com/patterns/papyros.png')]" />
                 {/* Placeholder for Hieroglyph Image */}
                 <div className="text-[#E6B23C]/20 text-6xl font-display uppercase tracking-[0.5em] select-none relative z-10">𓁹 𓅓 𓊵</div>
-                {/* Translation Result Popover */}
-                <div className="absolute top-1/2 left-1/2 -translate-x-1/2 -translate-y-1/2 w-64 p-5 bg-[#0D0A07]/90 backdrop-blur-md border border-[#E6B23C]/30 rounded-2xl shadow-2xl z-20">
-                  <div className="text-[#E6B23C] text-[10px] font-bold uppercase tracking-widest mb-2">Translation Result</div>
-                  <div className="text-[#F5E6D0] text-sm italic font-heading">"To live, prosper, and be in health..."</div>
+                {/* Mystical Reveal HUD - Elegant & Magical */}
+                <div className="absolute inset-0 z-20 pointer-events-none overflow-hidden">
+                  {/* The 'Mystical Lens' Reveal Effect */}
+                  <motion.div
+                    animate={{
+                      x: ["-20%", "60%", "10%"],
+                      y: ["-10%", "30%", "0%"]
+                    }}
+                    transition={{ duration: 10, repeat: Infinity, ease: "easeInOut" }}
+                    className="absolute w-80 h-80 rounded-full z-10"
+                    style={{
+                      background: "radial-gradient(circle, rgba(230,178,60,0.15) 0%, transparent 70%)",
+                      boxShadow: "0 0 100px rgba(230,178,60,0.1) inset"
+                    }}
+                  >
+                    {/* Inner Lens Glow */}
+                    <div className="absolute inset-0 rounded-full border border-[#E6B23C]/20 shadow-[0_0_30px_rgba(230,178,60,0.1)]" />
+                  </motion.div>
+
+                  {/* Ambient Particles */}
+                  <div className="absolute inset-0 opacity-40">
+                    {[...Array(6)].map((_, i) => (
+                      <motion.div
+                        key={i}
+                        animate={{
+                          y: [0, -100],
+                          opacity: [0, 1, 0],
+                          x: [0, (i % 2 === 0 ? 50 : -50)]
+                        }}
+                        transition={{ duration: 5 + i, repeat: Infinity, delay: i * 0.5 }}
+                        className="absolute w-1 h-1 bg-[#E6B23C] rounded-full blur-[1px]"
+                        style={{ bottom: "10%", left: `${20 + i * 15}%` }}
+                      />
+                    ))}
+                  </div>
+
+                  {/* Final Deciphered Result - Floating Spirit-like Text */}
+                  <div className="absolute inset-0 flex flex-col items-center justify-center">
+                    <motion.div
+                      initial={{ opacity: 0 }}
+                      whileInView={{ opacity: 1 }}
+                      transition={{ duration: 1.5 }}
+                      className="text-center px-12 relative"
+                    >
+                      {/* Decorative Ancient Accents */}
+                      <div className="absolute -top-8 left-1/2 -translate-x-1/2 flex items-center gap-4 opacity-40">
+                        <div className="h-[1px] w-12 bg-gradient-to-r from-transparent to-[#E6B23C]" />
+                        <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="#E6B23C" strokeWidth="1.5">
+                          <path d="M12 2L2 12l10 10 10-10L12 2z" />
+                          <path d="M12 6l-6 6 6 6 6-6-6-6z" />
+                        </svg>
+                        <div className="h-[1px] w-12 bg-gradient-to-l from-transparent to-[#E6B23C]" />
+                      </div>
+
+                      <div className="text-[#E6B23C] text-[11px] font-bold uppercase tracking-[0.6em] mb-4 opacity-60">Ancient Script Decoded</div>
+                      <h3 className="text-[#F5E6D0] text-2xl md:text-4xl italic font-heading gold-glow leading-tight drop-shadow-[0_15px_30px_rgba(0,0,0,0.9)]">
+                        "To live, prosper, and be in health..."
+                      </h3>
+                    </motion.div>
+                  </div>
                 </div>
               </div>
               {/* Background Glow */}

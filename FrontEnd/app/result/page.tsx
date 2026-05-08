@@ -8,6 +8,7 @@ import { Video, MessageSquare, ChevronLeft, Scroll, Crown, MapPin, Sparkles, Hou
 import Link from "next/link";
 import { Suspense, useState, useEffect, useMemo } from "react";
 import { PHARAOHS, LANDMARKS } from "@/lib/mock/mock-trending";
+import { useLanguage } from "@/context/LanguageContext";
 import { loadResultFromSession } from "@/lib/services/recognition";
 import { formatTitle } from "@/lib/services/recognition";
 import type { RecognitionResult, SubEntity } from "@/lib/types";
@@ -27,6 +28,7 @@ function findMockDescription(type: string | null, name: string): string {
 
 /* ── Main component ─────────────────────────────────────────────────────── */
 function ResultContent() {
+  const { t, isRTL } = useLanguage();
   const router = useRouter();
   const searchParams = useSearchParams();
   const baseUrl = process.env.NEXT_PUBLIC_API_URL?.replace(/\/api\/v1\/?$/, "") ?? "http://localhost:8010";
@@ -99,7 +101,7 @@ function ResultContent() {
     return sessionResult?.entity?.composite_entities_data ?? [];
   }, [isApiFlow, sessionResult]);
 
-  const typeLabel = displayType === "pharaoh" ? "PHARAOH" : "LANDMARK";
+  const typeLabel = displayType === "pharaoh" ? t("result.badge.pharaoh") : t("result.badge.landmark");
 
   const getAssumedImageUrl = (name: string, isPharaoh: boolean) => {
     if (isPharaoh) {
@@ -151,10 +153,12 @@ function ResultContent() {
     <PageShell>
       <motion.div initial={{ opacity: 0 }} animate={{ opacity: 1 }} className="max-w-6xl mx-auto">
         {/* Breadcrumb */}
-        <motion.div initial={{ opacity: 0, x: -20 }} animate={{ opacity: 1, x: 0 }} className="mb-8">
+        <motion.div initial={{ opacity: 0, x: isRTL ? 20 : -20 }} animate={{ opacity: 1, x: 0 }} className="mb-8">
           <Link href={isFromExplore ? `/explore?tab=${displayType}s` : isFromTrending ? "/" : "/upload"} className="group inline-flex items-center gap-2 text-xs font-semibold tracking-[0.15em] uppercase text-[#A08E70] hover:text-[#E6B23C] transition-colors">
-            <span className="group-hover:-translate-x-1 transition-transform">←</span>
-            {isFromExplore ? "Back to Explore" : isFromTrending ? "Back to Home" : "Return"}
+            <span className={`transition-transform ${isRTL ? 'group-hover:translate-x-1' : 'group-hover:-translate-x-1'}`}>
+              {isRTL ? '→' : '←'}
+            </span>
+            {isFromExplore ? t("common.back_explore") : isFromTrending ? t("common.back_home") : t("common.return")}
           </Link>
         </motion.div>
 
@@ -192,7 +196,7 @@ function ResultContent() {
                   </div>
                   {isQuickLink && (
                     <div className="px-3 py-1 bg-[#E6B23C]/10 border border-[#E6B23C]/15 backdrop-blur-md rounded-full text-[9px] font-bold tracking-[0.15em] text-[#E6B23C] uppercase flex items-center gap-1.5 w-fit">
-                      <Sparkles size={8} /> Neural Quick-Link
+                      <Sparkles size={8} /> {t("result.badge.quicklink")}
                     </div>
                   )}
                 </div>
@@ -249,38 +253,37 @@ function ResultContent() {
                 <div className="mt-6 pt-4 border-t border-[#1A1005]/10 flex flex-col gap-3 font-cormorant">
                   {displayType === "pharaoh" && (
                     <div className="flex items-center gap-3 text-base text-[#1A1005]/70">
-                      <Crown size={15} className="text-[#B8860B] shrink-0" />
-                      <span className="font-semibold uppercase tracking-wide text-xs text-[#1A1005]/50 w-20">Type</span>
+                      <Crown size={15} className={`${isRTL ? 'ml-0' : 'mr-0'} text-[#B8860B] shrink-0`} />
+                      <span className={`font-semibold uppercase tracking-wide text-xs text-[#1A1005]/50 ${isRTL ? 'w-24' : 'w-20'}`}>{t("result.meta.type")}</span>
                       <span className="font-medium capitalize">{dbType}</span>
                     </div>
                   )}
                   {dynasty && (
                     <div className="flex items-center gap-3 text-base text-[#1A1005]/70">
-                      <Scroll size={15} className="text-[#B8860B] shrink-0" />
-                      <span className="font-semibold uppercase tracking-wide text-xs text-[#1A1005]/50 w-20">Dynasty</span>
+                      <Scroll size={15} className={`${isRTL ? 'ml-0' : 'mr-0'} text-[#B8860B] shrink-0`} />
+                      <span className={`font-semibold uppercase tracking-wide text-xs text-[#1A1005]/50 ${isRTL ? 'w-24' : 'w-20'}`}>{t("result.meta.dynasty")}</span>
                       <span className="font-medium">{dynasty}</span>
                     </div>
                   )}
                   {period && (
                     <div className="flex items-center gap-3 text-base text-[#1A1005]/70">
-                      <Hourglass size={15} className="text-[#B8860B] shrink-0" />
-                      <span className="font-semibold uppercase tracking-wide text-xs text-[#1A1005]/50 w-20">Period</span>
+                      <Hourglass size={15} className={`${isRTL ? 'ml-0' : 'mr-0'} text-[#B8860B] shrink-0`} />
+                      <span className={`font-semibold uppercase tracking-wide text-xs text-[#1A1005]/50 ${isRTL ? 'w-24' : 'w-20'}`}>{t("result.meta.period")}</span>
                       <span className="font-medium">{period}</span>
                     </div>
                   )}
                   {location && (
                     <div className="flex items-center gap-3 text-base text-[#1A1005]/70">
-                      <MapPin size={15} className="text-[#B8860B] shrink-0" />
-                      <span className="font-semibold uppercase tracking-wide text-xs text-[#1A1005]/50 w-20">Location</span>
+                      <MapPin size={15} className={`${isRTL ? 'ml-0' : 'mr-0'} text-[#B8860B] shrink-0`} />
+                      <span className={`font-semibold uppercase tracking-wide text-xs text-[#1A1005]/50 ${isRTL ? 'w-24' : 'w-20'}`}>{t("result.meta.location")}</span>
                       <span className="font-medium">{location}</span>
                     </div>
                   )}
                 </div>
               )}
 
-              <div className="mt-8 pt-5 border-t border-[#1A1005]/8 flex justify-between items-center opacity-40">
-                <div className="text-[9px] font-bold tracking-[0.2em] text-[#1A1005] uppercase">Origin Verified</div>
-                <div className="text-[9px] font-bold tracking-[0.2em] text-[#1A1005] uppercase">E.C.H.O Archive</div>
+              <div className="mt-8 pt-5 border-t border-[#1A1005]/8 flex justify-center items-center opacity-40">
+                <div className="text-[9px] font-bold tracking-[0.3em] text-[#1A1005] uppercase">{t("result.papyrus.archive")}</div>
               </div>
             </motion.div>
 
@@ -293,18 +296,18 @@ function ResultContent() {
                     <div key={sub.name} className="grid sm:grid-cols-2 gap-4">
                       <Button
                         onClick={() => router.push(`/video?entity=${encodeURIComponent(sub.name)}&type=${displayType}&dynasty=${encodeURIComponent(sub.dynasty || '')}&period=${encodeURIComponent(sub.period || '')}&dbType=${encodeURIComponent(sub.type || '')}&location=${encodeURIComponent(location || '')}`)}
-                        className="h-14 rounded-2xl bg-[#E6B23C]/10 border border-[#E6B23C]/20 hover:bg-[#E6B23C]/20 text-[#E6B23C] font-bold text-base transition-all hover:scale-[1.02]"
+                        className="h-14 rounded-2xl bg-[#E6B23C]/10 border border-[#E6B23C]/20 hover:bg-[#E6B23C]/20 text-[#E6B23C] font-bold text-base transition-all hover:scale-[1.02] flex items-center justify-center gap-3"
                       >
-                        <Video className="mr-3" size={20} />
-                        Generate {sub.name} Video
+                        <Video size={20} />
+                        {t("result.button.video_named", { name: sub.name })}
                       </Button>
                       <Button
                         onClick={() => router.push(`/chat?entity=${encodeURIComponent(sub.name)}&type=${displayType}`)}
                         variant="outline"
-                        className="h-14 rounded-2xl border-[#E6B23C]/12 bg-[#E6B23C]/[0.04] hover:bg-[#E6B23C]/[0.08] text-[#F5E6D0] font-semibold text-base transition-all hover:scale-[1.02]"
+                        className="h-14 rounded-2xl border-[#E6B23C]/12 bg-[#E6B23C]/[0.04] hover:bg-[#E6B23C]/[0.08] text-[#F5E6D0] font-semibold text-base transition-all hover:scale-[1.02] flex items-center justify-center gap-3"
                       >
-                        <MessageSquare className="mr-3" size={20} />
-                        Chat with {sub.name}
+                        <MessageSquare size={20} />
+                        {t("result.button.chat_named", { name: sub.name })}
                       </Button>
                     </div>
                   ))}
@@ -314,28 +317,27 @@ function ResultContent() {
                 <div className="grid sm:grid-cols-2 gap-5">
                   <Button
                     onClick={() => router.push(`/video?entity=${encodeURIComponent(displayName)}&type=${displayType}&dynasty=${encodeURIComponent(dynasty || '')}&period=${encodeURIComponent(period || '')}&dbType=${encodeURIComponent(dbType || '')}&location=${encodeURIComponent(location || '')}`)}
-                    className="h-14 rounded-2xl bg-[#E6B23C]/10 border border-[#E6B23C]/20 hover:bg-[#E6B23C]/20 text-[#E6B23C] font-bold text-base transition-all hover:scale-[1.02]"
+                    className="h-14 rounded-2xl bg-[#E6B23C]/10 border border-[#E6B23C]/20 hover:bg-[#E6B23C]/20 text-[#E6B23C] font-bold text-base transition-all hover:scale-[1.02] flex items-center justify-center gap-3"
                   >
-                    <Video className="mr-3" size={20} />
-                    Generate Video
+                    <Video size={20} />
+                    {t("result.button.video")}
                   </Button>
                   <Button
                     onClick={() => router.push(`/chat?entity=${encodeURIComponent(displayName)}&type=${displayType}`)}
                     variant="outline"
-                    className="h-14 rounded-2xl border-[#E6B23C]/12 bg-[#E6B23C]/[0.04] hover:bg-[#E6B23C]/[0.08] text-[#F5E6D0] font-semibold text-base transition-all hover:scale-[1.02]"
+                    className="h-14 rounded-2xl border-[#E6B23C]/12 bg-[#E6B23C]/[0.04] hover:bg-[#E6B23C]/[0.08] text-[#F5E6D0] font-semibold text-base transition-all hover:scale-[1.02] flex items-center justify-center gap-3"
                   >
-                    <MessageSquare className="mr-3" size={20} />
-                    Chat with History
+                    <MessageSquare size={20} />
+                    {t("result.button.chat")}
                   </Button>
                 </div>
               )}
 
               <Button
                 onClick={() => router.push(isFromExplore ? `/explore?tab=${displayType}s` : isFromTrending ? "/" : "/upload")}
-                className="h-14 rounded-2xl bg-[#D8C09A] hover:bg-[#C8B08A] text-[#1A1005] font-bold text-base transition-all hover:scale-[1.02] shadow-[0_4px_30px_rgba(0,0,0,0.2)] flex items-center justify-center gap-2"
+                className="h-14 rounded-2xl bg-[#D8C09A] hover:bg-[#C8B08A] text-[#1A1005] font-bold text-base transition-all hover:scale-[1.02] shadow-[0_4px_30px_rgba(0,0,0,0.2)] flex items-center justify-center"
               >
-                <Sparkles size={20} />
-                {isFromExplore ? "Back to Explore" : isFromTrending ? "Explore More" : "Recognize Another Entity"}
+                {isFromExplore ? t("common.back_explore") : isFromTrending ? t("result.button.explore_more") : t("result.button.recognize_another")}
               </Button>
             </div>
 
