@@ -437,7 +437,14 @@ function ExploreContent() {
           className="font-heading text-4xl md:text-5xl font-bold tracking-wide uppercase text-[#F5E6D0] mb-3"
           style={{ fontFamily: "var(--font-cormorant), serif" }}
         >
-          {t("explore.title").split("'s")[0]} <span className="text-[#E6B23C]">{t("explore.title").split("'s")[1] || "Collections"}</span>
+          {t("explore.title").split(" ").map((word, i, arr) => {
+            const isArchive = word.toLowerCase().includes("archive") || word.includes("الأرشيف");
+            return (
+              <span key={i} className={isArchive ? "text-[#E6B23C]" : ""}>
+                {word}{i < arr.length - 1 ? " " : ""}
+              </span>
+            );
+          })}
         </h1>
         <p className="text-[#A08E70] text-base max-w-lg mx-auto" style={{ fontFamily: "var(--font-cormorant), serif" }}>
           {t("explore.subtitle")}

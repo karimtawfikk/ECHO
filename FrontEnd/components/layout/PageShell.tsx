@@ -29,7 +29,7 @@ export default function PageShell({
 
   const languages: { code: Language; name: string }[] = [
     { code: "EN", name: "English" },
-    { code: "AR", name: "العربية" },
+    { code: "AR", name: "Arabic" },
     { code: "FR", name: "Français" },
   ];
 

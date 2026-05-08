@@ -93,15 +93,18 @@ function ChatContent() {
     }
   }, [entityType]);
 
-  const [avatarUrl, setAvatarUrl] = useState<string | null>(staticUrl);
+  const [avatarUrl, setAvatarUrl] = useState<string | null>(null);
+
   useEffect(() => {
-    if (!staticUrl) {
-      const payload = loadResultFromSession();
-      if (payload?.imageDataUrl) {
-        setAvatarUrl(payload.imageDataUrl);
-      }
+    const payload = loadResultFromSession();
+    // Prioritize captured image if it matches the current entity
+    if (payload?.imageDataUrl && payload?.result?.entity?.name === entityName) {
+      setAvatarUrl(payload.imageDataUrl);
+    } else if (staticUrl) {
+      // Fallback to professional archive image
+      setAvatarUrl(staticUrl);
     }
-  }, [staticUrl]);
+  }, [staticUrl, entityName]);
   const [messages, setMessages] = useState<Message[]>([
     { id: "1", role: "assistant", text: t("chat.welcome", { name: entityName }), ts: Date.now() },
   ]);
@@ -447,13 +450,24 @@ function ChatContent() {
   const chatHeader = (
     <div className="w-full pt-[110px] relative">
       <div className="w-full max-w-5xl mx-auto relative flex flex-col items-center pb-4 px-3 md:px-4">
-        {/* Back button positioned absolute left - Aligned with message text and entity name height */}
-        <Link href="/result" className="absolute left-4 md:left-13 top-[100px] -translate-y-1/2 flex items-center justify-center h-12 w-12 text-3xl rounded-full hover:bg-[#E6B23C]/10 text-[#A08E70] hover:text-[#E6B23C] transition-all pointer-events-auto">
-          ←
-        </Link>
 
         <div className="flex flex-col items-center text-center gap-2 pointer-events-auto">
-          <div className="h-14 w-14 md:h-16 md:w-16 rounded-full bg-gradient-to-br from-[#E6B23C] to-[#D4A030] p-[2px] shadow-[0_0_30px_rgba(230,178,60,0.2)]">
+          <motion.div 
+            animate={{ 
+              scale: [1, 1.04, 1],
+              boxShadow: [
+                "0 0 20px rgba(230,178,60,0.2)",
+                "0 0 40px rgba(230,178,60,0.4)",
+                "0 0 20px rgba(230,178,60,0.2)"
+              ]
+            }}
+            transition={{ 
+              duration: 4,
+              repeat: Infinity,
+              ease: "easeInOut"
+            }}
+            className="h-14 w-14 md:h-16 md:w-16 rounded-full bg-gradient-to-br from-[#E6B23C] to-[#D4A030] p-[2px]"
+          >
             <div className="h-full w-full rounded-full bg-[#0D0A07] overflow-hidden flex items-center justify-center">
               {avatarUrl ? (
                 <img src={avatarUrl} alt={entityName} className="w-full h-full object-cover object-center scale-110" onError={(e) => { (e.target as HTMLImageElement).style.display = "none"; }} />
@@ -461,7 +475,7 @@ function ChatContent() {
                 <span className="text-[#E6B23C] text-4xl leading-none">☥</span>
               )}
             </div>
-          </div>
+          </motion.div>
           <div className="space-y-0.5">
             <h1 className="font-heading text-xl md:text-2xl font-bold text-[#F5E6D0] tracking-wide">{entityName}</h1>
             <div className="text-[9px] md:text-[10px] font-bold tracking-[0.4em] text-[#E6B23C] uppercase opacity-70">{statusText}</div>
@@ -585,7 +599,7 @@ function ChatContent() {
                         )}
 
                         <div
-                          className="text-[#F5E6D0] text-sm md:text-base leading-relaxed font-light tracking-wide"
+                          className="text-[#D4C4A8] text-sm md:text-base leading-relaxed font-normal tracking-wide"
                           style={{ direction: isRTL ? 'rtl' : 'ltr', textAlign: isRTL ? 'right' : 'left' }}
                         >
                           {renderMessageText(msg.text)}

@@ -7,7 +7,7 @@ import PageShell from "../../components/layout/PageShell";
 import { Button } from "../../components/ui/button";
 import { motion, AnimatePresence } from "framer-motion";
 import { useLanguage } from "../../context/LanguageContext";
-import { Image, Upload, Camera, X, ArrowRight, Loader2, AlertCircle } from "lucide-react";
+import { Image, Upload, Camera, X, ArrowRight, Loader2, AlertCircle, Sparkles } from "lucide-react";
 import { recognizeImage, saveResultToSession } from "../../lib/services/recognition";
 
 export default function UploadPage() {
@@ -27,8 +27,6 @@ export default function UploadPage() {
     setFileName(file.name);
     setSelectedFile(file);
     setError(null);
-
-    // Revoke any previous Object URL before creating a new one
     if (previewUrl) URL.revokeObjectURL(previewUrl);
     const url = URL.createObjectURL(file);
     setPreviewUrl(url);
@@ -49,11 +47,9 @@ export default function UploadPage() {
     if (inputRef.current) inputRef.current.value = "";
   }
 
-  // Cleanup object URL on unmount
   useEffect(() => {
     return () => { if (previewUrl) URL.revokeObjectURL(previewUrl); };
-    // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, []);
+  }, [previewUrl]);
 
   async function handleRecognize() {
     if (!selectedFile || isLoading) return;
@@ -62,9 +58,6 @@ export default function UploadPage() {
 
     try {
       const result = await recognizeImage(selectedFile);
-
-      // Store image as DataURL (base64) so it survives navigation
-      // We use FileReader and store in sessionStorage alongside the result
       const reader = new FileReader();
       reader.onloadend = () => {
         const imageDataUrl = typeof reader.result === "string" ? reader.result : null;
@@ -72,7 +65,6 @@ export default function UploadPage() {
         router.push("/result");
       };
       reader.onerror = () => {
-        // Still navigate even if we can't read the image
         saveResultToSession({ result, imageDataUrl: null });
         router.push("/result");
       };
@@ -86,287 +78,264 @@ export default function UploadPage() {
 
   return (
     <PageShell>
-      {/* Breadcrumb */}
-      <motion.div initial={{ opacity: 0, x: isRTL ? 20 : -20 }} animate={{ opacity: 1, x: 0 }} className="mb-8">
-        <Link href="/" className="group inline-flex items-center gap-2 text-xs font-semibold tracking-[0.15em] uppercase text-[#A08E70] hover:text-[#E6B23C] transition-colors">
-          <span className={`transition-transform ${isRTL ? 'group-hover:translate-x-1' : 'group-hover:-translate-x-1'}`}>
-            {isRTL ? '→' : '←'}
-          </span>
-          {t("common.return")}
-        </Link>
-      </motion.div>
-
-      {/* Main Upload Area */}
-      <motion.div
-        initial={{ opacity: 0, y: 30 }}
-        animate={{ opacity: 1, y: 0 }}
-        transition={{ duration: 0.7 }}
-        className="relative overflow-hidden rounded-[2.5rem]"
-      >
-        {/* Animated background layer */}
-        <div className="absolute inset-0 bg-gradient-to-br from-[#1A1208] via-[#0D0A07] to-[#1E160E]" />
-        <div className="absolute inset-0 opacity-[0.03]"
-          style={{
-            backgroundImage: `url("data:image/svg+xml,%3Csvg width='80' height='80' viewBox='0 0 80 80' xmlns='http://www.w3.org/2000/svg'%3E%3Cg fill='%23E6B23C'%3E%3Cpath d='M40 5l8 16H32l8-16zm0 54l8 16H32l8-16zM5 40l16-8v16L5 40zm54 0l16-8v16L59 40z'/%3E%3Ccircle cx='40' cy='40' r='3'/%3E%3C/g%3E%3C/svg%3E")`,
-            backgroundSize: "80px 80px",
-            animation: "patternDrift 50s linear infinite",
-          }}
-        />
-        {/* Golden corner accents */}
-        <div className="absolute top-0 left-0 w-32 h-32 border-t-2 border-l-2 border-[#E6B23C]/15 rounded-tl-[2.5rem]" />
-        <div className="absolute top-0 right-0 w-32 h-32 border-t-2 border-r-2 border-[#E6B23C]/15 rounded-tr-[2.5rem]" />
-        <div className="absolute bottom-0 left-0 w-32 h-32 border-b-2 border-l-2 border-[#E6B23C]/15 rounded-bl-[2.5rem]" />
-        <div className="absolute bottom-0 right-0 w-32 h-32 border-b-2 border-r-2 border-[#E6B23C]/15 rounded-br-[2.5rem]" />
-
-        {/* Ambient gold light */}
-        <div className="absolute top-[-100px] left-1/2 -translate-x-1/2 w-[500px] h-[300px] bg-[#E6B23C]/[0.04] blur-[120px] pointer-events-none" />
-
-        <div className="relative z-10 p-10 sm:p-16">
-          {/* Header with Eye of Horus SVG */}
-          <div className="text-center mb-16">
-            {/* Animated Eye of Horus */}
+      <div className="min-h-[calc(100vh-140px)] flex flex-col items-center justify-center p-4 md:p-8 relative">
+        
+        {/* Cinematic Particles */}
+        <div className="absolute inset-0 pointer-events-none">
+          {[...Array(20)].map((_, i) => (
             <motion.div
-              initial={{ scale: 0.8, opacity: 0 }}
-              animate={{ scale: 1, opacity: 1 }}
-              transition={{ delay: 0.2, type: "spring", damping: 15 }}
-              className="mx-auto mb-8 relative"
-            >
-              <motion.div
-                animate={{ rotate: [0, 360] }}
-                transition={{ duration: 20, repeat: Infinity, ease: "linear" }}
-                className="w-28 h-28 mx-auto rounded-full border border-[#E6B23C]/10"
-              />
-              <div className="absolute inset-0 flex items-center justify-center">
-                <div className="w-20 h-20 rounded-full bg-gradient-to-br from-[#E6B23C]/15 to-[#E6B23C]/5 border border-[#E6B23C]/20 flex items-center justify-center shadow-[0_0_40px_rgba(230,178,60,0.12)]">
-                  <svg width="36" height="36" viewBox="0 0 24 24" fill="none" className="text-[#E6B23C]">
-                    <path d="M2 12s3-7 10-7 10 7 10 7-3 7-10 7S2 12 2 12z" stroke="currentColor" strokeWidth="1.5" strokeLinecap="round" />
-                    <circle cx="12" cy="12" r="3" stroke="currentColor" strokeWidth="1.5" />
-                    <path d="M12 5v-1M12 20v-1M7 7L6 6M18 18l-1-1M5 12H4M20 12h-1" stroke="currentColor" strokeWidth="1" strokeLinecap="round" opacity="0.5" />
-                  </svg>
-                </div>
-              </div>
-            </motion.div>
-
-            <motion.h1
-              initial={{ opacity: 0, y: 20 }}
-              animate={{ opacity: 1, y: 0 }}
-              transition={{ delay: 0.4 }}
-              className="font-display text-4xl md:text-5xl font-bold text-[#F5E6D0] tracking-[0.05em] uppercase mb-4"
-              style={{ fontFamily: 'var(--font-cormorant), serif' }}
-            >
-              {t("upload.title")}
-            </motion.h1>
-
-            <motion.div
-              initial={{ scaleX: 0 }}
-              animate={{ scaleX: 1 }}
-              transition={{ delay: 0.6, duration: 0.6 }}
-              className="w-32 h-[1px] mx-auto mb-5"
-              style={{ background: "linear-gradient(90deg, transparent, #E6B23C, transparent)" }}
+              key={i}
+              initial={{ 
+                opacity: 0,
+                x: Math.random() * 100 - 50 + "%",
+                y: Math.random() * 100 - 50 + "%"
+              }}
+              animate={{ 
+                opacity: [0, 0.4, 0],
+                y: ["-10%", "110%"],
+              }}
+              transition={{ 
+                duration: 10 + Math.random() * 20,
+                repeat: Infinity,
+                delay: Math.random() * 10
+              }}
+              className="absolute w-1 h-1 bg-[#E6B23C] rounded-full blur-[1px]"
             />
+          ))}
+        </div>
 
-            <motion.p
-              initial={{ opacity: 0 }}
-              animate={{ opacity: 1 }}
-              transition={{ delay: 0.7 }}
-              className="text-[#A08E70] text-base max-w-md mx-auto"
-            >
-              {t("upload.subtitle")}
-            </motion.p>
-          </div>
-
-          {/* Dropzone */}
-          <motion.div
-            initial={{ opacity: 0, scale: 0.96 }}
-            animate={{ opacity: 1, scale: 1 }}
-            transition={{ delay: 0.5, duration: 0.5 }}
-            onDragOver={(e) => { e.preventDefault(); setIsDragging(true); }}
-            onDragLeave={() => setIsDragging(false)}
-            onDrop={(e) => { e.preventDefault(); setIsDragging(false); const f = e.dataTransfer.files[0]; if (f) handleFile(f); }}
-            className={`relative group rounded-3xl border-2 border-dashed transition-all duration-500 overflow-hidden ${isDragging
-              ? "border-[#E6B23C] bg-[#E6B23C]/[0.06] scale-[1.01]"
-              : "border-[#E6B23C]/12 hover:border-[#E6B23C]/30"
-              }`}
-            style={{
-              background: isDragging
-                ? "rgba(230,178,60, 0.04)"
-                : "radial-gradient(ellipse at center, rgba(230,178,60,0.02) 0%, transparent 70%)",
+        {/* The Core Utility Card */}
+        <motion.div
+          layout
+          initial={{ opacity: 0, scale: 0.95, y: 30 }}
+          animate={{ opacity: 1, scale: 1, y: 0 }}
+          transition={{ duration: 0.8, ease: [0.16, 1, 0.3, 1] }}
+          className="w-full max-w-xl relative z-10"
+        >
+          {/* External Card Glow */}
+          <motion.div 
+            animate={{ 
+              opacity: [0.3, 0.6, 0.3],
+              scale: [1, 1.02, 1]
             }}
-          >
-            <div className="relative z-10 py-16 md:py-24 px-8 text-center">
-              <AnimatePresence mode="wait">
-                {previewUrl ? (
-                  <motion.div
-                    key="preview"
-                    initial={{ opacity: 0, scale: 0.9 }}
-                    animate={{ opacity: 1, scale: 1 }}
-                    exit={{ opacity: 0, scale: 0.9 }}
-                    className="flex flex-col items-center"
-                  >
-                    <div className="relative mb-8">
-                      {/* Golden ring around preview */}
-                      <motion.div
-                        animate={{ rotate: [0, 360] }}
-                        transition={{ duration: 15, repeat: Infinity, ease: "linear" }}
-                        className="absolute -inset-3 rounded-3xl border border-[#E6B23C]/15"
-                      />
-                      <div className="absolute -inset-6 bg-[#E6B23C]/10 blur-3xl rounded-full" />
-                      <img
-                        src={previewUrl}
-                        alt="Preview"
-                        className="relative w-64 h-64 md:w-80 md:h-80 object-cover rounded-2xl border-2 border-[#E6B23C]/25 shadow-[0_20px_60px_rgba(0,0,0,0.5)]"
-                      />
-                      <button
-                        onClick={clearFile}
-                        className="absolute -top-3 -right-3 h-9 w-9 bg-[#1A1208] border border-[#E6B23C]/20 rounded-full flex items-center justify-center text-[#A08E70] hover:text-[#E6B23C] hover:border-[#E6B23C]/40 transition-all"
-                      >
-                        <X size={18} />
-                      </button>
-                    </div>
+            transition={{ duration: 4, repeat: Infinity, ease: "easeInOut" }}
+            className="absolute -inset-1 bg-[#E6B23C]/20 rounded-[2.6rem] blur-2xl z-[-1]" 
+          />
 
-                    <h3 className="font-heading text-xl font-bold text-[#F5E6D0] mb-1">{fileName}</h3>
+          {/* Glowing Card Container */}
+          <div className={`transition-all duration-700 rounded-[2.5rem] shadow-[0_30px_100px_rgba(0,0,0,0.9)] shadow-[inset_0_1px_1px_rgba(230,178,60,0.1)] overflow-hidden relative ${
+            previewUrl ? "bg-gradient-to-br from-[#1A140F] to-[#0D0A07] border border-[#E6B23C] shadow-[0_0_50px_rgba(230,178,60,0.2)]" : "bg-gradient-to-br from-[#120D08] to-[#0A0805]"
+          }`}>
+            
+            {/* Spinning Border Beam Animation (Pro Rotating Gradient Approach) */}
+            {!previewUrl && !isLoading && (
+              <div className="absolute inset-0 pointer-events-none rounded-[2.5rem] overflow-hidden">
+                <div className="absolute inset-[-100%] animate-[spin_8s_linear_infinite] opacity-40"
+                  style={{
+                    background: "conic-gradient(from 0deg, transparent 0%, transparent 40%, #E6B23C 50%, transparent 60%, transparent 100%)"
+                  }}
+                />
+                <div className="absolute inset-[2px] bg-gradient-to-br from-[#120D08] to-[#0A0805] rounded-[2.4rem]" />
+              </div>
+            )}
+            
+            {/* Subtle Texture Overlay */}
+            <div className="absolute inset-0 opacity-[0.08] bg-[url('https://www.transparenttextures.com/patterns/papyros.png')] pointer-events-none" />
 
+            <div className="p-8 md:p-12 relative z-10">
+              
+              {/* Internal Header */}
+              <div className="text-center mb-10">
+                <motion.h1
+                  initial={{ opacity: 0, y: -10 }}
+                  animate={{ opacity: 1, y: 0 }}
+                  transition={{ delay: 0.4 }}
+                  className="font-display text-3xl md:text-4xl font-bold text-[#F5E6D0] tracking-[0.05em] uppercase mb-3"
+                  style={{ fontFamily: 'var(--font-cormorant), serif' }}
+                >
+                  {t("upload.title")}
+                </motion.h1>
+                <motion.div
+                  initial={{ scaleX: 0 }}
+                  animate={{ scaleX: 1 }}
+                  transition={{ delay: 0.6, duration: 0.8 }}
+                  className="w-24 h-[1px] mx-auto mb-4 bg-gradient-to-r from-transparent via-[#E6B23C]/40 to-transparent"
+                />
+                <motion.p
+                  initial={{ opacity: 0 }}
+                  animate={{ opacity: 1 }}
+                  transition={{ delay: 0.5 }}
+                  className="text-[#A08E70] text-sm font-medium opacity-80"
+                >
+                  {t("upload.subtitle")}
+                </motion.p>
+              </div>
+
+              {/* Integrated Action Zone */}
+              <motion.div
+                onDragOver={(e) => { e.preventDefault(); setIsDragging(true); }}
+                onDragLeave={() => setIsDragging(false)}
+                onDrop={(e) => { e.preventDefault(); setIsDragging(false); const f = e.dataTransfer.files[0]; if (f) handleFile(f); }}
+                whileHover={{ borderColor: "rgba(230,178,60,0.4)" }}
+                className={`relative min-h-[340px] rounded-3xl transition-all duration-500 flex flex-col items-center justify-center p-8 overflow-hidden group ${
+                  isDragging 
+                    ? "bg-[#E6B23C]/[0.08] scale-[1.02]" 
+                    : "bg-[#E6B23C]/[0.02]"
+                }`}
+              >
+
+                {/* HUD Scanning Accents (Rounded to match corners) */}
+                <motion.div animate={{ opacity: isDragging ? 1 : 0.4 }} className="absolute top-0 left-0 w-12 h-12 border-t-2 border-l-2 border-[#E6B23C] rounded-tl-3xl" />
+                <motion.div animate={{ opacity: isDragging ? 1 : 0.4 }} className="absolute top-0 right-0 w-12 h-12 border-t-2 border-r-2 border-[#E6B23C] rounded-tr-3xl" />
+                <motion.div animate={{ opacity: isDragging ? 1 : 0.4 }} className="absolute bottom-0 left-0 w-12 h-12 border-b-2 border-l-2 border-[#E6B23C] rounded-bl-3xl" />
+                <motion.div animate={{ opacity: isDragging ? 1 : 0.4 }} className="absolute bottom-0 right-0 w-12 h-12 border-b-2 border-r-2 border-[#E6B23C] rounded-br-3xl" />
+
+                {/* Content Switching */}
+                <AnimatePresence mode="wait">
+                  {previewUrl ? (
                     <motion.div
-                      initial={{ width: 0 }}
-                      animate={{ width: "100%" }}
-                      transition={{ duration: 1.5, delay: 0.3 }}
-                      className="h-[2px] max-w-[200px] bg-gradient-to-r from-transparent via-[#E6B23C] to-transparent my-4"
-                    />
-                  </motion.div>
-                ) : (
-                  <motion.div
-                    key="idle"
-                    initial={{ opacity: 0 }}
-                    animate={{ opacity: 1 }}
-                    exit={{ opacity: 0 }}
-                    className="flex flex-col items-center"
-                  >
-                    {/* Animated floating upload icon */}
-                    <motion.div
-                      animate={{ y: [0, -12, 0] }}
-                      transition={{ duration: 3.5, repeat: Infinity, ease: "easeInOut" }}
-                      className="relative mb-8"
+                      key="preview"
+                      initial={{ opacity: 0, scale: 0.9 }}
+                      animate={{ opacity: 1, scale: 1 }}
+                      exit={{ opacity: 0, scale: 0.9 }}
+                      className="flex flex-col items-center w-full"
                     >
-                      <div className="absolute inset-0 bg-[#E6B23C]/8 blur-2xl rounded-full scale-150" />
-                      <div className="relative w-20 h-20 rounded-full bg-gradient-to-br from-[#E6B23C]/15 to-[#E6B23C]/5 border border-[#E6B23C]/20 flex items-center justify-center text-[#E6B23C] shadow-[0_0_30px_rgba(230,178,60,0.1)]">
-                        <Image size={30} />
+                      <div className="relative group/preview mb-6">
+                        <motion.div 
+                          animate={{ rotate: 360 }}
+                          transition={{ duration: 20, repeat: Infinity, ease: "linear" }}
+                          className="absolute -inset-4 border border-[#E6B23C]/10 rounded-full"
+                        />
+                        <img
+                          src={previewUrl}
+                          alt="Preview"
+                          className="max-h-[220px] w-auto object-contain rounded-2xl border border-[#E6B23C]/30 shadow-[0_0_50px_rgba(230,178,60,0.15)] relative z-10"
+                        />
+                        <button
+                          onClick={clearFile}
+                          className="absolute -top-3 -right-3 h-8 w-8 bg-[#0D0A07] border border-[#E6B23C]/30 rounded-full flex items-center justify-center text-[#A08E70] hover:text-[#E6B23C] transition-all shadow-xl z-20"
+                        >
+                          <X size={16} />
+                        </button>
+                      </div>
+                      
+                      <motion.div 
+                        initial={{ width: 0 }}
+                        animate={{ width: "auto" }}
+                        className="px-4 py-1.5 rounded-full bg-[#E6B23C]/10 border border-[#E6B23C]/20 max-w-[240px] mb-8 overflow-hidden"
+                      >
+                        <p className="text-[10px] font-bold text-[#E6B23C] tracking-widest uppercase truncate">
+                          {fileName}
+                        </p>
+                      </motion.div>
+
+                      <Button
+                        onClick={handleRecognize}
+                        disabled={isLoading}
+                        className="h-14 px-12 rounded-full bg-[#E6B23C]/5 border border-[#E6B23C]/30 text-[#E6B23C] hover:bg-[#E6B23C]/10 font-bold text-sm uppercase tracking-[0.2em] transition-all hover:scale-105 shadow-[0_10px_30px_rgba(230,178,60,0.1)] w-full max-w-[280px]"
+                      >
+                        {isLoading ? (
+                          <Loader2 size={20} className="animate-spin" />
+                        ) : (
+                          <>
+                            {t("upload.button.recognize")}
+                          </>
+                        )}
+                      </Button>
+                    </motion.div>
+                  ) : (
+                    <motion.div
+                      key="idle"
+                      initial={{ opacity: 0 }}
+                      animate={{ opacity: 1 }}
+                      className="flex flex-col items-center"
+                    >
+                      {/* Hieroglyph Spirit row */}
+                      <motion.div 
+                        animate={{ opacity: [0.1, 0.4, 0.1] }}
+                        transition={{ duration: 4, repeat: Infinity }}
+                        className="text-[#E6B23C] text-3xl font-display tracking-[0.6em] mb-6 select-none"
+                      >
+                        𓂀 𓃭 𓅃 𓆣 𓇳
+                      </motion.div>
+                      
+                      <p className="text-[#F5E6D0] font-bold text-lg mb-2">{t("upload.dropzone.title")}</p>
+                      <p className="text-[#A08E70] text-xs font-medium opacity-60 mb-10">{t("upload.dropzone.subtitle")}</p>
+
+                      {/* Integrated Action Buttons */}
+                      <div className="flex flex-col sm:flex-row gap-4">
+                        <Button
+                          onClick={openFilePicker}
+                          className="h-12 px-8 rounded-xl bg-[#E6B23C]/10 border border-[#E6B23C]/20 text-[#E6B23C] hover:bg-[#E6B23C]/20 font-bold text-xs uppercase tracking-widest transition-all"
+                        >
+                          <Upload className={isRTL ? "ml-2" : "mr-2"} size={16} />
+                          {t("upload.button.upload")}
+                        </Button>
+
+                        <Button
+                          variant="outline"
+                          onClick={() => alert("Scanner Initializing...")}
+                          className="h-12 px-8 rounded-xl border-[#A08E70]/20 bg-transparent text-[#A08E70] hover:text-[#F5E6D0] hover:border-[#F5E6D0]/30 font-bold text-xs uppercase tracking-widest transition-all"
+                        >
+                          <Camera className={isRTL ? "ml-2" : "mr-2"} size={16} />
+                          {t("upload.button.capture")}
+                        </Button>
                       </div>
                     </motion.div>
+                  )}
+                </AnimatePresence>
 
-                    <h3 className="font-heading text-2xl font-bold text-[#F5E6D0] mb-2">
-                      {t("upload.dropzone.title")}
-                    </h3>
-                    <p className="text-sm text-[#A08E70] mb-2 max-w-sm mx-auto">
-                      {t("upload.dropzone.subtitle")}
-                    </p>
-
-                    {/* Decorative hieroglyph row */}
+                {/* Animated Scanning HUD (Only when loading) */}
+                <AnimatePresence>
+                  {isLoading && (
                     <motion.div
-                      animate={{ opacity: [0.3, 0.6, 0.3] }}
-                      transition={{ duration: 4, repeat: Infinity }}
-                      className="text-[#E6B23C]/20 text-2xl font-display tracking-[0.4em] mt-4 select-none"
-                    >
-                      𓂀 𓃭 𓅃 𓆣 𓇳
-                    </motion.div>
+                      initial={{ top: "0%" }}
+                      animate={{ top: "100%" }}
+                      transition={{ duration: 1.5, repeat: Infinity, ease: "linear" }}
+                      className="absolute left-0 right-0 h-[2px] bg-gradient-to-r from-transparent via-[#E6B23C] to-transparent shadow-[0_0_20px_#E6B23C] z-30"
+                    />
+                  )}
+                </AnimatePresence>
+              </motion.div>
+
+              {/* Error Feedback */}
+              <AnimatePresence>
+                {error && (
+                  <motion.div
+                    initial={{ opacity: 0, height: 0 }}
+                    animate={{ opacity: 1, height: "auto" }}
+                    className="mt-6 p-4 rounded-xl bg-red-500/10 border border-red-500/20 text-red-400 text-[10px] font-bold uppercase tracking-widest text-center"
+                  >
+                    {error}
                   </motion.div>
                 )}
               </AnimatePresence>
             </div>
-          </motion.div>
-
-          {/* Error Banner */}
-          <AnimatePresence>
-            {error && (
-              <motion.div
-                initial={{ opacity: 0, y: -10 }}
-                animate={{ opacity: 1, y: 0 }}
-                exit={{ opacity: 0 }}
-                className="mt-5 p-4 rounded-2xl bg-red-900/20 border border-red-500/20 flex items-center gap-3 text-red-300 text-sm"
-              >
-                <AlertCircle size={16} className="shrink-0" />
-                <span>{error}</span>
-              </motion.div>
-            )}
-          </AnimatePresence>
-
-          {/* Action Buttons */}
-          <motion.div
-            initial={{ opacity: 0, y: 20 }}
-            animate={{ opacity: 1, y: 0 }}
-            transition={{ delay: 0.7 }}
-            className="flex flex-col sm:flex-row gap-4 justify-center mt-10"
-          >
-            <AnimatePresence mode="wait">
-              {selectedFile ? (
-                <motion.div
-                  key="recognize"
-                  initial={{ opacity: 0, scale: 0.9 }}
-                  animate={{ opacity: 1, scale: 1 }}
-                  exit={{ opacity: 0, scale: 0.9 }}
-                >
-                  <Button
-                    onClick={handleRecognize}
-                    disabled={isLoading}
-                    className="h-14 px-12 rounded-2xl bg-gradient-to-r from-[#C1840A] to-[#A06A00] hover:from-[#D4A030] hover:to-[#C1840A] text-white font-bold text-base transition-all hover:scale-105 shadow-[0_4px_30px_rgba(230,178,60,0.15)] disabled:opacity-70 flex items-center gap-2 w-full sm:w-auto"
-                  >
-                    {isLoading ? (
-                      <>
-                        <Loader2 size={20} className="animate-spin" />
-                        {t("upload.button.loading")}
-                      </>
-                    ) : (
-                      <>
-                        {isRTL ? <ArrowRight size={20} className="rotate-180" /> : <ArrowRight size={20} />}
-                        {t("upload.button.recognize")}
-                      </>
-                    )}
-                  </Button>
-                </motion.div>
-              ) : (
-                <motion.div
-                  key="upload-capture"
-                  initial={{ opacity: 0, scale: 0.9 }}
-                  animate={{ opacity: 1, scale: 1 }}
-                  exit={{ opacity: 0, scale: 0.9 }}
-                  className="flex flex-col sm:flex-row gap-4"
-                >
-                  <Button
-                    onClick={openFilePicker}
-                    disabled={isLoading}
-                    className="h-14 px-12 rounded-2xl bg-gradient-to-r from-[#E6B23C] to-[#D4A030] hover:from-[#FFD369] hover:to-[#E6B23C] text-[#0D0A07] font-bold text-base transition-all hover:scale-105 shadow-[0_4px_30px_rgba(230,178,60,0.2)] disabled:opacity-50 disabled:cursor-not-allowed"
-                  >
-                    <Upload className={isRTL ? "ml-3" : "mr-3"} size={20} />
-                    {t("upload.button.upload")}
-                  </Button>
-
-                  <Button
-                    variant="outline"
-                    className="h-14 px-12 rounded-2xl border-[#E6B23C]/12 bg-[#E6B23C]/[0.03] hover:bg-[#E6B23C]/[0.08] text-[#F5E6D0] font-semibold text-base transition-all hover:scale-105"
-                    onClick={() => alert("Initializing Ancient Scanner...")}
-                    disabled={isLoading}
-                  >
-                    <Camera className={isRTL ? "ml-3" : "mr-3"} size={20} />
-                    {t("upload.button.capture")}
-                  </Button>
-                </motion.div>
-              )}
-            </AnimatePresence>
-          </motion.div>
-
-          <input ref={inputRef} type="file" accept="image/*" className="hidden" onChange={onPickFile} />
-
-          {/* Footer */}
-          <div className="mt-14 flex flex-col md:flex-row items-center justify-between gap-4">
-            <motion.div
-              animate={{ opacity: [0.4, 0.7, 0.4] }}
-              transition={{ duration: 5, repeat: Infinity }}
-              className="text-[10px] font-semibold tracking-[0.15em] text-[#E6B23C]/30 uppercase text-center md:text-left flex items-center gap-3"
-            >
-            </motion.div>
-            <div className="flex-1" />
           </div>
-        </div>
-      </motion.div>
+        </motion.div>
+
+        {/* Global Footer Navigation */}
+        <motion.div
+          initial={{ opacity: 0 }}
+          animate={{ opacity: 1 }}
+          transition={{ delay: 1 }}
+          className="mt-12 flex justify-center w-full"
+        >
+          <Link 
+            href="/" 
+            className="flex items-center gap-3 px-6 py-2 rounded-full bg-[#E6B23C]/5 border border-[#E6B23C]/10 text-[10px] font-bold tracking-[0.3em] text-[#A08E70]/60 hover:text-[#E6B23C] hover:border-[#E6B23C]/30 uppercase transition-all group"
+          >
+            <motion.span 
+              animate={{ x: isRTL ? [0, 5, 0] : [0, -5, 0] }}
+              transition={{ duration: 2, repeat: Infinity }}
+            >
+              {isRTL ? "→" : "←"}
+            </motion.span>
+            {t("common.back_home")}
+          </Link>
+        </motion.div>
+      </div>
+      <input ref={inputRef} type="file" accept="image/*" className="hidden" onChange={onPickFile} />
     </PageShell>
   );
 }
