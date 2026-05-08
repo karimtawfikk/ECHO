@@ -9,7 +9,7 @@ import { Sparkles } from "lucide-react";
 
 import Footer from "./Footer";
 
-export default function PageShell({ children, fullScreen = false }: { children: ReactNode, fullScreen?: boolean }) {
+export default function PageShell({ children, fullScreen = false, fullWidth = false }: { children: ReactNode, fullScreen?: boolean, fullWidth?: boolean }) {
   const pathname = usePathname();
 
   const navLinks = [
@@ -82,7 +82,7 @@ export default function PageShell({ children, fullScreen = false }: { children: 
       </nav>
 
       {/* Content */}
-      <div className={fullScreen ? "relative z-10 pt-20 h-screen w-full flex flex-col overflow-hidden" : "relative z-10 pt-32 pb-20 px-6 lg:px-12 max-w-7xl mx-auto"}>
+      <div className={fullScreen ? "relative z-10 pt-20 h-screen w-full flex flex-col overflow-hidden" : (fullWidth ? "relative z-10 w-full" : "relative z-10 pt-32 pb-20 px-6 lg:px-12 max-w-7xl mx-auto")}>
         <RouteTransition fullScreen={fullScreen}>{children}</RouteTransition>
       </div>
 

@@ -5,7 +5,7 @@ import Link from "next/link";
 import Image from "next/image";
 import PageShell from "../../components/layout/PageShell";
 import { Button } from "../../components/ui/button";
-import { Send, Scroll, Mic, MicOff, X, Volume2, VolumeX } from "lucide-react";
+import { Send, Scroll, Mic, MicOff, X, Volume2, VolumeX, Check, Copy, Menu, SquarePen, Search, MessageSquare } from "lucide-react";
 import { useSearchParams } from "next/navigation";
 import { motion, AnimatePresence } from "framer-motion";
 import { Suspense } from "react";
@@ -69,6 +69,22 @@ function ChatContent() {
   const staticUrl = getAssumedImageUrl(entityName, isPharaoh);
 
   // Fallback: if no static image, try the user's uploaded image from sessionStorage
+  // Load entity metadata (period/location) from session
+  const [statusText, setStatusText] = useState("");
+  useEffect(() => {
+    const payload = loadResultFromSession();
+    if (payload?.result?.entity) {
+      const e = payload.result.entity;
+      if (entityType === "landmark") {
+        setStatusText(e.location || "Ancient Landmark");
+      } else {
+        setStatusText(e.period || e.dynasty || "Ancient Pharaoh");
+      }
+    } else {
+      setStatusText(entityType === "landmark" ? "Ancient Landmark" : "Ancient Pharaoh");
+    }
+  }, [entityType]);
+
   const [avatarUrl, setAvatarUrl] = useState<string | null>(staticUrl);
   useEffect(() => {
     if (!staticUrl) {
@@ -85,6 +101,22 @@ function ChatContent() {
   const [isTyping, setIsTyping] = useState(false);
   const [recordingState, setRecordingState] = useState<RecordingState>("idle");
   const [threadId] = useState(() => `thread_${Math.random().toString(36).slice(2)}`);
+  const [copiedId, setCopiedId] = useState<string | null>(null);
+  const [sidebarOpen, setSidebarOpen] = useState(false);
+  const [searchQuery, setSearchQuery] = useState("");
+
+  // Mock chat history
+  const chatHistory = [
+    { id: "h1", title: "The Curse of Tutankhamun", date: "Today" },
+    { id: "h2", title: "Pyramids Engineering Secrets", date: "Yesterday" },
+    { id: "h3", title: "Hieroglyphs Translation", date: "2 days ago" },
+  ];
+
+  const handleCopy = (text: string, id: string) => {
+    navigator.clipboard.writeText(text);
+    setCopiedId(id);
+    setTimeout(() => setCopiedId(null), 2000);
+  };
 
   useEffect(() => {
     const initChat = async () => {
@@ -114,6 +146,7 @@ function ChatContent() {
   const recordStartRef = useRef<number>(0);
   const rafRef = useRef<number | null>(null);
   const wasCancelledRef = useRef<boolean>(false);
+  const textareaRef = useRef<HTMLTextAreaElement>(null);
 
   useEffect(() => {
     if (scrollRef.current) {
@@ -131,6 +164,9 @@ function ChatContent() {
 
     setMessages((m) => [...m, { id: crypto.randomUUID(), role: "user", text: trimmed, ts: Date.now() }]);
     setInput("");
+    if (textareaRef.current) {
+      textareaRef.current.style.height = "auto";
+    }
     setIsTyping(true);
     const assistantMsgId = crypto.randomUUID();
     let isStreamComplete = false;
@@ -392,54 +428,135 @@ function ChatContent() {
   return (
     <>
       <audio ref={audioRef} />
-      <div className="flex-1 flex flex-col h-full w-full max-w-4xl mx-auto shadow-2xl glass-surface overflow-hidden md:border-x md:border-[#E6B23C]/10">
-        {/* Chat Header */}
+      <div className="flex h-full w-full bg-transparent overflow-hidden">
+        {/* Sidebar - Collapsible */}
+        <motion.aside
+          initial={false}
+          animate={{ width: sidebarOpen ? 300 : 72 }}
+          className="h-full border-r border-[#E6B23C]/10 bg-[#0D0A07]/95 flex flex-col z-40 relative"
+        >
+          {/* Top Icons */}
+          <div className="p-4 flex flex-col items-center gap-6">
+            {/* Menu Button */}
+            <div className="relative group">
+              <button
+                onClick={() => setSidebarOpen(!sidebarOpen)}
+                className="h-10 w-10 flex items-center justify-center rounded-lg hover:bg-[#E6B23C]/10 text-[#A08E70] hover:text-[#E6B23C] transition-all"
+              >
+                <Menu size={22} />
+              </button>
+              {!sidebarOpen && (
+                <span className="absolute left-full ml-4 px-2 py-1 bg-[#1A1208] border border-[#E6B23C]/20 text-[#E6B23C] text-[10px] uppercase font-bold tracking-widest rounded opacity-0 group-hover:opacity-100 transition-opacity whitespace-nowrap z-50 pointer-events-none">
+                  Expand Menu
+                </span>
+              )}
+            </div>
+
+            {/* New Chat Button */}
+            <div className="relative group">
+              <button
+                onClick={() => window.location.reload()}
+                className="h-10 w-10 flex items-center justify-center rounded-lg hover:bg-[#E6B23C]/10 text-[#A08E70] hover:text-[#E6B23C] transition-all"
+              >
+                <SquarePen size={22} />
+              </button>
+              {!sidebarOpen && (
+                <span className="absolute left-full ml-4 px-2 py-1 bg-[#1A1208] border border-[#E6B23C]/20 text-[#E6B23C] text-[10px] uppercase font-bold tracking-widest rounded opacity-0 group-hover:opacity-100 transition-opacity whitespace-nowrap z-50 pointer-events-none">
+                  New Chat
+                </span>
+              )}
+            </div>
+          </div>
+
+          {/* Expanded Content */}
+          <AnimatePresence>
+            {sidebarOpen && (
+              <motion.div
+                initial={{ opacity: 0 }}
+                animate={{ opacity: 1 }}
+                exit={{ opacity: 0 }}
+                className="flex-1 flex flex-col px-4 pb-4 overflow-hidden"
+              >
+                {/* Search Bar */}
+                <div className="relative mt-2 mb-6">
+                  <Search className="absolute left-3 top-1/2 -translate-y-1/2 text-[#A08E70]/40" size={14} />
+                  <input 
+                    type="text"
+                    placeholder="Search chats..."
+                    value={searchQuery}
+                    onChange={(e) => setSearchQuery(e.target.value)}
+                    className="w-full h-10 pl-9 pr-4 rounded-lg bg-[#1A1208] border border-[#E6B23C]/10 text-xs text-[#F5E6D0] placeholder:text-[#A08E70]/30 focus:outline-none focus:border-[#E6B23C]/30 transition-all"
+                  />
+                </div>
+
+                {/* Chat List */}
+                <div className="flex-1 overflow-y-auto space-y-1 trending-scrollbar-hide">
+                  <div className="px-2 mb-2 text-[10px] font-bold uppercase tracking-[0.2em] text-[#A08E70]/60">Recent History</div>
+                  {chatHistory.map((chat) => (
+                    <button
+                      key={chat.id}
+                      className="w-full flex items-center gap-3 px-3 py-3 rounded-lg hover:bg-[#E6B23C]/5 group transition-all text-left"
+                    >
+                      <MessageSquare size={14} className="text-[#A08E70] group-hover:text-[#E6B23C] shrink-0" />
+                      <div className="flex-1 overflow-hidden">
+                        <div className="text-[11px] font-medium text-[#A08E70] group-hover:text-[#F5E6D0] truncate transition-colors">{chat.title}</div>
+                        <div className="text-[9px] text-[#A08E70]/40 mt-0.5">{chat.date}</div>
+                      </div>
+                    </button>
+                  ))}
+                </div>
+              </motion.div>
+            )}
+          </AnimatePresence>
+        </motion.aside>
+
+        {/* Main Chat Area */}
+        <div className="flex-1 flex flex-col h-full relative overflow-hidden bg-transparent">
+        {/* Chat Header - Centered & Minimal */}
         <motion.div
           initial={{ opacity: 0, y: -10 }}
           animate={{ opacity: 1, y: 0 }}
-          className="flex items-center gap-3 md:gap-4 p-3 md:p-4 bg-[#1A1208]/80 backdrop-blur-md border-b border-[#E6B23C]/10 shrink-0 z-10"
+          className="flex flex-col items-center p-3 md:p-4 bg-transparent shrink-0 z-10 relative w-full max-w-5xl mx-auto"
         >
-          <Link href="/result" className="flex items-center justify-center h-10 w-10 text-xl rounded-full hover:bg-[#E6B23C]/10 text-[#A08E70] hover:text-[#E6B23C] transition-colors">
+          {/* Back button positioned absolute left */}
+          <Link href="/result" className="absolute left-4 md:left-8 top-1/2 -translate-y-1/2 flex items-center justify-center h-10 w-10 text-xl rounded-full hover:bg-[#E6B23C]/10 text-[#A08E70] hover:text-[#E6B23C] transition-all">
             ←
           </Link>
-          <div className="relative">
-            <div className="h-12 w-12 md:h-14 md:w-14 rounded-full bg-gradient-to-br from-[#E6B23C] to-[#D4A030] p-[2px] shadow-[0_0_20px_rgba(230,178,60,0.3)]">
-              <div className="h-full w-full rounded-full bg-[#1A1208] overflow-hidden flex items-center justify-center">
+
+          <div className="flex flex-col items-center text-center gap-2">
+            <div className="h-14 w-14 md:h-16 md:w-16 rounded-full bg-gradient-to-br from-[#E6B23C] to-[#D4A030] p-[2px] shadow-[0_0_30px_rgba(230,178,60,0.2)]">
+              <div className="h-full w-full rounded-full bg-[#0D0A07] overflow-hidden flex items-center justify-center">
                 {avatarUrl ? (
-                  <img src={avatarUrl} alt={entityName} className="w-full h-full object-cover object-center" onError={(e) => { (e.target as HTMLImageElement).style.display = "none"; }} />
+                  <img src={avatarUrl} alt={entityName} className="w-full h-full object-cover object-center scale-110" onError={(e) => { (e.target as HTMLImageElement).style.display = "none"; }} />
                 ) : (
-                  <span className="text-[#E6B23C] text-3xl leading-none">☥</span>
+                  <span className="text-[#E6B23C] text-4xl leading-none">☥</span>
                 )}
               </div>
             </div>
-            <div className="absolute -bottom-0.5 -right-0.5 h-3 w-3 md:h-4 md:w-4 rounded-full bg-[#22C55E] border-2 border-[#0D0A07] shadow-[0_0_8px_rgba(42,123,111,0.5)]" />
-          </div>
-          <div className="flex-1">
-            <h1 className="font-heading text-lg md:text-xl font-bold text-[#F5E6D0]">{entityName}</h1>
-            <div className="text-[9px] md:text-[10px] font-bold tracking-[0.2em] text-[#22C55E] uppercase">Online</div>
+            <div className="space-y-0.5">
+              <h1 className="font-heading text-xl md:text-2xl font-bold text-[#F5E6D0] tracking-wide">{entityName}</h1>
+              <div className="text-[9px] md:text-[10px] font-bold tracking-[0.4em] text-[#E6B23C] uppercase opacity-70">{statusText}</div>
+            </div>
           </div>
         </motion.div>
 
-        {/* Messages Area */}
-        <div className="flex-1 flex flex-col overflow-hidden relative" style={{ minHeight: "0" }}>
-          <div ref={scrollRef} className="flex-1 overflow-y-auto p-4 md:p-6 space-y-3 trending-scrollbar-hide pb-20">
+        {/* Messages Area - Full width scroll to avoid dead zones */}
+        <div ref={scrollRef} className="flex-1 overflow-y-auto trending-scrollbar-hide relative">
+          <div className="max-w-5xl mx-auto w-full p-4 md:p-8 space-y-8 pb-32">
             <AnimatePresence>
               {messages.map((msg) =>
                 msg.role === "assistant" ? (
-                  <motion.div key={msg.id} initial={{ opacity: 0, x: -20, scale: 0.95 }} animate={{ opacity: 1, x: 0, scale: 1 }} transition={{ type: "spring", damping: 20 }}
-                    className="flex gap-3 max-w-[90%] md:max-w-[85%]"
+                  <motion.div key={msg.id} initial={{ opacity: 0, y: 10 }} animate={{ opacity: 1, y: 0 }} transition={{ duration: 0.4 }}
+                    className="flex flex-col gap-3 max-w-3xl"
                   >
-                    <div className="h-8 w-8 rounded-full bg-gradient-to-br from-[#E6B23C]/20 to-[#E6B23C]/5 flex-shrink-0 flex items-center justify-center mt-1">
-                      <span className="text-[#E6B23C] text-sm leading-none">☥</span>
-                    </div>
-                    <div className="bubble-assistant px-5 py-3.5 shadow-lg break-words whitespace-pre-wrap w-full">
+                    <div className="flex flex-col gap-3 w-full">
                       {msg.isSearching && (
                         <AnimatePresence>
                           <motion.div
-                            initial={{ opacity: 0, height: 0, marginBottom: 0 }}
-                            animate={{ opacity: 1, height: 'auto', marginBottom: 12 }}
-                            exit={{ opacity: 0, height: 0, marginBottom: 0 }}
-                            className="flex items-center gap-3 px-4 py-2.5 bg-[#E6B23C]/10 border border-[#E6B23C]/20 rounded-xl w-fit text-[#E6B23C] shadow-[0_0_15px_rgba(230,178,60,0.1)] overflow-hidden"
+                            initial={{ opacity: 0, height: 0 }}
+                            animate={{ opacity: 1, height: 'auto' }}
+                            exit={{ opacity: 0, height: 0 }}
+                            className="flex items-center gap-3 px-4 py-2.5 bg-[#E6B23C]/5 border border-[#E6B23C]/10 rounded-xl w-fit text-[#E6B23C] shadow-[0_0_20px_rgba(230,178,60,0.05)] overflow-hidden mb-2"
                           >
                             <motion.div animate={{ rotate: 360 }} transition={{ repeat: Infinity, duration: 3, ease: "linear" }}>
                               <Scroll size={14} />
@@ -448,33 +565,72 @@ function ChatContent() {
                           </motion.div>
                         </AnimatePresence>
                       )}
-                      {msg.text && (
-                        <motion.div initial={{ opacity: 0 }} animate={{ opacity: 1 }}>
-                          <p className="text-sm leading-relaxed">{renderMessageText(msg.text)}</p>
-                        </motion.div>
-                      )}
 
-                      <div className="flex items-center gap-2 mt-1.5">
-                        <span className="text-[9px] text-[#A08E70]/60">{new Date(msg.ts).toLocaleTimeString([], { hour: "2-digit", minute: "2-digit" })}</span>
+                      <div className="text-[#F5E6D0] text-sm md:text-base leading-relaxed font-light tracking-wide">
+                        {renderMessageText(msg.text)}
+                      </div>
+
+                      <div className="flex items-center gap-6 mt-1 opacity-40 hover:opacity-100 transition-opacity">
+                        <span className="text-[10px] font-medium tracking-tighter text-[#A08E70]">
+                          {new Date(msg.ts).toLocaleTimeString([], { hour: "2-digit", minute: "2-digit" })}
+                        </span>
+                        <button 
+                          onClick={() => handleCopy(msg.text, msg.id)}
+                          className="flex items-center gap-2 text-[#A08E70] hover:text-[#E6B23C] transition-colors"
+                        >
+                          {copiedId === msg.id ? (
+                            <>
+                              <Check size={12} className="text-[#E6B23C]" />
+                              <span className="text-[9px] font-bold uppercase tracking-widest text-[#E6B23C]">Copied</span>
+                            </>
+                          ) : (
+                            <>
+                              <Copy size={12} />
+                              <span className="text-[9px] font-bold uppercase tracking-widest">Copy</span>
+                            </>
+                          )}
+                        </button>
                       </div>
                     </div>
                   </motion.div>
                 ) : (
-                  <motion.div key={msg.id} initial={{ opacity: 0, x: 20, scale: 0.95 }} animate={{ opacity: 1, x: 0, scale: 1 }} transition={{ type: "spring", damping: 20 }}
-                    className="flex justify-end max-w-[90%] md:max-w-[85%] ml-auto"
+                  <motion.div key={msg.id} initial={{ opacity: 0, y: 10 }} animate={{ opacity: 1, y: 0 }} transition={{ duration: 0.4 }}
+                    className="flex justify-end max-w-2xl ml-auto group"
                   >
-                    <div className="bubble-user px-5 py-3.5 shadow-lg break-words whitespace-pre-wrap">
-                      <p className="text-sm leading-relaxed font-medium">{renderMessageText(msg.text)}</p>
-                      <div className="text-[9px] text-[#0D0A07]/50 mt-1.5 text-right">{new Date(msg.ts).toLocaleTimeString([], { hour: "2-digit", minute: "2-digit" })}</div>
+                    <div className="flex flex-col items-end gap-3 text-right">
+                      <div className="px-6 py-3 rounded-[24px] bg-[#E6B23C]/10 border border-[#E6B23C]/20 shadow-[0_4px_20px_rgba(230,178,60,0.05)]">
+                        <div className="text-[#E6B23C] text-sm md:text-base leading-relaxed font-normal tracking-wide">
+                          {renderMessageText(msg.text)}
+                        </div>
+                      </div>
+                      
+                      <div className="flex items-center gap-6 mt-1 px-2">
+                        <button 
+                          onClick={() => handleCopy(msg.text, msg.id)}
+                          className="flex items-center gap-2 text-[#A08E70] hover:text-[#E6B23C] transition-all opacity-0 group-hover:opacity-100"
+                        >
+                          {copiedId === msg.id ? (
+                            <>
+                              <Check size={12} className="text-[#E6B23C]" />
+                              <span className="text-[9px] font-bold uppercase tracking-widest text-[#E6B23C]">Copied</span>
+                            </>
+                          ) : (
+                            <>
+                              <Copy size={12} />
+                              <span className="text-[9px] font-bold uppercase tracking-widest">Copy</span>
+                            </>
+                          )}
+                        </button>
+                        <span className="text-[10px] font-medium tracking-tighter text-[#A08E70] opacity-40">
+                          {new Date(msg.ts).toLocaleTimeString([], { hour: "2-digit", minute: "2-digit" })}
+                        </span>
+                      </div>
                     </div>
                   </motion.div>
                 )
               )}
               {isTyping && (
-                <motion.div initial={{ opacity: 0 }} animate={{ opacity: 1 }} className="flex gap-3 items-center">
-                  <div className="h-8 w-8 rounded-full bg-gradient-to-br from-[#E6B23C]/20 to-[#E6B23C]/5 flex-shrink-0 flex items-center justify-center">
-                    <span className="text-[#E6B23C] text-sm leading-none">☥</span>
-                  </div>
+                <motion.div initial={{ opacity: 0 }} animate={{ opacity: 1 }} className="flex flex-col gap-3 items-start">
                   <div className="bubble-assistant px-5 py-3.5 flex gap-1.5">
                     {[0, 1, 2].map((i) => (
                       <motion.div key={i} animate={{ y: [-3, 3, -3], opacity: [0.4, 1, 0.4] }} transition={{ repeat: Infinity, duration: 1, delay: i * 0.15 }}
@@ -494,8 +650,8 @@ function ChatContent() {
                 initial={{ opacity: 0 }}
                 animate={{ opacity: 1 }}
                 exit={{ opacity: 0 }}
-                className="absolute inset-0 z-30 flex items-center justify-center pointer-events-none"
-                style={{ background: "rgba(13,10,7,0.3)", backdropFilter: "blur(2px)" }}
+                className="fixed inset-0 z-50 flex items-center justify-center pointer-events-none"
+                style={{ background: "rgba(13,10,7,0.6)", backdropFilter: "blur(4px)" }}
               >
                 <div className="relative flex flex-col items-center gap-8 pointer-events-auto">
                   {/* The Liquid Blob Container */}
@@ -562,38 +718,48 @@ function ChatContent() {
                 </div>
               </motion.div>
             )}
-            {recordingState === "processing" && (
-              <motion.div
-                initial={{ opacity: 0 }}
-                animate={{ opacity: 1 }}
-                exit={{ opacity: 0 }}
-                className="absolute bottom-20 left-4 right-4 z-20"
-              >
-                <div className="flex items-center gap-2 px-4 py-2.5 rounded-2xl" style={{ background: "rgba(230,178,60,0.08)", border: "1px solid rgba(230,178,60,0.2)" }}>
+          </AnimatePresence>
+        </div>
+
+        {/* Input Bar - Floating & Minimal - Centered relative to screen */}
+        <div className="w-full shrink-0 z-10">
+          <div className="p-4 md:p-8 md:pb-12 bg-transparent max-w-5xl mx-auto">
+            <div className="flex gap-3 md:gap-4 items-center max-w-4xl mx-auto relative">
+              {recordingState === "processing" ? (
+                <motion.div 
+                  initial={{ opacity: 0, scale: 0.98 }}
+                  animate={{ opacity: 1, scale: 1 }}
+                  className="flex-1 h-14 px-8 rounded-full bg-[#1A1208]/50 backdrop-blur-xl border border-[#E6B23C]/20 flex items-center gap-3"
+                >
                   <motion.div
                     animate={{ rotate: 360 }}
                     transition={{ repeat: Infinity, duration: 1, ease: "linear" }}
-                    className="h-3.5 w-3.5 rounded-full border-2 border-t-transparent"
-                    style={{ borderColor: "#E6B23C", borderTopColor: "transparent" }}
+                    className="h-4 w-4 rounded-full border-2 border-[#E6B23C] border-t-transparent"
                   />
-                  <span className="text-[10px] font-semibold tracking-widest uppercase" style={{ color: "#E6B23C" }}>Transcribing…</span>
-                </div>
-              </motion.div>
-            )}
-          </AnimatePresence>
-
-          {/* Input Bar */}
-          <div className="p-3 md:p-4 bg-[#1A1208]/90 backdrop-blur-lg border-t border-[#E6B23C]/[0.1] shrink-0 z-10">
-            <div className="flex gap-2 md:gap-3 items-center">
-              <input
-                value={input}
-                onChange={(e) => setInput(e.target.value)}
-                onKeyDown={handleKeyDown}
-                disabled={recordingState !== "idle"}
-                placeholder={`Message ${entityName}...`}
-                className="flex-1 h-12 px-5 rounded-full bg-[#0D0A07] border border-[#E6B23C]/20 text-sm placeholder:text-[#A08E70]/50 focus:outline-none focus:border-[#E6B23C]/40 focus:shadow-[0_0_15px_rgba(230,178,60,0.1)] transition-all disabled:opacity-50"
-                style={{ color: "#E6B23C", caretColor: "#E6B23C" }}
-              />
+                  <span className="text-[11px] font-bold tracking-[0.3em] uppercase text-[#E6B23C]">Transcribing...</span>
+                </motion.div>
+              ) : (
+                <textarea
+                  ref={textareaRef}
+                  value={input}
+                  onChange={(e) => {
+                    setInput(e.target.value);
+                    e.target.style.height = "auto";
+                    e.target.style.height = `${e.target.scrollHeight}px`;
+                  }}
+                  onKeyDown={(e) => {
+                    if (e.key === "Enter" && !e.shiftKey) {
+                      e.preventDefault();
+                      sendMessage();
+                    }
+                  }}
+                  disabled={recordingState !== "idle"}
+                  placeholder={`Ask ${entityName}...`}
+                  rows={1}
+                  className="flex-1 min-h-[56px] max-h-48 py-4 px-8 rounded-[28px] bg-[#1A1208]/50 backdrop-blur-xl border border-[#E6B23C]/10 text-base placeholder:text-[#A08E70]/40 focus:outline-none focus:border-[#E6B23C]/30 focus:bg-[#1A1208]/80 focus:shadow-[0_0_30px_rgba(230,178,60,0.05)] transition-all disabled:opacity-50 resize-none overflow-y-auto trending-scrollbar-hide"
+                  style={{ color: "#E6B23C", caretColor: "#E6B23C" }}
+                />
+              )}
 
               {/* Smart send/mic button */}
               <AnimatePresence mode="wait">
@@ -641,7 +807,8 @@ function ChatContent() {
           </div>
         </div>
       </div>
-    </>
+    </div>
+  </>
   );
 }
 
