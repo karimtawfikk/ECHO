@@ -74,12 +74,12 @@ function EntityCard({ entity, type, onNavigate }: { entity: RecognitionEntity; t
     >
       <div className="flex items-start justify-between gap-3">
         <div className="flex-1 min-w-0">
-          <h3 className="font-heading text-sm font-bold text-[#F5E6D0] truncate group-hover:text-[#E6B23C] transition-colors">
+          <h3 className="font-heading text-sm font-bold text-[#E6B23C] truncate transition-colors">
             {cleanName}
           </h3>
-          {entity.type && (
+          {entity.type && type !== "pharaoh" && (
             <span className="text-[10px] text-[#A08E70]/70 uppercase tracking-wider">
-              {entity.type === "pharaoh" ? t("result.badge.pharaoh") : t("result.badge.landmark")}
+              {t("result.badge.landmark")}
             </span>
           )}
           {entity.description && (

@@ -3,15 +3,26 @@ from pydantic import BaseModel, Field
 
 class ChatRequest(BaseModel):
     session_id: str = Field(..., min_length=1)
+    user_id: str | None = None
     entity_type: str = Field(..., pattern="^(pharaoh|landmark)$")
     entity_name: str = Field(..., min_length=1)
     message: str = Field(..., min_length=1)
+    context: str | None = None
+
+
+class ChatMessage(BaseModel):
+    role: str = Field(..., pattern="^(user|assistant|system)$")
+    content: str = Field(..., min_length=1)
 
 
 class InitSessionRequest(BaseModel):
     session_id: str = Field(..., min_length=1)
+    user_id: str | None = None
     entity_type: str = Field(..., pattern="^(pharaoh|landmark)$")
     entity_name: str = Field(..., min_length=1)
+    context: str | None = None
+    history: list[ChatMessage] | None = None
+    rewriter_history: list[ChatMessage] | None = None
 
 
 class HealthResponse(BaseModel):

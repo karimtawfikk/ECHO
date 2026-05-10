@@ -11,19 +11,30 @@ from src.app.schemas.chatbot import ChatRequest, ChatResponse, TranscribeRespons
 
 @router.post("/init")
 async def init_chat(req: InitRequest):
+    print(f"[BACKEND PROXY] Received /init for thread={req.thread_id} history_len={len(req.history) if req.history else 0}")
     payload = {
         "session_id": req.thread_id,
+        "user_id": req.user_id,
         "entity_type": req.entity_type,
-        "entity_name": req.entity
+        "entity_name": req.entity,
+        "context": req.context,
+        "history": [msg.dict() for msg in req.history] if req.history else None,
+        "rewriter_history": [msg.dict() for msg in req.rewriter_history] if req.rewriter_history else None
     }
-    async with httpx.AsyncClient(timeout=30.0) as client:
+    async with httpx.AsyncClient(timeout=45.0) as client:
         try:
+            print(f"[BACKEND PROXY] Sending /init to {CHATBOT_API_URL}/init...")
             res = await client.post(f"{CHATBOT_API_URL}/init", json=payload)
+            print(f"[BACKEND PROXY] Chatbot API responded with status {res.status_code}")
             if res.status_code == 200:
                 return {"status": "success"}
             else:
+                print(f"[BACKEND PROXY] Init failed with detail: {res.text}")
                 raise HTTPException(status_code=res.status_code, detail=res.text)
         except httpx.RequestError as exc:
+            print(f"[BACKEND PROXY] Connection error to Chatbot API: {exc}")
+            import traceback
+            traceback.print_exc()
             raise HTTPException(status_code=503, detail=f"Init failed: {exc}")
 
 @router.get("/info")
@@ -42,9 +53,11 @@ import json
 async def chat(req: ChatRequest):
     payload = {
         "session_id": req.thread_id,
+        "user_id": req.user_id,
         "entity_type": req.entity_type,
         "entity_name": req.entity,
-        "message": req.message
+        "message": req.message,
+        "context": req.context
     }
     
     async def event_generator():

@@ -8,6 +8,7 @@ from re import sub
 from time import perf_counter
 from typing import Annotated, TypedDict
 
+import json
 import numpy as np
 from dotenv import load_dotenv
 from edge_tts import Communicate
@@ -310,7 +311,17 @@ class EchoChatbotRuntime:
             elif getattr(msg, "name", None) == "search_query":
                 dialogue.append(f"Search Query: {msg.content}")
 
-        history_str = "\n".join(dialogue) if dialogue else "No history yet."
+        
+        
+        
+        users = [d for d in dialogue if d.startswith("User:")]
+        queries = [d for d in dialogue if d.startswith("Search Query:")]
+        if users and queries:
+            history_str = "\n".join([f"{u}\n{q}" for u, q in zip(users, queries)])
+        else:
+            history_str = "No history yet."
+        print("\n")
+        print("Rewrite History String:", history_str)
 
         name_key = self.ENTITY_CONFIG[entity_type]["name_key"]
         response = rewrite_chain.invoke(
@@ -325,6 +336,8 @@ class EchoChatbotRuntime:
             parts = response.split("[MEMORY]:", 1)
             search_query = parts[0].replace("Search Query:", "").strip()
             memory_items = [item.strip() for item in parts[1].strip().split(",")]
+            
+            # Update local session memory
             for item in memory_items:
                 if "=" not in item:
                     continue
@@ -333,6 +346,29 @@ class EchoChatbotRuntime:
                 session_memory = [m for m in session_memory if not m.startswith(f"{key.strip()}=")]
                 session_memory.append(memory_entry)
             session_context["user_memory"] = session_memory
+            print("Session Memory:", session_memory)
+
+            # Persist to Supabase if user_id is available
+            user_id = session_context.get("user_id")
+            print("User ID:", user_id)
+            if user_id:
+                try:
+                    # Convert our local list of key=value to a dict for the update
+                    update_meta = {}
+                    for item in session_context["user_memory"]:
+                        if "=" in item:
+                            k, v = item.split("=", 1)
+                            update_meta[k.strip()] = v.strip()
+
+                    with Session(engine) as db_session:
+                        # Direct update using our synchronized local state
+                        db_session.execute(
+                            text("UPDATE profiles SET user_metadata = :meta WHERE id = :uid"),
+                            {"meta": json.dumps(update_meta), "uid": user_id}
+                        )
+                        db_session.commit()
+                except Exception as e:
+                    print(f"[chatbot] Failed to persist memory to database: {e}")
         else:
             search_query = response.replace("Search Query:", "").strip()
 
@@ -412,6 +448,7 @@ class EchoChatbotRuntime:
         ]
         history_window = clean_dialogue[-11:-1] if len(clean_dialogue) > 1 else []
 
+        
         dialogue = []
         for message in history_window:
             if isinstance(message, HumanMessage):
@@ -419,7 +456,11 @@ class EchoChatbotRuntime:
             elif getattr(message, "name", None) == "generator_response":
                 dialogue.append(f"{entity_name}: {message.content}")
 
+        
         history_str = "\n".join(dialogue) if dialogue else "No previous conversation."
+        print("\n")
+        print("Generator History String:", history_str)
+
         user_info_str = self._format_memory_block(session_context)
 
         extra_instruction = ""
@@ -445,23 +486,27 @@ class EchoChatbotRuntime:
         return None, prompt, has_searched
 
     def _generate_response(self, state: AgentState) -> tuple[str, list]:
-        out_of_scope_text, prompt, has_searched = self._build_generation_payload(state)
-        if out_of_scope_text is not None:
-            return out_of_scope_text, []
-
-        response = self.generator_llm.invoke(prompt)
-        if response.tool_calls and not has_searched:
-            return response.content, response.tool_calls
-        return response.content, []
+        """Synchronous version of generation (collects the stream)."""
+        full_content = ""
+        tool_calls = []
+        for event in self._stream_generation(state):
+            if event["type"] == "token":
+                full_content += event["content"]
+        
+        # Note: In sync mode, we'd need to handle tool calls differently if needed, 
+        # but for now this provides a clean wrapper.
+        return full_content, []
 
     def _stream_generation(self, state: AgentState):
+        """Unified generator that handles payload building and streaming."""
         out_of_scope_text, prompt, has_searched = self._build_generation_payload(state)
+        
         if out_of_scope_text is not None:
             yield {"type": "token", "content": out_of_scope_text}
             return out_of_scope_text, []
 
         full_content = ""
-        tool_calls_buf = None
+        tool_calls_buf = []
 
         for chunk in self.generator_llm.stream(prompt):
             if chunk.content:
@@ -488,10 +533,54 @@ class EchoChatbotRuntime:
         session_context = self._get_session_context(session_id)
         session_context["messages"] = messages
 
-    def init_session(self, session_id: str, entity_type: str, entity_name: str) -> None:
+    def init_session(self, session_id: str, entity_type: str, entity_name: str, user_id: str | None = None, context: str | None = None, history: list[dict] | None = None, rewriter_history: list[dict] | None = None) -> None:
         init_start = perf_counter()
-        print(f"[chatbot] /init start session={session_id} entity={entity_type}:{entity_name}", flush=True)
+        print(f"[chatbot] /init start session={session_id} entity={entity_type}:{entity_name} user_id={user_id} history_len={len(history) if history else 0} rewriter_history_len={len(rewriter_history) if rewriter_history else 0}", flush=True)
         session_context = self.sessions.get(session_id)
+
+        # 1. Resolve Messages (Load from history if provided)
+        messages = []
+        if history:
+            for msg in history:
+                if msg.role == "user":
+                    messages.append(HumanMessage(content=msg.content))
+                elif msg.role == "assistant":
+                    messages.append(AIMessage(content=msg.content, name="generator_response"))
+        
+        if rewriter_history:
+            for msg in rewriter_history:
+                if msg.role == "assistant":
+                    messages.append(AIMessage(content=msg.content, name="search_query"))
+                # Note: We skip rewriter 'user' roles to avoid duplicating HumanMessages
+                # which are already loaded from the main 'history' list.
+
+        # 1. Resolve Memory (Try context first, then DB fetch)
+        user_memory = []
+        if context:
+            try:
+                meta = json.loads(context)
+                for k, v in meta.items():
+                    if v and k != "last_detected":
+                        user_memory.append(f"{k}={v}")
+            except Exception as e:
+                print(f"[chatbot] Failed to parse memory context: {e}")
+        elif user_id:
+            # OPTIMIZATION: Fetch once from DB if context is missing
+            try:
+                with Session(engine) as db_session:
+                    res = db_session.execute(
+                        text("SELECT user_metadata FROM profiles WHERE id = :uid"),
+                        {"uid": user_id}
+                    ).fetchone()
+                    if res and res[0]:
+                        meta = res[0] if isinstance(res[0], dict) else json.loads(res[0])
+                        for k, v in meta.items():
+                            if v: user_memory.append(f"{k}={v}")
+                print(f"[chatbot] Initialized memory from DB for user {user_id}")
+            except Exception as e:
+                print(f"[chatbot] Failed to fetch initial memory from DB: {e}")
+
+        # 2. Initialize or Update Session
         if session_context is None or session_context.get("entity_type") != entity_type or session_context.get("entity_name") != entity_name:
             entity_id, gender = self.resolve_entity(entity_type, entity_name)
             self.sessions[session_id] = {
@@ -499,9 +588,17 @@ class EchoChatbotRuntime:
                 "entity_name": entity_name,
                 "entity_id": entity_id,
                 "gender": gender,
-                "user_memory": [],
-                "messages": [],
+                "user_id": user_id,
+                "user_memory": user_memory,
+                "messages": messages,
             }
+        else:
+            session_context["user_id"] = user_id
+            if user_memory:
+                session_context["user_memory"] = user_memory
+            if messages:
+                session_context["messages"] = messages
+
         print(f"[chatbot] /init done in {perf_counter() - init_start:.2f}s", flush=True)
 
 
@@ -509,15 +606,27 @@ class EchoChatbotRuntime:
         self,
         *,
         session_id: str,
+        user_id: str | None = None,
         entity_type: str,
         entity_name: str,
         message: str,
+        context: str | None = None,
     ):
         total_start = perf_counter()
         print(
-            f"[chatbot] /chat start session={session_id} entity_type={entity_type} entity_name={entity_name}",
+            f"[chatbot] /chat start session={session_id} user_id={user_id} entity_type={entity_type} entity_name={entity_name}",
             flush=True,
         )
+
+        # Parse memory context if provided
+        user_memory = []
+        if context:
+            try:
+                meta = json.loads(context)
+                for k, v in meta.items():
+                    if v and k != "last_detected":
+                        user_memory.append(f"{k}={v}")
+            except: pass
 
         session_context = self.sessions.get(session_id)
         if session_context is None:
@@ -529,7 +638,8 @@ class EchoChatbotRuntime:
                 "entity_name": entity_name,
                 "entity_id": entity_id,
                 "gender": gender,
-                "user_memory": [],
+                "user_id": user_id,
+                "user_memory": user_memory,
                 "messages": [],
             }
         elif (
@@ -543,9 +653,14 @@ class EchoChatbotRuntime:
             session_context["entity_name"] = entity_name
             session_context["entity_id"] = entity_id
             session_context["gender"] = gender
-            session_context["user_memory"] = []
+            session_context["user_id"] = user_id
+            session_context["user_memory"] = user_memory
             session_context["messages"] = []
         else:
+            # Always ensure user_id is updated in the session
+            session_context["user_id"] = user_id
+            if user_memory:
+                session_context["user_memory"] = user_memory
             print("[chatbot] resolve_entity: 0.00s (cached)", flush=True)
 
         session_context = self._get_session_context(session_id)
@@ -566,6 +681,7 @@ class EchoChatbotRuntime:
         print(f"[chatbot] rewrite_node: {perf_counter() - step_start:.2f}s", flush=True)
         state["messages"] = state["messages"] + rewrite_result["messages"]
         state["search_query"] = rewrite_result["search_query"]
+        yield f"data: {json.dumps({'search': state['search_query']})}\n\n"
 
         if "OUT_OF_SCOPE" not in state["search_query"]:
             step_start = perf_counter()

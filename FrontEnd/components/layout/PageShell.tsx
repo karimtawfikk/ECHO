@@ -8,6 +8,9 @@ import { motion, AnimatePresence } from "framer-motion";
 import { Sparkles, User, Globe, ChevronDown } from "lucide-react";
 import { useLanguage } from "../../context/LanguageContext";
 import type { Language } from "../../lib/i18n/dictionaries";
+import { useEffect } from "react";
+import { createClient } from "../../lib/supabase/client";
+import { LogOut, Settings } from "lucide-react";
 
 import Footer from "./Footer";
 
@@ -15,17 +18,42 @@ export default function PageShell({
   children, 
   fullScreen = false, 
   fullWidth = false,
-  headerExtension
+  headerExtension,
+  minimal = false
 }: { 
   children: ReactNode, 
   fullScreen?: boolean, 
   fullWidth?: boolean,
-  headerExtension?: ReactNode
+  headerExtension?: ReactNode,
+  minimal?: boolean
 }) {
   const pathname = usePathname();
   const { language, setLanguage, t, isRTL } = useLanguage();
   const [menuOpen, setMenuOpen] = useState(false);
   const [langOpen, setLangOpen] = useState(false);
+  const [userOpen, setUserOpen] = useState(false);
+  const [user, setUser] = useState<any>(null);
+  const supabase = createClient();
+
+  useEffect(() => {
+    const getUser = async () => {
+      const { data: { user } } = await supabase.auth.getUser();
+      setUser(user);
+    };
+    getUser();
+
+    const { data: { subscription } } = supabase.auth.onAuthStateChange((_event, session) => {
+      setUser(session?.user ?? null);
+    });
+
+    return () => subscription.unsubscribe();
+  }, [supabase]);
+
+  const handleSignOut = async () => {
+    await supabase.auth.signOut();
+    setUser(null);
+    setUserOpen(false);
+  };
 
   const languages: { code: Language; name: string }[] = [
     { code: "EN", name: "English" },
@@ -60,7 +88,7 @@ export default function PageShell({
         <div className="w-full h-20 px-8 grid grid-cols-3 items-center relative">
           {/* Left Column: Horizontal Navigation */}
           <div className="flex justify-start items-center gap-8">
-            {navLinks.map((link) => {
+            {!minimal && navLinks.map((link) => {
               const isActive = pathname === link.href;
               return (
                 <Link
@@ -108,59 +136,120 @@ export default function PageShell({
 
           {/* Right Column: Language & User */}
           <div className="flex justify-end items-center gap-4">
-            {/* Language Switcher */}
-            <div className="relative">
-                <button
-                  onClick={() => setLangOpen(!langOpen)}
-                  className="h-10 px-3 flex items-center gap-2 rounded-full bg-[#E6B23C]/[0.04] border border-[#E6B23C]/10 text-[#E6B23C] hover:bg-[#E6B23C]/10 transition-all group"
-                >
-                  <Globe size={16} className="group-hover:rotate-12 transition-transform" />
-                  <span className="text-[10px] font-bold tracking-widest">{language}</span>
-                  <ChevronDown size={12} className={`transition-transform duration-300 ${langOpen ? 'rotate-180' : ''}`} />
-                </button>
+            {!minimal && (
+              <>
+                {/* Language Switcher */}
+                <div className="relative">
+                  <button
+                    onClick={() => setLangOpen(!langOpen)}
+                    className="h-10 px-3 flex items-center gap-2 rounded-full bg-[#E6B23C]/[0.04] border border-[#E6B23C]/10 text-[#E6B23C] hover:bg-[#E6B23C]/10 transition-all group"
+                  >
+                    <Globe size={16} className="group-hover:rotate-12 transition-transform" />
+                    <span className="text-[10px] font-bold tracking-widest">{language}</span>
+                    <ChevronDown size={12} className={`transition-transform duration-300 ${langOpen ? 'rotate-180' : ''}`} />
+                  </button>
 
-                <AnimatePresence>
-                  {langOpen && (
+                  <AnimatePresence>
+                    {langOpen && (
+                      <>
+                        <motion.div 
+                          initial={{ opacity: 0 }}
+                          animate={{ opacity: 1 }}
+                          exit={{ opacity: 0 }}
+                          onClick={() => setLangOpen(false)}
+                          className="fixed inset-0 z-[-1]"
+                        />
+                        <motion.div
+                          initial={{ opacity: 0, y: 10, scale: 0.95 }}
+                          animate={{ opacity: 1, y: 0, scale: 1 }}
+                          exit={{ opacity: 0, y: 10, scale: 0.95 }}
+                          className={`absolute top-full ${isRTL ? 'left-0' : 'right-0'} mt-4 w-40 py-2 bg-[#0D0A07]/95 backdrop-blur-2xl border border-[#E6B23C]/20 rounded-2xl shadow-[0_20px_50px_rgba(0,0,0,0.5)] overflow-hidden`}
+                        >
+                          <div className="px-4 py-2 mb-1 border-b border-[#E6B23C]/10">
+                            <span className="text-[9px] font-bold tracking-[0.2em] text-[#E6B23C]/50 uppercase">{t("nav.language")}</span>
+                          </div>
+                          {languages.map((lang) => (
+                            <button
+                              key={lang.code}
+                              onClick={() => {
+                                setLanguage(lang.code);
+                                setLangOpen(false);
+                              }}
+                              className={`w-full flex items-center justify-between px-4 py-2.5 text-[10px] font-bold tracking-widest uppercase transition-all hover:bg-[#E6B23C]/5 ${language === lang.code ? "text-[#E6B23C]" : "text-[#A08E70]"}`}
+                            >
+                              {lang.name}
+                              {language === lang.code && <div className="h-1 w-1 rounded-full bg-[#E6B23C] shadow-[0_0_5px_#E6B23C]" />}
+                            </button>
+                          ))}
+                        </motion.div>
+                      </>
+                    )}
+                  </AnimatePresence>
+                </div>
+
+                {/* User Profile */}
+                <div className="relative">
+                  {!user ? (
+                    <Link 
+                      href="/login"
+                      className="h-10 w-10 flex items-center justify-center rounded-full bg-[#E6B23C]/10 border border-[#E6B23C]/20 text-[#E6B23C] hover:bg-[#E6B23C]/20 transition-all shadow-[0_0_15px_rgba(230,178,60,0.1)] group"
+                    >
+                      <User size={18} className="transition-transform group-hover:scale-110" />
+                    </Link>
+                  ) : (
                     <>
-                      <motion.div 
-                        initial={{ opacity: 0 }}
-                        animate={{ opacity: 1 }}
-                        exit={{ opacity: 0 }}
-                        onClick={() => setLangOpen(false)}
-                        className="fixed inset-0 z-[-1]"
-                      />
-                      <motion.div
-                        initial={{ opacity: 0, y: 10, scale: 0.95 }}
-                        animate={{ opacity: 1, y: 0, scale: 1 }}
-                        exit={{ opacity: 0, y: 10, scale: 0.95 }}
-                        className={`absolute top-full ${isRTL ? 'left-0' : 'right-0'} mt-4 w-40 py-2 bg-[#0D0A07]/95 backdrop-blur-2xl border border-[#E6B23C]/20 rounded-2xl shadow-[0_20px_50px_rgba(0,0,0,0.5)] overflow-hidden`}
+                      <button 
+                        onClick={() => setUserOpen(!userOpen)}
+                        className="h-10 w-10 flex items-center justify-center rounded-full bg-[#E6B23C]/10 border border-[#E6B23C]/20 text-[#E6B23C] hover:bg-[#E6B23C]/20 transition-all shadow-[0_0_15px_rgba(230,178,60,0.1)] group overflow-hidden"
                       >
-                        <div className="px-4 py-2 mb-1 border-b border-[#E6B23C]/10">
-                          <span className="text-[9px] font-bold tracking-[0.2em] text-[#E6B23C]/50 uppercase">{t("nav.language")}</span>
-                        </div>
-                        {languages.map((lang) => (
-                          <button
-                            key={lang.code}
-                            onClick={() => {
-                              setLanguage(lang.code);
-                              setLangOpen(false);
-                            }}
-                            className={`w-full flex items-center justify-between px-4 py-2.5 text-[10px] font-bold tracking-widest uppercase transition-all hover:bg-[#E6B23C]/5 ${language === lang.code ? "text-[#E6B23C]" : "text-[#A08E70]"}`}
-                          >
-                            {lang.name}
-                            {language === lang.code && <div className="h-1 w-1 rounded-full bg-[#E6B23C] shadow-[0_0_5px_#E6B23C]" />}
-                          </button>
-                        ))}
-                      </motion.div>
+                        {user.user_metadata?.avatar_url ? (
+                          <img src={user.user_metadata.avatar_url} alt="Profile" className="w-full h-full object-cover" />
+                        ) : (
+                          <User size={18} className="transition-transform group-hover:scale-110" />
+                        )}
+                      </button>
+
+                      <AnimatePresence>
+                        {userOpen && (
+                          <>
+                            <motion.div 
+                              initial={{ opacity: 0 }}
+                              animate={{ opacity: 1 }}
+                              exit={{ opacity: 0 }}
+                              onClick={() => setUserOpen(false)}
+                              className="fixed inset-0 z-[-1]"
+                            />
+                            <motion.div
+                              initial={{ opacity: 0, y: 10, scale: 0.95 }}
+                              animate={{ opacity: 1, y: 0, scale: 1 }}
+                              exit={{ opacity: 0, y: 10, scale: 0.95 }}
+                              className={`absolute top-full ${isRTL ? 'left-0' : 'right-0'} mt-4 w-56 py-2 bg-[#0D0A07]/95 backdrop-blur-2xl border border-[#E6B23C]/20 rounded-2xl shadow-[0_20px_50px_rgba(0,0,0,0.5)] overflow-hidden`}
+                            >
+                              <div className="px-4 py-3 border-b border-[#E6B23C]/10 mb-1">
+                                <p className="text-[10px] font-bold text-[#E6B23C] truncate">
+                                  @{user.user_metadata?.user_name || user.email.split('@')[0]}
+                                </p>
+                                <p className="text-[9px] text-[#A08E70] mt-0.5 uppercase tracking-widest">
+                                  {user.user_metadata?.full_name || 'Explorer'}
+                                </p>
+                              </div>
+                              
+                              <button
+                                onClick={handleSignOut}
+                                className="w-full flex items-center gap-3 px-4 py-3 text-[10px] font-bold tracking-widest uppercase text-red-400 hover:bg-red-400/5 transition-all"
+                              >
+                                <LogOut size={14} />
+                                Sign Out
+                              </button>
+                            </motion.div>
+                          </>
+                        )}
+                      </AnimatePresence>
                     </>
                   )}
-                </AnimatePresence>
-            </div>
-
-            {/* User Profile */}
-            <button className="h-10 w-10 flex items-center justify-center rounded-full bg-[#E6B23C]/10 border border-[#E6B23C]/20 text-[#E6B23C] hover:bg-[#E6B23C]/20 transition-all shadow-[0_0_15px_rgba(230,178,60,0.1)] group">
-              <User size={18} className="transition-transform group-hover:scale-110" />
-            </button>
+                </div>
+              </>
+            )}
           </div>
         </div>
       </nav>

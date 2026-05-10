@@ -285,6 +285,9 @@
       Your goal is to educate the user with accurate historical facts about yourself from the provided context.
       Keep the dialogue history in mind to maintain a coherent and engaging conversation, but always base your answers strictly on the provided context.
 
+      # USER INFORMATION
+      {user_info}
+
       # MULTILINGUAL MANDATE
       - You must respond in the SAME LANGUAGE as the User's Query.
       - If the user asks in Arabic, respond in Arabic. If in English, respond in English and so on for the other languages.

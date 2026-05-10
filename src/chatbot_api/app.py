@@ -30,7 +30,15 @@ def healthcheck() -> HealthResponse:
 @app.post("/init")
 def init_session(request: InitSessionRequest) -> dict:
     try:
-        chatbot_service.init_session(request)
+        chatbot_service.init_session(
+            session_id=request.session_id,
+            entity_type=request.entity_type,
+            entity_name=request.entity_name,
+            user_id=request.user_id,
+            context=request.context,
+            history=request.history,
+            rewriter_history=request.rewriter_history
+        )
         return {"status": "success"}
     except ValueError as exc:
         raise HTTPException(status_code=404, detail=str(exc)) from exc
