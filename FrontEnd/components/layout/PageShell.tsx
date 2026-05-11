@@ -198,8 +198,8 @@ export default function PageShell({
                     </Link>
                   ) : (
                     <>
-                      <button 
-                        onClick={() => setUserOpen(!userOpen)}
+                      <Link 
+                        href="/profile"
                         className="h-10 w-10 flex items-center justify-center rounded-full bg-[#E6B23C]/10 border border-[#E6B23C]/20 text-[#E6B23C] hover:bg-[#E6B23C]/20 transition-all shadow-[0_0_15px_rgba(230,178,60,0.1)] group overflow-hidden"
                       >
                         {user.user_metadata?.avatar_url ? (
@@ -207,44 +207,7 @@ export default function PageShell({
                         ) : (
                           <User size={18} className="transition-transform group-hover:scale-110" />
                         )}
-                      </button>
-
-                      <AnimatePresence>
-                        {userOpen && (
-                          <>
-                            <motion.div 
-                              initial={{ opacity: 0 }}
-                              animate={{ opacity: 1 }}
-                              exit={{ opacity: 0 }}
-                              onClick={() => setUserOpen(false)}
-                              className="fixed inset-0 z-[-1]"
-                            />
-                            <motion.div
-                              initial={{ opacity: 0, y: 10, scale: 0.95 }}
-                              animate={{ opacity: 1, y: 0, scale: 1 }}
-                              exit={{ opacity: 0, y: 10, scale: 0.95 }}
-                              className={`absolute top-full ${isRTL ? 'left-0' : 'right-0'} mt-4 w-56 py-2 bg-[#0D0A07]/95 backdrop-blur-2xl border border-[#E6B23C]/20 rounded-2xl shadow-[0_20px_50px_rgba(0,0,0,0.5)] overflow-hidden`}
-                            >
-                              <div className="px-4 py-3 border-b border-[#E6B23C]/10 mb-1">
-                                <p className="text-[10px] font-bold text-[#E6B23C] truncate">
-                                  @{user.user_metadata?.user_name || user.email.split('@')[0]}
-                                </p>
-                                <p className="text-[9px] text-[#A08E70] mt-0.5 uppercase tracking-widest">
-                                  {user.user_metadata?.full_name || 'Explorer'}
-                                </p>
-                              </div>
-                              
-                              <button
-                                onClick={handleSignOut}
-                                className="w-full flex items-center gap-3 px-4 py-3 text-[10px] font-bold tracking-widest uppercase text-red-400 hover:bg-red-400/5 transition-all"
-                              >
-                                <LogOut size={14} />
-                                Sign Out
-                              </button>
-                            </motion.div>
-                          </>
-                        )}
-                      </AnimatePresence>
+                      </Link>
                     </>
                   )}
                 </div>
