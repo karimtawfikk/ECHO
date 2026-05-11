@@ -206,11 +206,32 @@ export default function UploadPage() {
                           transition={{ duration: 20, repeat: Infinity, ease: "linear" }}
                           className="absolute -inset-4 border border-[#E6B23C]/10 rounded-full"
                         />
-                        <img
-                          src={previewUrl}
-                          alt="Preview"
-                          className="max-h-[220px] w-auto object-contain rounded-2xl border border-[#E6B23C]/30 shadow-[0_0_50px_rgba(230,178,60,0.15)] relative z-10"
-                        />
+                        
+                        <div className="relative rounded-2xl overflow-hidden border border-[#E6B23C]/30 shadow-[0_0_50px_rgba(230,178,60,0.15)] z-10">
+                          <img
+                            src={previewUrl}
+                            alt="Preview"
+                            className="max-h-[220px] w-auto object-contain"
+                          />
+                          
+                          {/* Constrained Scanning HUD (Now clipped to image) */}
+                          <AnimatePresence>
+                            {isLoading && (
+                              <motion.div
+                                initial={{ top: "0%" }}
+                                animate={{ top: "100%" }}
+                                transition={{ 
+                                  duration: 2, 
+                                  repeat: Infinity, 
+                                  repeatType: "reverse", 
+                                  ease: "linear" 
+                                }}
+                                className="absolute left-0 right-0 h-[2px] bg-gradient-to-r from-transparent via-[#E6B23C] to-transparent shadow-[0_0_20px_#E6B23C] z-30"
+                              />
+                            )}
+                          </AnimatePresence>
+                        </div>
+
                         <button
                           onClick={clearFile}
                           className="absolute -top-3 -right-3 h-8 w-8 bg-[#0D0A07] border border-[#E6B23C]/30 rounded-full flex items-center justify-center text-[#A08E70] hover:text-[#E6B23C] transition-all shadow-xl z-20"
@@ -285,17 +306,6 @@ export default function UploadPage() {
                   )}
                 </AnimatePresence>
 
-                {/* Animated Scanning HUD (Only when loading) */}
-                <AnimatePresence>
-                  {isLoading && (
-                    <motion.div
-                      initial={{ top: "0%" }}
-                      animate={{ top: "100%" }}
-                      transition={{ duration: 1.5, repeat: Infinity, ease: "linear" }}
-                      className="absolute left-0 right-0 h-[2px] bg-gradient-to-r from-transparent via-[#E6B23C] to-transparent shadow-[0_0_20px_#E6B23C] z-30"
-                    />
-                  )}
-                </AnimatePresence>
               </motion.div>
 
               {/* Error Feedback */}

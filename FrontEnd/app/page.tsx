@@ -254,25 +254,23 @@ export default function HomePage() {
           <h2 className="font-heading text-3xl md:text-4xl font-bold text-[#F5E6D0]">{t("home.experience.title")}</h2>
           <p className="text-[#A08E70] mt-3 max-w-xl mx-auto text-lg">{t("home.experience.subtitle")}</p>
         </div>
-        <ScrollReveal direction="up" delay={0.1}>
-          <TrendingRow
-            title={t("home.experience.pharaohs")}
-            items={pharaohs}
-            type="pharaoh"
-            isLoading={isLoading}
-          />
-        </ScrollReveal>
+        <TrendingRow
+          title={t("home.experience.pharaohs")}
+          items={pharaohs}
+          type="pharaoh"
+          isLoading={isLoading}
+        />
       </section>
 
       {/* =========== TRENDING: LANDMARKS =========== */}
-      <ScrollReveal direction="up" delay={0.1} className="mt-16 max-w-6xl mx-auto px-4 sm:px-6 lg:px-8">
+      <section className="mt-16 max-w-6xl mx-auto px-4 sm:px-6 lg:px-8">
         <TrendingRow
           title={t("home.experience.landmarks")}
           items={landmarks}
           type="landmark"
           isLoading={isLoading}
         />
-      </ScrollReveal>
+      </section>
 
       {/* =========== FEATURE SHOWCASES =========== */}
       <section className="mt-40 mb-20 max-w-6xl mx-auto px-4 sm:px-6 lg:px-8 relative">

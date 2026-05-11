@@ -1,6 +1,6 @@
 "use client";
 
-import { motion } from "framer-motion";
+import { motion, Variants } from "framer-motion";
 import { useRouter } from "next/navigation";
 import {
     Crown,
@@ -89,12 +89,24 @@ export default function TrendingCard({ variant, entity, index }: TrendingCardPro
         router.push("/result");
     }
 
+    const cardVariants: Variants = {
+        hidden: { opacity: 0, y: 30, scale: 0.95 },
+        visible: { 
+            opacity: 1, 
+            y: 0, 
+            scale: 1,
+            transition: { 
+                type: "spring",
+                stiffness: 100,
+                damping: 20,
+                duration: 0.6 
+            } 
+        }
+    };
+
     return (
         <motion.div
-            initial={{ opacity: 0, y: 30 }}
-            whileInView={{ opacity: 1, y: 0 }}
-            viewport={{ once: true }}
-            transition={{ delay: index * 0.08, duration: 0.45 }}
+            variants={cardVariants}
             className="w-full"
         >
             <motion.div

@@ -74,16 +74,16 @@ function EntityCard({ entity, type, onNavigate }: { entity: RecognitionEntity; t
     >
       <div className="flex items-start justify-between gap-3">
         <div className="flex-1 min-w-0">
-          <h3 className="font-heading text-sm font-bold text-[#E6B23C] truncate transition-colors">
+          <h3 className="font-heading text-base font-bold text-[#E6B23C] truncate transition-colors">
             {cleanName}
           </h3>
           {entity.type && type !== "pharaoh" && (
-            <span className="text-[10px] text-[#A08E70]/70 uppercase tracking-wider">
+            <span className="text-[11px] text-[#A08E70]/70 uppercase tracking-wider">
               {t("result.badge.landmark")}
             </span>
           )}
           {entity.description && (
-            <p className="text-[11px] text-[#A08E70]/60 mt-1.5 line-clamp-2 leading-relaxed">
+            <p className="text-xs text-[#A08E70]/60 mt-1.5 line-clamp-2 leading-relaxed">
               {entity.description}
             </p>
           )}
@@ -210,16 +210,21 @@ function EgyptMap({
                   </circle>
                 )}
 
-                {/* Golden Flag Pin (No base dot) */}
-                <g transform={`translate(${x}, ${y}) scale(${isActive ? 1.25 : 1})`}>
-                  {/* Flag Pole */}
-                  <line x1="0" y1="0" x2="0" y2="-12" stroke={isActive ? "#E6B23C" : "#C1840A"} strokeWidth="1.5" />
-                  {/* Flag Banner */}
+                {/* Golden Map Pin */}
+                <g transform={`translate(${x}, ${y - 1}) scale(${isActive ? 1.3 : 1})`}>
+                  {/* Pin Shape */}
                   <path
-                    d="M0,-12 L10,-9 L0,-6 Z"
+                    d="M0,0 C-1,-1 -4,-4 -4,-7 A4,4 0 1,1 4,-7 C4,-4 1,-1 0,0 Z"
                     fill={isActive ? "#E6B23C" : "#D4A017"}
                     stroke="#0D0A07"
                     strokeWidth="0.5"
+                  />
+                  {/* Inner Circle (Cutout) */}
+                  <circle
+                    cx="0"
+                    cy="-7"
+                    r="1.5"
+                    fill="#0D0A07"
                   />
                 </g>
 
@@ -258,6 +263,14 @@ function ExploreContent() {
   const [landmarks] = useState<RecognitionEntity[]>(ALL_LANDMARKS as unknown as RecognitionEntity[]);
   const isLoading = false;
   const [selectedCity, setSelectedCity] = useState<string | null>(null);
+  const landmarksListRef = useRef<HTMLDivElement>(null);
+
+  // Reset scroll position when selected city changes
+  useEffect(() => {
+    if (selectedCity && landmarksListRef.current) {
+      landmarksListRef.current.scrollTop = 0;
+    }
+  }, [selectedCity]);
 
   const containerRef = useRef<HTMLDivElement>(null);
   const { scrollYProgress } = useScroll({
@@ -692,7 +705,10 @@ function ExploreContent() {
                     </div>
 
                     {/* Landmarks List */}
-                    <div className="flex-1 overflow-y-auto p-6 space-y-4 custom-scrollbar">
+                    <div 
+                      ref={landmarksListRef}
+                      className="flex-1 overflow-y-auto p-6 space-y-4 custom-scrollbar"
+                    >
                       {landmarksByCity
                         .filter(([city]) => city === selectedCity)
                         .flatMap(([_, entities]) => entities)

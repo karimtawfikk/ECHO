@@ -40,16 +40,34 @@ function SkeletonCard({ isPharaoh }: { isPharaoh: boolean }) {
 export default function TrendingRow({ title, items, type, isLoading = false }: TrendingRowProps) {
     const isPharaoh = type === "pharaoh";
 
+    // Variants for staggered container
+    const containerVariants = {
+        hidden: { opacity: 0 },
+        visible: {
+            opacity: 1,
+            transition: {
+                staggerChildren: 0.12,
+                delayChildren: 0.1,
+            }
+        }
+    };
+
     return (
         <motion.section
-            initial={{ opacity: 0, y: 40 }}
-            whileInView={{ opacity: 1, y: 0 }}
-            viewport={{ once: true, margin: "-60px" }}
-            transition={{ duration: 0.6 }}
+            initial="hidden"
+            whileInView="visible"
+            viewport={{ once: true, margin: "-100px" }}
+            variants={containerVariants}
             className="relative"
         >
             {/* ── Header ──────────────────────────────────────────── */}
-            <div className="flex items-center justify-between mb-8">
+            <motion.div 
+                variants={{
+                    hidden: { opacity: 0, x: -20 },
+                    visible: { opacity: 1, x: 0, transition: { duration: 0.5 } }
+                }}
+                className="flex items-center justify-between mb-8"
+            >
                 <div className="flex items-center gap-3">
                     <div
                         className="h-[2px] w-8"
@@ -63,10 +81,13 @@ export default function TrendingRow({ title, items, type, isLoading = false }: T
                         {title}
                     </h2>
                 </div>
-            </div>
+            </motion.div>
 
             {/* ── 5-Column Grid ───────────────────────────────────── */}
-            <div className="grid grid-cols-2 md:grid-cols-3 lg:grid-cols-5 gap-4">
+            <motion.div 
+                variants={containerVariants}
+                className="grid grid-cols-2 md:grid-cols-3 lg:grid-cols-5 gap-4"
+            >
                 {isLoading
                     ? Array.from({ length: 5 }).map((_, i) => (
                         <SkeletonCard key={i} isPharaoh={isPharaoh} />
@@ -75,7 +96,7 @@ export default function TrendingRow({ title, items, type, isLoading = false }: T
                         <TrendingCard key={entity.id} variant={type} entity={entity} index={i} />
                     ))
                 }
-            </div>
+            </motion.div>
         </motion.section>
     );
 }

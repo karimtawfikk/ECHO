@@ -4,7 +4,7 @@ import { useEffect, useRef, useState, useCallback } from "react";
 import Link from "next/link";
 import PageShell from "../../components/layout/PageShell";
 import { Button } from "../../components/ui/button";
-import { Send, Scroll, Mic, MicOff, Check, Copy, PanelLeft, SquarePen, Search, MessageSquare, ArrowLeft, MoreHorizontal, Pin, Pencil, Trash2 } from "lucide-react";
+import { Send, Scroll, Mic, MicOff, Check, Copy, PanelLeft, SquarePen, Search, MessageSquare, ArrowLeft, MoreHorizontal, Pin, Pencil, Trash2, SlidersHorizontal, Plus, X, ChevronDown } from "lucide-react";
 import { useRouter, useSearchParams } from "next/navigation";
 import { motion, AnimatePresence } from "framer-motion";
 import { Suspense } from "react";
@@ -135,21 +135,54 @@ function ChatContent() {
   const [menuPos, setMenuPos] = useState({ x: 0, y: 0 });
   const [expandedEntity, setExpandedEntity] = useState<string | null>(null);
   const [isMounted, setIsMounted] = useState(false);
+  const [filterType, setFilterType] = useState<string | null>(null);
+  const [filterMonth, setFilterMonth] = useState<number | null>(null);
+  const [showMainFilters, setShowMainFilters] = useState(false);
+  const [activeDropdown, setActiveDropdown] = useState<string | null>(null);
+
+  const [sortBy, setSortBy] = useState<'name' | 'recent'>('name');
 
   // Group and Sort Logic
   const groupedChats: [string, any[]][] = (Object.entries(
     chatHistory
-      .filter(chat =>
-        (chat.title?.toLowerCase().includes(allChatsSearch.toLowerCase())) ||
-        (chat.entity_name?.toLowerCase().includes(allChatsSearch.toLowerCase()))
-      )
+      .filter(chat => {
+        // Search Filter
+        const matchesSearch = (chat.title?.toLowerCase().includes(allChatsSearch.toLowerCase())) ||
+                             (chat.entity_name?.toLowerCase().includes(allChatsSearch.toLowerCase()));
+        if (!matchesSearch) return false;
+
+        // Type Filter
+        if (filterType && chat.entity_type !== filterType) return false;
+
+        // Date Filter (Months)
+        if (filterMonth !== null) {
+          const chatDate = new Date(chat.created_at);
+          const filterDate = new Date();
+          filterDate.setMonth(filterDate.getMonth() - filterMonth);
+          
+          if (!isNaN(chatDate.getTime())) {
+            if (chatDate.getTime() < filterDate.getTime()) return false;
+          }
+        }
+
+        return true;
+      })
       .reduce((acc, chat) => {
         const key = chat.entity_name || "Unknown";
         if (!acc[key]) acc[key] = [];
         acc[key].push(chat);
         return acc;
       }, {} as Record<string, any[]>)
-  ) as [string, any[]][]).sort((a: any, b: any) => a[0].localeCompare(b[0]));
+  ) as [string, any[]][]).sort((a: any, b: any) => {
+    if (sortBy === 'name') {
+      return a[0].localeCompare(b[0]);
+    } else {
+      // Sort by the newest chat in each group
+      const latestA = Math.max(...a[1].map((c: any) => new Date(c.created_at).getTime()));
+      const latestB = Math.max(...b[1].map((c: any) => new Date(c.created_at).getTime()));
+      return latestB - latestA;
+    }
+  });
 
   useEffect(() => {
     setIsMounted(true);
@@ -822,7 +855,7 @@ function ChatContent() {
                     className="flex items-center gap-2 px-2 py-1.5 rounded-lg hover:bg-[#E6B23C]/10 text-[#A08E70] hover:text-[#E6B23C] transition-all group w-full border-none outline-none"
                   >
                     <ArrowLeft size={16} />
-                    <span className="text-[10px] uppercase font-bold tracking-widest">{t("common.return")}</span>
+                    <span className="text-[11px] font-bold tracking-wider capitalize">Return</span>
                   </button>
 
                   {/* New Chat Button (Expanded) */}
@@ -831,7 +864,7 @@ function ChatContent() {
                     className="flex items-center gap-2 px-2 py-1.5 rounded-lg hover:bg-[#E6B23C]/10 text-[#A08E70] hover:text-[#E6B23C] transition-all group w-full border-none outline-none"
                   >
                     <SquarePen size={16} />
-                    <span className="text-[10px] uppercase font-bold tracking-widest">{t("chat.sidebar.new")}</span>
+                    <span className="text-[11px] font-bold tracking-wider capitalize">New Chat</span>
                   </button>
                 </div>
 
@@ -843,8 +876,8 @@ function ChatContent() {
                   >
                     <PanelLeft size={16} />
                   </button>
-                  <span className={`absolute ${isRTL ? 'right-full mr-4' : 'left-full ml-4'} top-1/2 -translate-y-1/2 px-2 py-1 bg-[#1A1208] border border-[#E6B23C]/20 text-[#E6B23C] text-[10px] uppercase font-bold tracking-widest rounded opacity-0 group-hover:opacity-100 transition-opacity whitespace-nowrap z-50 pointer-events-none`}>
-                    {t("chat.sidebar.collapse")}
+                  <span className={`absolute ${isRTL ? 'right-full mr-4' : 'left-full ml-4'} top-1/2 -translate-y-1/2 px-2 py-1 bg-[#1A1208] border border-[#E6B23C]/20 text-[#E6B23C] text-[10px] capitalize font-bold tracking-widest rounded opacity-0 group-hover:opacity-100 transition-opacity whitespace-nowrap z-50 pointer-events-none`}>
+                    {t("chat.sidebar.collapse").charAt(0).toUpperCase() + t("chat.sidebar.collapse").slice(1).toLowerCase()}
                   </span>
                 </div>
               </>
@@ -858,8 +891,8 @@ function ChatContent() {
                   >
                     <PanelLeft size={16} />
                   </button>
-                  <span className={`absolute ${isRTL ? 'right-full mr-4' : 'left-full ml-4'} top-1/2 -translate-y-1/2 px-2 py-1 bg-[#1A1208] border border-[#E6B23C]/20 text-[#E6B23C] text-[10px] uppercase font-bold tracking-widest rounded opacity-0 group-hover:opacity-100 transition-opacity whitespace-nowrap z-50 pointer-events-none`}>
-                    {t("chat.sidebar.expand")}
+                  <span className={`absolute ${isRTL ? 'right-full mr-4' : 'left-full ml-4'} top-1/2 -translate-y-1/2 px-2 py-1 bg-[#1A1208] border border-[#E6B23C]/20 text-[#E6B23C] text-[10px] capitalize font-bold tracking-widest rounded opacity-0 group-hover:opacity-100 transition-opacity whitespace-nowrap z-50 pointer-events-none`}>
+                    {t("chat.sidebar.expand").charAt(0).toUpperCase() + t("chat.sidebar.expand").slice(1).toLowerCase()}
                   </span>
                 </div>
 
@@ -871,8 +904,8 @@ function ChatContent() {
                   >
                     <SquarePen size={16} />
                   </button>
-                  <span className={`absolute ${isRTL ? 'right-full mr-4' : 'left-full ml-4'} top-1/2 -translate-y-1/2 px-2 py-1 bg-[#1A1208] border border-[#E6B23C]/20 text-[#E6B23C] text-[10px] uppercase font-bold tracking-widest rounded opacity-0 group-hover:opacity-100 transition-opacity whitespace-nowrap z-50 pointer-events-none`}>
-                    {t("chat.sidebar.new")}
+                  <span className={`absolute ${isRTL ? 'right-full mr-4' : 'left-full ml-4'} top-1/2 -translate-y-1/2 px-2 py-1 bg-[#1A1208] border border-[#E6B23C]/20 text-[#E6B23C] text-[10px] capitalize font-bold tracking-widest rounded opacity-0 group-hover:opacity-100 transition-opacity whitespace-nowrap z-50 pointer-events-none`}>
+                    {t("chat.sidebar.new").charAt(0).toUpperCase() + t("chat.sidebar.new").slice(1).toLowerCase()}
                   </span>
                 </div>
               </>
@@ -888,6 +921,25 @@ function ChatContent() {
                 exit={{ opacity: 0 }}
                 className="flex-1 flex flex-col px-4 pb-4 overflow-visible"
               >
+                {/* All Chats Shortcut */}
+                {chatHistory.length > 0 && (
+                  <button
+                    onClick={() => { setShowAllChats(true); setSidebarOpen(false); }}
+                    className={`w-full flex items-center gap-3 px-4 py-3 rounded-2xl transition-all text-left group mb-4 ${showAllChats
+                      ? 'bg-[#E6B23C]/15 border border-[#E6B23C]/20 shadow-[0_4px_20px_rgba(0,0,0,0.3)]'
+                      : 'hover:bg-white/[0.03] border border-transparent'}`}
+                  >
+                    <div className="flex-1 overflow-hidden">
+                      <div className="text-[11px] text-[#E6B23C] font-bold uppercase tracking-[0.15em] mb-1">
+                        ECHO
+                      </div>
+                      <div className={`text-[13px] md:text-[14px] font-medium transition-colors ${showAllChats ? 'text-[#F5E6D0]' : 'text-[#A08E70]'} group-hover:text-[#F5E6D0]`}>
+                        All Chats
+                      </div>
+                    </div>
+                  </button>
+                )}
+
                 {/* Search Bar */}
                 <div className="relative mt-2 mb-6">
                   <Search className={`absolute ${isRTL ? 'right-3' : 'left-3'} top-1/2 -translate-y-1/2 text-[#A08E70]/40`} size={14} />
@@ -902,9 +954,14 @@ function ChatContent() {
 
                 {/* Chat List */}
                 <div className="flex-1 overflow-y-auto space-y-1 trending-scrollbar-hide">
-                  <div className="px-2 mb-2 text-[10px] font-bold uppercase tracking-[0.2em] text-[#A08E70]/60">{t("chat.sidebar.history")}</div>
-                  {chatHistory.map((chat) => (
-                    <div key={chat.id} className="relative group/item chat-menu-container">
+                  <div className="px-2 mb-2 text-[10px] font-bold uppercase tracking-[0.2em] text-[#A08E70]/60">Recent Chats</div>
+                  {chatHistory
+                    .filter(chat => 
+                      chat.title?.toLowerCase().includes(searchQuery.toLowerCase()) || 
+                      chat.entity_name?.toLowerCase().includes(searchQuery.toLowerCase())
+                    )
+                    .map((chat) => (
+                      <div key={chat.id} className="relative group/item chat-menu-container">
                       <button
                         onClick={() => window.location.href = `/chat?entity=${chat.entity_name}&type=${chat.entity_type || 'landmark'}&conv=${chat.id}`}
                         className={`w-full flex items-center gap-3 px-4 py-3 rounded-2xl transition-all text-left ${supabaseConvId === chat.id && !showAllChats
@@ -1014,23 +1071,8 @@ function ChatContent() {
                     </div>
                   ))}
 
-                  {chatHistory.length > 0 && (
-                    <button
-                      onClick={() => { setShowAllChats(true); setSidebarOpen(false); }}
-                      className={`w-full flex items-center gap-3 px-4 py-3 rounded-2xl transition-all text-left group mt-4 border-t border-[#E6B23C]/5 pt-4 ${showAllChats
-                        ? 'bg-[#E6B23C]/15 border border-[#E6B23C]/20 shadow-[0_4px_20px_rgba(0,0,0,0.3)]'
-                        : 'hover:bg-white/[0.03] border border-transparent'}`}
-                    >
-                      <div className="flex-1 overflow-hidden">
-                        <div className="text-[11px] text-[#E6B23C] font-bold uppercase tracking-[0.15em] mb-1">
-                          ECHO
-                        </div>
-                        <div className={`text-[13px] md:text-[14px] font-medium transition-colors ${showAllChats ? 'text-[#F5E6D0]' : 'text-[#A08E70]'} group-hover:text-[#F5E6D0]`}>
-                          All Chats
-                        </div>
-                      </div>
-                    </button>
-                  )}
+                  {/* Bottom padding */}
+                  <div className="h-4" />
                 </div>
               </motion.div>
             )}
@@ -1041,30 +1083,228 @@ function ChatContent() {
         <div className="flex-1 flex flex-col h-full relative overflow-hidden bg-transparent">
           {showAllChats ? (
             <div className="flex-1 flex flex-col overflow-hidden bg-[#0D0A07]/30 backdrop-blur-sm">
-              <div className="max-w-5xl mx-auto w-full pt-12 px-8 md:px-12">
-                <div className="flex items-center justify-between mb-8">
-                  <h2 className="text-xl md:text-2xl font-bold text-[#E6B23C] px-6 py-2.5 rounded-2xl border border-[#E6B23C]/20 bg-[#E6B23C]/5 shadow-[0_4px_20px_rgba(0,0,0,0.2)] uppercase tracking-widest">
-                    Chat History
-                  </h2>
-                </div>
+              <div className={`max-w-5xl mx-auto w-full pt-32 px-8 md:px-12 ${showMainFilters && !filterType && filterMonth === null && sortBy === 'name' ? 'mb-14' : 'mb-2'}`}>
 
-                {/* Search - Stayed here, but list will scroll below it */}
-                <div className="relative mb-12">
-                  <Search className="absolute left-5 top-1/2 -translate-y-1/2 text-[#E6B23C]/40" size={20} />
-                  <input
-                    type="text"
-                    placeholder="Search chat history..."
-                    value={allChatsSearch}
-                    onChange={(e) => setAllChatsSearch(e.target.value)}
-                    className="w-full bg-[#0D0A07] border border-[#E6B23C]/10 rounded-2xl py-4 pl-14 pr-6 text-[#F5E6D0] focus:outline-none focus:border-[#E6B23C]/40 transition-all shadow-inner"
-                  />
+                {/* Search & Filter Header - Centered */}
+                <div className="flex flex-col gap-6 max-w-2xl mx-auto">
+                  <div className="flex items-center gap-4">
+                    <div className="relative flex-1">
+                      <Search className="absolute left-5 top-1/2 -translate-y-1/2 text-[#E6B23C]/40" size={20} />
+                      <input
+                        type="text"
+                        placeholder="Search chat history..."
+                        value={allChatsSearch}
+                        onChange={(e) => setAllChatsSearch(e.target.value)}
+                        className="w-full bg-[#0D0A07] border border-[#E6B23C]/10 rounded-2xl py-4 pl-14 pr-6 text-[#F5E6D0] focus:outline-none focus:border-[#E6B23C]/40 transition-all shadow-inner"
+                      />
+                    </div>
+                    <div className="relative">
+                      <button 
+                        onClick={() => setShowMainFilters(!showMainFilters)}
+                        className={`h-[58px] w-[58px] shrink-0 rounded-2xl transition-all flex items-center justify-center ${showMainFilters ? 'bg-[#E6B23C] text-[#0D0A07]' : 'bg-transparent text-[#A08E70] hover:text-[#E6B23C]'}`}
+                      >
+                        <SlidersHorizontal size={22} className={showMainFilters ? "" : "opacity-80"} />
+                      </button>
+                    </div>
+                  </div>
+
+                  {/* Filter Pills Bar (As requested in image) */}
+                  <div className="flex flex-wrap items-center gap-3">
+
+                    {/* Active Filter Pills */}
+                    {filterType && (
+                      <div className="relative group">
+                        <div className="flex items-center bg-[#0D0A07] border border-[#E6B23C]/20 rounded-full h-9 overflow-hidden">
+                          <button 
+                            onClick={() => setFilterType(null)}
+                            className="h-full px-3 flex items-center justify-center hover:bg-red-500/10 text-[#A08E70] hover:text-red-500 transition-colors border-r border-[#E6B23C]/10"
+                          >
+                            <X size={14} />
+                          </button>
+                          <div className="px-3 flex items-center gap-2">
+                            <span className="text-[11px] text-[#A08E70] font-medium">Type |</span>
+                            <button 
+                              onClick={() => setActiveDropdown(activeDropdown === 'type' ? null : 'type')}
+                              className="flex items-center gap-1 text-[11px] text-[#E6B23C] font-bold hover:text-[#FFD369] transition-colors"
+                            >
+                              <span className="capitalize">{filterType === 'pharaoh' ? 'Pharaohs' : 'Landmarks'}</span>
+                              <ChevronDown size={12} className={`transition-transform ${activeDropdown === 'type' ? 'rotate-180' : ''}`} />
+                            </button>
+                          </div>
+                        </div>
+                        
+                        <AnimatePresence>
+                          {activeDropdown === 'type' && (
+                            <motion.div 
+                              initial={{ opacity: 0, y: 5 }} animate={{ opacity: 1, y: 0 }} exit={{ opacity: 0, y: 5 }}
+                              className="absolute left-10 top-full mt-2 w-32 bg-[#1A1208] border border-[#E6B23C]/20 rounded-xl py-1 shadow-2xl z-[60]"
+                            >
+                              <button onClick={() => { setFilterType('pharaoh'); setActiveDropdown(null); }} className="w-full px-3 py-1.5 text-left text-[11px] text-[#A08E70] hover:bg-[#E6B23C]/10 hover:text-[#E6B23C]">Pharaohs</button>
+                              <button onClick={() => { setFilterType('landmark'); setActiveDropdown(null); }} className="w-full px-3 py-1.5 text-left text-[11px] text-[#A08E70] hover:bg-[#E6B23C]/10 hover:text-[#E6B23C]">Landmarks</button>
+                            </motion.div>
+                          )}
+                        </AnimatePresence>
+                      </div>
+                    )}
+
+                    {filterMonth !== null && (
+                      <div className="relative group">
+                        <div className="flex items-center bg-[#0D0A07] border border-[#E6B23C]/20 rounded-full h-9 overflow-hidden">
+                          <button 
+                            onClick={() => setFilterMonth(null)}
+                            className="h-full px-3 flex items-center justify-center hover:bg-red-500/10 text-[#A08E70] hover:text-red-500 transition-colors border-r border-[#E6B23C]/10"
+                          >
+                            <X size={14} />
+                          </button>
+                          <div className="px-3 flex items-center gap-2">
+                            <span className="text-[11px] text-[#A08E70] font-medium">Date |</span>
+                            <button 
+                              onClick={() => setActiveDropdown(activeDropdown === 'date' ? null : 'date')}
+                              className="flex items-center gap-1 text-[11px] text-[#E6B23C] font-bold hover:text-[#FFD369] transition-colors"
+                            >
+                              <span>{filterMonth === 1 ? 'Last Month' : `Last ${filterMonth} Months`}</span>
+                              <ChevronDown size={12} className={`transition-transform ${activeDropdown === 'date' ? 'rotate-180' : ''}`} />
+                            </button>
+                          </div>
+                        </div>
+
+                        <AnimatePresence>
+                          {activeDropdown === 'date' && (
+                            <motion.div 
+                              initial={{ opacity: 0, y: 5 }} animate={{ opacity: 1, y: 0 }} exit={{ opacity: 0, y: 5 }}
+                              className="absolute left-10 top-full mt-2 w-40 bg-[#1A1208] border border-[#E6B23C]/20 rounded-xl py-1 shadow-2xl z-[60]"
+                            >
+                              {[1, 3, 6, 12].map(m => (
+                                <button key={m} onClick={() => { setFilterMonth(m); setActiveDropdown(null); }} className="w-full px-3 py-1.5 text-left text-[11px] text-[#A08E70] hover:bg-[#E6B23C]/10 hover:text-[#E6B23C]">
+                                  {m === 1 ? 'Last Month' : `Last ${m} Months`}
+                                </button>
+                              ))}
+                            </motion.div>
+                          )}
+                        </AnimatePresence>
+                      </div>
+                    )}
+
+                    {sortBy !== 'name' && (
+                      <div className="relative group">
+                        <div className="flex items-center bg-[#0D0A07] border border-[#E6B23C]/20 rounded-full h-9 overflow-hidden">
+                          <button 
+                            onClick={() => setSortBy('name')}
+                            className="h-full px-3 flex items-center justify-center hover:bg-red-500/10 text-[#A08E70] hover:text-red-500 transition-colors border-r border-[#E6B23C]/10"
+                          >
+                            <X size={14} />
+                          </button>
+                          <div className="px-3 flex items-center gap-2">
+                            <span className="text-[11px] text-[#A08E70] font-medium">Sort |</span>
+                            <button 
+                              onClick={() => setActiveDropdown(activeDropdown === 'sort' ? null : 'sort')}
+                              className="flex items-center gap-1 text-[11px] text-[#E6B23C] font-bold hover:text-[#FFD369] transition-colors"
+                            >
+                              <span>Most Recent</span>
+                              <ChevronDown size={12} className={`transition-transform ${activeDropdown === 'sort' ? 'rotate-180' : ''}`} />
+                            </button>
+                          </div>
+                        </div>
+
+                        <AnimatePresence>
+                          {activeDropdown === 'sort' && (
+                            <motion.div 
+                              initial={{ opacity: 0, y: 5 }} animate={{ opacity: 1, y: 0 }} exit={{ opacity: 0, y: 5 }}
+                              className="absolute left-10 top-full mt-2 w-32 bg-[#1A1208] border border-[#E6B23C]/20 rounded-xl py-1 shadow-2xl z-[60]"
+                            >
+                              <button onClick={() => { setSortBy('name'); setActiveDropdown(null); }} className="w-full px-3 py-1.5 text-left text-[11px] text-[#A08E70] hover:bg-[#E6B23C]/10 hover:text-[#E6B23C]">Alphabetical</button>
+                              <button onClick={() => { setSortBy('recent'); setActiveDropdown(null); }} className="w-full px-3 py-1.5 text-left text-[11px] text-[#A08E70] hover:bg-[#E6B23C]/10 hover:text-[#E6B23C]">Most Recent</button>
+                            </motion.div>
+                          )}
+                        </AnimatePresence>
+                      </div>
+                    )}
+
+                    {(filterType || filterMonth !== null || sortBy !== 'name') && (
+                      <button 
+                        onClick={() => { setFilterType(null); setFilterMonth(null); setSortBy('name'); setActiveDropdown(null); }}
+                        className="text-[11px] font-bold text-[#A08E70] hover:text-red-500 flex items-center gap-1.5 ml-2 mr-4 transition-colors group whitespace-nowrap"
+                      >
+                        <X size={14} className="group-hover:scale-110 transition-transform" />
+                        Clear All
+                      </button>
+                    )}
+
+                    {/* Inactive filters appearing after Clear All only when toggled */}
+                    {showMainFilters && (
+                      <>
+                        {!filterType && (
+                          <div className="relative">
+                            <button 
+                              onClick={() => setActiveDropdown(activeDropdown === 'pill-type' ? null : 'pill-type')}
+                              className="flex items-center gap-1.5 px-3 py-1.5 rounded-full border border-[#E6B23C]/10 bg-[#E6B23C]/5 text-[#A08E70] hover:text-[#E6B23C] hover:border-[#E6B23C]/30 transition-all text-[11px] font-medium"
+                            >
+                              Entity Type
+                              <ChevronDown size={12} className={`transition-transform ${activeDropdown === 'pill-type' ? 'rotate-180' : ''}`} />
+                            </button>
+                            <AnimatePresence>
+                              {activeDropdown === 'pill-type' && (
+                                <motion.div initial={{ opacity: 0, y: 5 }} animate={{ opacity: 1, y: 0 }} exit={{ opacity: 0, y: 5 }} className="absolute left-0 top-full mt-2 w-32 bg-[#1A1208] border border-[#E6B23C]/20 rounded-xl py-1 shadow-2xl z-[70]">
+                                  <button onClick={() => { setFilterType('pharaoh'); setActiveDropdown(null); }} className="w-full px-3 py-2 text-left text-[11px] text-[#A08E70] hover:bg-[#E6B23C]/10 hover:text-[#E6B23C]">Pharaohs</button>
+                                  <button onClick={() => { setFilterType('landmark'); setActiveDropdown(null); }} className="w-full px-3 py-2 text-left text-[11px] text-[#A08E70] hover:bg-[#E6B23C]/10 hover:text-[#E6B23C]">Landmarks</button>
+                                </motion.div>
+                              )}
+                            </AnimatePresence>
+                          </div>
+                        )}
+
+                        {filterMonth === null && (
+                          <div className="relative">
+                            <button 
+                              onClick={() => setActiveDropdown(activeDropdown === 'pill-date' ? null : 'pill-date')}
+                              className="flex items-center gap-1.5 px-3 py-1.5 rounded-full border border-[#E6B23C]/10 bg-[#E6B23C]/5 text-[#A08E70] hover:text-[#E6B23C] hover:border-[#E6B23C]/30 transition-all text-[11px] font-medium"
+                            >
+                              Time Period
+                              <ChevronDown size={12} className={`transition-transform ${activeDropdown === 'pill-date' ? 'rotate-180' : ''}`} />
+                            </button>
+                            <AnimatePresence>
+                              {activeDropdown === 'pill-date' && (
+                                <motion.div initial={{ opacity: 0, y: 5 }} animate={{ opacity: 1, y: 0 }} exit={{ opacity: 0, y: 5 }} className="absolute left-0 top-full mt-2 w-40 bg-[#1A1208] border border-[#E6B23C]/20 rounded-xl py-1 shadow-2xl z-[70]">
+                                  {[1, 3, 6, 12].map(m => (
+                                    <button key={m} onClick={() => { setFilterMonth(m); setActiveDropdown(null); }} className="w-full px-3 py-2 text-left text-[11px] text-[#A08E70] hover:bg-[#E6B23C]/10 hover:text-[#E6B23C]">{m === 1 ? 'Last Month' : `Last ${m} Months`}</button>
+                                  ))}
+                                </motion.div>
+                              )}
+                            </AnimatePresence>
+                          </div>
+                        )}
+
+                        {sortBy === 'name' && (
+                          <div className="relative">
+                            <button 
+                              onClick={() => setActiveDropdown(activeDropdown === 'pill-sort' ? null : 'pill-sort')}
+                              className="flex items-center gap-1.5 px-3 py-1.5 rounded-full border border-[#E6B23C]/10 bg-[#E6B23C]/5 text-[#A08E70] hover:text-[#E6B23C] hover:border-[#E6B23C]/30 transition-all text-[11px] font-medium"
+                            >
+                              Sort Order
+                              <ChevronDown size={12} className={`transition-transform ${activeDropdown === 'pill-sort' ? 'rotate-180' : ''}`} />
+                            </button>
+                            <AnimatePresence>
+                              {activeDropdown === 'pill-sort' && (
+                                <motion.div initial={{ opacity: 0, y: 5 }} animate={{ opacity: 1, y: 0 }} exit={{ opacity: 0, y: 5 }} className="absolute left-0 top-full mt-2 w-36 bg-[#1A1208] border border-[#E6B23C]/20 rounded-xl py-1 shadow-2xl z-[70]">
+                                  <button onClick={() => { setSortBy('recent'); setActiveDropdown(null); }} className="w-full px-3 py-1.5 text-left text-[11px] text-[#A08E70] hover:bg-[#E6B23C]/10 hover:text-[#E6B23C]">Most Recent</button>
+                                  <button onClick={() => { setSortBy('name'); setActiveDropdown(null); }} className="w-full px-3 py-1.5 text-left text-[11px] text-[#A08E70] hover:bg-[#E6B23C]/10 hover:text-[#E6B23C]">Alphabetical</button>
+                                </motion.div>
+                              )}
+                            </AnimatePresence>
+                          </div>
+                        )}
+                      </>
+                    )}
+                  </div>
                 </div>
               </div>
 
               {/* Grouped List - Now full width for scrolling but inner content centered */}
-              <div className="flex-1 overflow-y-auto trending-scrollbar-hide">
+              <div className={`flex-1 ${groupedChats.length > 0 ? 'overflow-y-auto' : 'overflow-hidden'} trending-scrollbar-hide`}>
                 <div className="max-w-5xl mx-auto w-full px-8 md:px-12 pb-24">
-                  {groupedChats.map(([entity, chats]: [string, any[]]) => (
+                  {groupedChats.length > 0 ? (
+                    <div className="bg-[#1A1208]/30 border border-[#E6B23C]/10 rounded-3xl p-6 md:p-10 backdrop-blur-md shadow-[0_10px_40px_rgba(0,0,0,0.4)]">
+                      {groupedChats.map(([entity, chats]: [string, any[]]) => (
                     <div key={entity} className="mb-4">
                       <button
                         onClick={() => setExpandedEntity(expandedEntity === entity ? null : entity)}
@@ -1116,8 +1356,27 @@ function ChatContent() {
                       </AnimatePresence>
                     </div>
                   ))}
-                </div>
+                    </div>
+                  ) : (
+                    <div className="flex flex-col items-center justify-center py-24 text-center">
+                      <div className="w-20 h-20 bg-[#E6B23C]/5 rounded-full flex items-center justify-center mb-6 border border-[#E6B23C]/10">
+                        <Search size={32} className="text-[#E6B23C]/40" />
+                      </div>
+                      <h3 className="text-xl font-bold text-[#E6B23C] mb-3 uppercase tracking-[0.2em]">No Records Found</h3>
+                      <p className="text-[#A08E70] text-sm max-w-sm leading-relaxed mx-auto">
+                        We couldn't find any conversations matching your current filters or search terms. 
+                        Try adjusting your criteria or clearing all filters.
+                      </p>
+                      <button 
+                        onClick={() => { setFilterType(null); setFilterMonth(null); setSortBy('name'); setAllChatsSearch(''); setActiveDropdown(null); }}
+                        className="mt-10 px-8 py-3 rounded-xl border border-[#E6B23C]/20 text-[#E6B23C] text-xs font-bold uppercase tracking-widest hover:bg-[#E6B23C] hover:text-[#0D0A07] transition-all"
+                      >
+                        Clear All Filters
+                      </button>
+                    </div>
+                  )}
               </div>
+            </div>
             </div>
           ) : (
             <>

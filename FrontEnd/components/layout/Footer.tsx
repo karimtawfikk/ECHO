@@ -1,7 +1,7 @@
 "use client";
 
 import Link from "next/link";
-import { Github, Sparkles } from "lucide-react";
+import { Github, Sparkles, Mail, MapPin } from "lucide-react";
 import { useLanguage } from "../../context/LanguageContext";
 
 export default function Footer() {
@@ -15,7 +15,7 @@ export default function Footer() {
             />
 
             <div className="max-w-7xl mx-auto px-6 py-16 lg:py-24">
-                <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-12 lg:gap-8">
+                <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-6 gap-12 lg:gap-8">
 
                     {/* Brand Column */}
                     <div className="lg:col-span-2 space-y-6">
@@ -30,41 +30,42 @@ export default function Footer() {
                                 ECHO
                             </span>
                         </Link>
-                        <p className="max-w-md text-[#A08E70] leading-relaxed text-sm lg:text-base">
+                        <p className="max-w-xs text-[#A08E70] leading-relaxed text-[13px]">
                             {t("footer.desc")}
                         </p>
                     </div>
 
-                    {/* Explore Column */}
+                    {/* Services Column */}
                     <div className="space-y-6">
-                        <h3 className="text-[#F5E6D0] font-bold tracking-[0.1em] uppercase text-sm">{t("footer.explore")}</h3>
+                        <div className="relative inline-block pb-2">
+                            <h3 className="text-[#F5E6D0] font-bold tracking-[0.1em] uppercase text-sm">Services</h3>
+                            <div className="absolute bottom-0 left-0 w-1/2 h-[2px] bg-[#E6B23C]" />
+                        </div>
                         <ul className="space-y-4">
                             <li>
+                                <Link href="/explore" className="text-[#A08E70] hover:text-[#E6B23C] transition-colors text-sm font-medium">
+                                    Explore
+                                </Link>
+                            </li>
+                            <li>
                                 <Link href="/upload" className="text-[#A08E70] hover:text-[#E6B23C] transition-colors text-sm font-medium">
-                                    {t("footer.recognition")}
-                                </Link>
-                            </li>
-                            <li>
-                                <Link href="/video" className="text-[#A08E70] hover:text-[#E6B23C] transition-colors text-sm font-medium">
-                                    {t("footer.video")}
-                                </Link>
-                            </li>
-                            <li>
-                                <Link href="/chat" className="text-[#A08E70] hover:text-[#E6B23C] transition-colors text-sm font-medium">
-                                    {t("footer.chat")}
+                                    Recognize
                                 </Link>
                             </li>
                             <li>
                                 <Link href="/translate" className="text-[#A08E70] hover:text-[#E6B23C] transition-colors text-sm font-medium">
-                                    {t("footer.hieroglyphs")}
+                                    Translate
                                 </Link>
                             </li>
                         </ul>
                     </div>
 
-                    {/* Project Column */}
+                    {/* Foundation Column */}
                     <div className="space-y-6">
-                        <h3 className="text-[#F5E6D0] font-bold tracking-[0.1em] uppercase text-sm">{t("footer.project")}</h3>
+                        <div className="relative inline-block pb-2">
+                            <h3 className="text-[#F5E6D0] font-bold tracking-[0.1em] uppercase text-sm">Foundation</h3>
+                            <div className="absolute bottom-0 left-0 w-1/2 h-[2px] bg-[#E6B23C]" />
+                        </div>
                         <ul className="space-y-4">
                             <li>
                                 <Link href="#" className="text-[#A08E70] hover:text-[#E6B23C] transition-colors text-sm font-medium">
@@ -73,18 +74,31 @@ export default function Footer() {
                             </li>
                             <li>
                                 <Link href="#" className="text-[#A08E70] hover:text-[#E6B23C] transition-colors text-sm font-medium">
-                                    {t("footer.team")}
+                                    Privacy Policy
                                 </Link>
                             </li>
                             <li>
                                 <Link href="#" className="text-[#A08E70] hover:text-[#E6B23C] transition-colors text-sm font-medium">
-                                    {t("footer.contact")}
+                                    Terms of Use
                                 </Link>
                             </li>
-                            <li>
-                                <Link href="https://github.com/karimtawfikk/ECHO" target="_blank" className="text-[#A08E70] hover:text-[#E6B23C] transition-colors flex items-center gap-2 text-sm font-medium">
-                                    <Github size={14} /> GitHub
-                                </Link>
+                        </ul>
+                    </div>
+
+                    {/* Contact Column */}
+                    <div className="space-y-6">
+                        <div className="relative inline-block pb-2">
+                            <h3 className="text-[#F5E6D0] font-bold tracking-[0.1em] uppercase text-sm">Contact</h3>
+                            <div className="absolute bottom-0 left-0 w-1/2 h-[2px] bg-[#E6B23C]" />
+                        </div>
+                        <ul className="space-y-4">
+                            <li className="flex items-center gap-3 text-[#A08E70] text-sm font-medium group cursor-pointer hover:text-[#E6B23C] transition-colors">
+                                <Mail size={16} className="text-[#E6B23C]" />
+                                <span className="break-all">info@echo-museum.com</span>
+                            </li>
+                            <li className="flex items-center gap-3 text-[#A08E70] text-sm font-medium group cursor-pointer hover:text-[#E6B23C] transition-colors">
+                                <MapPin size={16} className="text-[#E6B23C]" />
+                                <span>Cairo, Egypt</span>
                             </li>
                         </ul>
                     </div>

@@ -34,6 +34,9 @@ async def recognize_artifact(
         from src.app.services.entity_loader import load_entity
         entity = load_entity(predicted_type, predicted_name, db)
 
+        # Clean name for display (remove brackets and replace underscores)
+        display_name = predicted_name.split('(')[0].replace('_', ' ').strip()
+
         entity_data = None
         if entity:
             entity_data = {
@@ -69,7 +72,7 @@ async def recognize_artifact(
         return {
             "source": "recognition",
             "type": predicted_type,
-            "name": predicted_name,
+            "name": display_name,
             "confidence": final_conf,
             "binary_confidence": binary_conf,
             "entity": entity_data,
