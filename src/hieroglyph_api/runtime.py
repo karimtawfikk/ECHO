@@ -35,10 +35,8 @@ class HieroglyphPipelineConfig:
     max_image_dim: int = 4096
 
     # Detection (YOLOv8/11 Tiled)
-    detection_model_path: str = os.getenv(
-        "HIEROGLYPH_DETECTION_MODEL",
-        "src/hieroglyph_models/hieroglyph_detection.pt",
-    )
+    detection_model_path = "src/ml_models/hieroglyph_models/detection/model.pt"
+    
     # Confidence & Refinement
     classification_confidence_threshold: float = 0.15  # Lowered to reduce 'Unknown' count
     row_clustering_threshold: float = 40.0
@@ -51,21 +49,14 @@ class HieroglyphPipelineConfig:
     inference_batch_size: int = 16
 
     # Classification (EfficientNetV2B0 — matches ClassificationFinalNotebook)
-    classification_model_path: str = os.getenv(
-        "HIEROGLYPH_CLASSIFICATION_MODEL",
-        "src/hieroglyph_models/Classification/ClassificationModel.h5",
-    )
-    classification_label_map_path: str = os.getenv(
-        "HIEROGLYPH_CLASSIFICATION_LABEL_MAP",
-        "src/hieroglyph_models/Classification/ClassificationLabel.json",
-    )
+    classification_model_path = "src/ml_models/hieroglyph_models/classification/model.weights.h5"
+    
+    classification_label_map_path = "src/ml_models/hieroglyph_models/classification/label_map.json"
     classification_img_size: int = 224
 
     # Translation (M2M-100 Fine-tuned)
-    translation_model_path: str = os.getenv(
-        "HIEROGLYPH_TRANSLATION_MODEL",
-        "src/hieroglyph_models/translation",
-    )
+    translation_model_path = "src/ml_models/hieroglyph_models/translation"
+
     translation_max_input_length: int = 512
     translation_max_target_length: int = 128
     translation_num_beams: int = 4
@@ -209,6 +200,7 @@ class HieroglyphDetectionRuntime:
         self._device = "cuda" if torch.cuda.is_available() else "cpu"
         print(f"[hieroglyph] Translation model will use: {self._device} (Optimized)", flush=True)
 
+        load_start = time.time()
         from transformers import M2M100Tokenizer, M2M100ForConditionalGeneration
         
         self._translation_tokenizer = M2M100Tokenizer.from_pretrained(str(model_path))

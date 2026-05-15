@@ -1,11 +1,10 @@
 from fastapi import APIRouter, UploadFile, File, HTTPException
 import httpx
-import os
 
 router = APIRouter()
 
-# Hieroglyph API microservice URL (defaults to localhost:8003)
-HIEROGLYPH_API_URL = os.getenv("HIEROGLYPH_API_URL", "http://127.0.0.1:8003")
+# Hieroglyph API microservice URL 
+HIEROGLYPH_API_URL = "http://127.0.0.1:8003"
 
 @router.post("/translate")
 async def translate_hieroglyphs(file: UploadFile = File(...)):
@@ -21,7 +20,7 @@ async def translate_hieroglyphs(file: UploadFile = File(...)):
     async with httpx.AsyncClient(timeout=60.0) as client:
         try:
             files = {"file": (file.filename, image_data, file.content_type)}
-            response = await client.post(f"{HIEROGLYPH_API_URL}/api/v1/hieroglyphs/translate", files=files)
+            response = await client.post(f"{HIEROGLYPH_API_URL}/translate/upload", files=files)
             
             if response.status_code != 200:
                 raise HTTPException(status_code=response.status_code, detail=f"Hieroglyph API error: {response.text}")

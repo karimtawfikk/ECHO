@@ -35,3 +35,4 @@ tts_Outputs/
 request.json
 
 # Local recognition model artifacts
+ml_models/

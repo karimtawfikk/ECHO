@@ -8,12 +8,14 @@ import { Button } from "../../components/ui/button";
 import { motion, AnimatePresence } from "framer-motion";
 import { useLanguage } from "../../context/LanguageContext";
 import { Camera, Languages, Trash2, Upload, BookOpen, Search, X, Cpu, Loader2, Image as ImageIcon } from "lucide-react";
+import { api } from "../../lib/services/api";
 
 type TranslateResponse = {
-  ocr_text: string;
-  transliteration: string;
   translation: string;
-  explanation: string;
+  symbols?: any[];
+  num_symbols_detected?: number;
+  num_clusters?: number;
+  annotated_image_base64?: string;
 };
 
 export default function TranslatePage() {
@@ -35,21 +37,38 @@ export default function TranslatePage() {
     return () => { if (previewUrl) URL.revokeObjectURL(previewUrl); };
   }, [previewUrl]);
 
-  const handleDecipher = () => {
+  const handleDecipher = async () => {
     if (!file || isLoading) return;
     setIsLoading(true);
     setResult(null);
 
-    // Simulate the deciphering process
-    timeoutRef.current = setTimeout(() => {
-      setResult({
-        ocr_text: "𓋹 𓎬 𓇳 𓅓 𓊵 𓏏 𓊪",
-        transliteration: "Ankh Udja Seneb m Hotep",
-        translation: "Life, Prosperity, Health in Peace, Life, Prosperity",
-        explanation: "This classic formulary invokes the triad of vital blessings upon the bearer. Found frequently on funerary stelae and royal seals of the New Kingdom.",
+    const formData = new FormData();
+    formData.append("file", file);
+
+    try {
+      // Real API call to the backend proxy
+      const response = await api.post("/hieroglyphs/translate", formData, {
+        headers: {
+          "Content-Type": "multipart/form-data",
+        },
       });
+
+      if (response.data) {
+        setResult({
+          translation: response.data.translation_text,
+          symbols: response.data.symbols,
+          num_symbols_detected: response.data.num_symbols_detected,
+          num_clusters: response.data.num_clusters,
+          annotated_image_base64: response.data.annotated_image_base64,
+        });
+      }
+    } catch (error) {
+      console.error("Translation error:", error);
+      // Fallback or error handling
+      alert("Failed to decipher the inscription. Please try again.");
+    } finally {
       setIsLoading(false);
-    }, 12000);
+    }
   };
 
   const acceptFile = (f: File | null) => {
@@ -194,7 +213,7 @@ export default function TranslatePage() {
                         <div className="relative group/preview mb-6">
                           <div className="relative rounded-2xl overflow-hidden border border-[#E6B23C]/30 shadow-[0_0_50px_rgba(230,178,60,0.15)] z-10">
                             <img
-                              src={previewUrl}
+                              src={result?.annotated_image_base64 || previewUrl}
                               alt="Preview"
                               className={`max-h-[220px] w-auto object-contain transition-opacity duration-700 ${isLoading ? 'opacity-40' : 'opacity-100'}`}
                             />
