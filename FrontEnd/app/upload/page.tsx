@@ -14,6 +14,7 @@ export default function UploadPage() {
   const { t, isRTL } = useLanguage();
   const router = useRouter();
   const inputRef = useRef<HTMLInputElement | null>(null);
+  const reqIdRef = useRef(0);
   const [selectedFile, setSelectedFile] = useState<File | null>(null);
   const [fileName, setFileName] = useState<string>("");
   const [previewUrl, setPreviewUrl] = useState<string | null>(null);
@@ -39,9 +40,11 @@ export default function UploadPage() {
   }
 
   function clearFile() {
+    reqIdRef.current += 1;
     setFileName("");
     setSelectedFile(null);
     setError(null);
+    setIsLoading(false);
     if (previewUrl) URL.revokeObjectURL(previewUrl);
     setPreviewUrl(null);
     if (inputRef.current) inputRef.current.value = "";
@@ -56,25 +59,43 @@ export default function UploadPage() {
     setIsLoading(true);
     setError(null);
 
+    const currentReq = ++reqIdRef.current;
+
     try {
       const result = await recognizeImage(selectedFile);
+      if (currentReq !== reqIdRef.current) return;
       const reader = new FileReader();
       reader.onloadend = () => {
+        if (currentReq !== reqIdRef.current) return;
         const imageDataUrl = typeof reader.result === "string" ? reader.result : null;
         saveResultToSession({ result, imageDataUrl });
         router.push("/result");
       };
       reader.onerror = () => {
+        if (currentReq !== reqIdRef.current) return;
         saveResultToSession({ result, imageDataUrl: null });
         router.push("/result");
       };
       reader.readAsDataURL(selectedFile);
     } catch (err: unknown) {
+      if (currentReq !== reqIdRef.current) return;
       const msg = err instanceof Error ? err.message : t("upload.error.failed");
       setError(msg);
       setIsLoading(false);
     }
   }
+
+  const [particles, setParticles] = useState<{ x: string; y: string; duration: number; delay: number }[]>([]);
+
+  useEffect(() => {
+    const newParticles = [...Array(20)].map(() => ({
+      x: Math.random() * 100 - 50 + "%",
+      y: Math.random() * 100 - 50 + "%",
+      duration: 10 + Math.random() * 20,
+      delay: Math.random() * 10
+    }));
+    setParticles(newParticles);
+  }, []);
 
   return (
     <PageShell>
@@ -82,22 +103,22 @@ export default function UploadPage() {
         
         {/* Cinematic Particles */}
         <div className="absolute inset-0 pointer-events-none">
-          {[...Array(20)].map((_, i) => (
+          {particles.map((p, i) => (
             <motion.div
               key={i}
               initial={{ 
                 opacity: 0,
-                x: Math.random() * 100 - 50 + "%",
-                y: Math.random() * 100 - 50 + "%"
+                x: p.x,
+                y: p.y
               }}
               animate={{ 
                 opacity: [0, 0.4, 0],
                 y: ["-10%", "110%"],
               }}
               transition={{ 
-                duration: 10 + Math.random() * 20,
+                duration: p.duration,
                 repeat: Infinity,
-                delay: Math.random() * 10
+                delay: p.delay
               }}
               className="absolute w-1 h-1 bg-[#E6B23C] rounded-full blur-[1px]"
             />
@@ -241,11 +262,11 @@ export default function UploadPage() {
                       </div>
                       
                       <motion.div 
-                        initial={{ width: 0 }}
-                        animate={{ width: "auto" }}
-                        className="px-4 py-1.5 rounded-full bg-[#E6B23C]/10 border border-[#E6B23C]/20 max-w-[240px] mb-8 overflow-hidden"
+                        initial={{ opacity: 0 }}
+                        animate={{ opacity: 1 }}
+                        className="mb-8"
                       >
-                        <p className="text-[10px] font-bold text-[#E6B23C] tracking-widest uppercase truncate">
+                        <p className="text-[10px] font-bold text-[#A08E70] tracking-widest uppercase truncate opacity-80">
                           {fileName}
                         </p>
                       </motion.div>
@@ -331,9 +352,9 @@ export default function UploadPage() {
           transition={{ delay: 1 }}
           className="mt-12 flex justify-center w-full"
         >
-          <Link 
-            href="/" 
-            className="flex items-center gap-3 px-6 py-2 rounded-full bg-[#E6B23C]/5 border border-[#E6B23C]/10 text-[10px] font-bold tracking-[0.3em] text-[#A08E70]/60 hover:text-[#E6B23C] hover:border-[#E6B23C]/30 uppercase transition-all group"
+          <button 
+            onClick={() => router.back()} 
+            className="flex items-center gap-3 px-6 py-2 rounded-full bg-[#E6B23C]/5 border border-[#E6B23C]/10 text-[10px] font-bold tracking-[0.3em] text-[#A08E70]/60 hover:text-[#E6B23C] hover:border-[#E6B23C]/30 uppercase transition-all group cursor-pointer"
           >
             <motion.span 
               animate={{ x: isRTL ? [0, 5, 0] : [0, -5, 0] }}
@@ -341,8 +362,8 @@ export default function UploadPage() {
             >
               {isRTL ? "→" : "←"}
             </motion.span>
-            {t("common.back_home")}
-          </Link>
+            {t("common.return")}
+          </button>
         </motion.div>
       </div>
       <input ref={inputRef} type="file" accept="image/*" className="hidden" onChange={onPickFile} />

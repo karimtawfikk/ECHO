@@ -2,11 +2,12 @@
 
 import { useEffect, useRef, useState } from "react";
 import Link from "next/link";
+import { useRouter } from "next/navigation";
 import PageShell from "../../components/layout/PageShell";
 import { Button } from "../../components/ui/button";
 import { motion, AnimatePresence } from "framer-motion";
 import { useLanguage } from "../../context/LanguageContext";
-import { Camera, Languages, Trash2, Upload, Scroll, Zap, BookOpen, Search, Image as ImageIcon } from "lucide-react";
+import { Camera, Languages, Trash2, Upload, BookOpen, Search, X, Cpu, Loader2, Image as ImageIcon } from "lucide-react";
 
 type TranslateResponse = {
   ocr_text: string;
@@ -17,29 +18,30 @@ type TranslateResponse = {
 
 export default function TranslatePage() {
   const { t, isRTL } = useLanguage();
+  const router = useRouter();
   const fileInputRef = useRef<HTMLInputElement | null>(null);
   const [isLoading, setIsLoading] = useState(false);
   const [dragActive, setDragActive] = useState(false);
   const [file, setFile] = useState<File | null>(null);
+  const [fileName, setFileName] = useState<string>("");
   const [previewUrl, setPreviewUrl] = useState<string | null>(null);
   const [activeTab, setActiveTab] = useState<"translation">("translation");
   const [result, setResult] = useState<TranslateResponse | null>(null);
+  const timeoutRef = useRef<NodeJS.Timeout | null>(null);
 
   const pickFile = () => fileInputRef.current?.click();
 
   useEffect(() => {
-    if (!file) { setPreviewUrl(null); return; }
-    const url = URL.createObjectURL(file);
-    setPreviewUrl(url);
-    return () => URL.revokeObjectURL(url);
-  }, [file]);
+    return () => { if (previewUrl) URL.revokeObjectURL(previewUrl); };
+  }, [previewUrl]);
 
-  const acceptFile = (f: File | null) => {
-    if (!f || !f.type.startsWith("image/")) return;
-    setResult(null);
-    setFile(f);
+  const handleDecipher = () => {
+    if (!file || isLoading) return;
     setIsLoading(true);
-    setTimeout(() => {
+    setResult(null);
+
+    // Simulate the deciphering process
+    timeoutRef.current = setTimeout(() => {
       setResult({
         ocr_text: "𓋹 𓎬 𓇳 𓅓 𓊵 𓏏 𓊪",
         transliteration: "Ankh Udja Seneb m Hotep",
@@ -47,174 +49,476 @@ export default function TranslatePage() {
         explanation: "This classic formulary invokes the triad of vital blessings upon the bearer. Found frequently on funerary stelae and royal seals of the New Kingdom.",
       });
       setIsLoading(false);
-    }, 2000);
+    }, 12000);
   };
 
-  const resetAll = () => { setResult(null); setFile(null); setIsLoading(false); };
+  const acceptFile = (f: File | null) => {
+    setResult(null); // Force clear result first
+    if (!f || !f.type.startsWith("image/")) return;
+    setFile(f);
+    setFileName(f.name);
+    if (previewUrl) URL.revokeObjectURL(previewUrl);
+    const url = URL.createObjectURL(f);
+    setPreviewUrl(url);
+  };
+
+
+  const resetAll = () => {
+    if (timeoutRef.current) clearTimeout(timeoutRef.current);
+    setResult(null);
+    setFile(null);
+    setFileName("");
+    setIsLoading(false);
+    if (previewUrl) URL.revokeObjectURL(previewUrl);
+    setPreviewUrl(null);
+    if (fileInputRef.current) fileInputRef.current.value = "";
+  };
+
+  const [particles, setParticles] = useState<{ x: string; y: string; duration: number; delay: number }[]>([]);
+
+  useEffect(() => {
+    const newParticles = [...Array(20)].map(() => ({
+      x: Math.random() * 100 - 50 + "%",
+      y: Math.random() * 100 - 50 + "%",
+      duration: 10 + Math.random() * 20,
+      delay: Math.random() * 10
+    }));
+    setParticles(newParticles);
+  }, []);
 
   return (
     <PageShell>
-      <motion.div initial={{ opacity: 0, x: isRTL ? 20 : -20 }} animate={{ opacity: 1, x: 0 }} className="mb-8">
-        <Link href="/" className="group inline-flex items-center gap-2 text-xs font-semibold tracking-[0.15em] uppercase text-[#A08E70] hover:text-[#E6B23C] transition-colors">
-          <span className={`transition-transform ${isRTL ? 'group-hover:translate-x-1' : 'group-hover:-translate-x-1'}`}>
-            {isRTL ? '→' : '←'}
-          </span>
-          {t("common.return")}
-        </Link>
-      </motion.div>
-
-      <div className="flex flex-col md:flex-row md:items-end justify-between mb-12 gap-6">
-        <div className="flex items-start gap-5">
-          <div className="h-14 w-14 rounded-2xl bg-gradient-to-br from-[#E6B23C]/15 to-[#E6B23C]/5 border border-[#E6B23C]/15 flex items-center justify-center text-[#E6B23C] overflow-hidden">
-            <span className="text-5xl leading-none -translate-y-4">𓁹</span>
-          </div>
-          <div>
-            <div className="text-xs font-bold tracking-[0.25em] text-[#E6B23C] uppercase mb-1">{t("translate.badge")}</div>
-            <h1 className="font-heading text-3xl md:text-4xl font-bold text-[#F5E6D0] tracking-tight" style={{ fontFamily: 'var(--font-cormorant), serif' }}>
-              {t("translate.title.part1")} <span className="text-[#E6B23C] gold-glow" >{t("translate.title.part2")}</span>
-            </h1>
-          </div>
-        </div>
+      <div className="absolute inset-0 pointer-events-none z-0 overflow-hidden">
+        {particles.map((p, i) => (
+          <motion.div
+            key={i}
+            initial={{
+              opacity: 0,
+              x: p.x,
+              y: p.y
+            }}
+            animate={{
+              opacity: [0, 0.4, 0],
+              y: ["-10%", "110%"],
+            }}
+            transition={{
+              duration: p.duration,
+              repeat: Infinity,
+              delay: p.delay
+            }}
+            className="absolute w-1 h-1 bg-[#E6B23C] rounded-full blur-[1px]"
+          />
+        ))}
       </div>
 
-      <div className="grid gap-8 lg:grid-cols-5 items-start">
-        {/* Left: Upload */}
-        <motion.div initial={{ opacity: 0, y: 30 }} animate={{ opacity: 1, y: 0 }} className="lg:col-span-2 space-y-6">
-          <div className="glass-surface rounded-3xl p-8 relative overflow-hidden">
-            <div className="absolute top-0 right-0 w-24 h-24 bg-[#E6B23C]/[0.04] blur-[60px] pointer-events-none" />
 
-            <div
-              onDragOver={(e) => { e.preventDefault(); setDragActive(true); }}
-              onDragLeave={() => setDragActive(false)}
-              onDrop={(e) => { e.preventDefault(); setDragActive(false); acceptFile(e.dataTransfer.files[0]); }}
-              onClick={pickFile}
-              className={`relative aspect-[4/3] rounded-2xl border-2 border-dashed transition-all duration-500 flex flex-col items-center justify-center cursor-pointer group overflow-hidden ${dragActive ? "border-[#E6B23C] bg-[#E6B23C]/[0.06]" : "border-[#E6B23C]/10 bg-[#E6B23C]/[0.02] hover:border-[#E6B23C]/25"
-                }`}
-            >
-              <AnimatePresence mode="wait">
-                {previewUrl ? (
-                  <motion.div key="preview" initial={{ opacity: 0 }} animate={{ opacity: 1 }} exit={{ opacity: 0 }} className="absolute inset-0">
-                    <img src={previewUrl} alt="Artifact" className="h-full w-full object-cover" />
-                    <div className="absolute inset-0 bg-black/40 group-hover:bg-black/60 transition-colors flex items-center justify-center">
-                      <div className="text-[10px] font-bold text-white px-3 py-1.5 bg-black/40 border border-white/10 rounded-full backdrop-blur-md uppercase tracking-[0.15em]">{t("translate.dropzone.update")}</div>
-                    </div>
-                  </motion.div>
-                ) : (
-                  <motion.div key="idle" initial={{ opacity: 0 }} animate={{ opacity: 1 }} exit={{ opacity: 0 }} className="flex flex-col items-center p-6 text-center">
-                    <div className="w-14 h-14 rounded-full bg-[#E6B23C]/8 flex items-center justify-center text-[#E6B23C] mb-5 group-hover:scale-110 transition-transform">
-                      <ImageIcon size={24} />
-                    </div>
-                    <div className="text-sm font-semibold text-[#F5E6D0] mb-1">{t("translate.dropzone.title")}</div>
-                    <p className="text-[10px] text-[#A08E70]">{t("translate.dropzone.subtitle")}</p>
-                  </motion.div>
-                )}
-              </AnimatePresence>
-              <input ref={fileInputRef} type="file" className="hidden" accept="image/*" onChange={(e) => acceptFile(e.target.files?.[0] ?? null)} />
-            </div>
+      <div className="min-h-[calc(100vh-135px)] flex flex-col items-center justify-center p-4 md:p-8 relative">
 
-            <div className="mt-6 flex gap-3">
-              <Button onClick={pickFile} className="flex-[2] h-12 rounded-2xl bg-gradient-to-r from-[#E6B23C] to-[#D4A030] text-[#0D0A07] font-bold text-sm hover:scale-[1.02] transition-all flex items-center justify-center">
-                <Upload size={18} className={isRTL ? "ml-2" : "mr-2"} /> {t("upload.button.upload")}
-              </Button>
-              <Button variant="outline" className="flex-1 h-12 border-[#E6B23C]/10 hover:border-[#E6B23C]/25 rounded-2xl bg-transparent flex items-center justify-center text-[#A08E70] font-bold text-sm transition-all hover:scale-[1.02]" onClick={() => alert("Lens Active...")}>
-                <Camera size={18} className={isRTL ? "ml-2" : "mr-2"} /> {t("upload.button.capture")}
-              </Button>
-            </div>
-          </div>
 
-          <div className="glass-surface rounded-2xl p-5">
-            <div className="flex items-start gap-3">
-              <div className={`h-9 w-9 flex-shrink-0 bg-[#E6B23C]/8 border border-[#E6B23C]/15 rounded-xl flex items-center justify-center text-[#E6B23C] ${isRTL ? 'ml-0' : 'mr-0'}`}><BookOpen size={16} /></div>
-              <div>
-                <h4 className="text-xs font-bold tracking-[0.15em] text-[#F5E6D0] uppercase mb-1">{t("translate.status.label")}</h4>
-                <div className="flex items-center gap-2">
-                  <div className={`h-2 w-2 rounded-full ${isLoading ? "bg-[#E6B23C] animate-pulse shadow-[0_0_6px_rgba(230,178,60,0.8)]" : result ? "bg-[#2A7B6F]" : "bg-[#A08E70]/40"}`} />
-                  <span className="text-[10px] font-semibold text-[#A08E70]">
-                    {isLoading ? t("translate.status.loading") : result ? t("translate.status.success") : t("translate.status.standby")}
-                  </span>
+        <div
+          className={`w-full grid gap-12 transition-all duration-1000 ease-[0.16,1,0.3,1] mx-auto items-stretch ${(isLoading || result) ? 'lg:grid-cols-2 max-w-7xl' : 'grid-cols-1 max-w-xl'
+            }`}
+        >
+
+          {/* Left: Cinematic Upload Card */}
+          <motion.div
+            layout
+            initial={{ opacity: 0, scale: 0.95, y: 30 }}
+            animate={{ opacity: 1, scale: 1, y: 0 }}
+            transition={{ duration: 0.8, ease: [0.16, 1, 0.3, 1] }}
+            className="w-full max-w-xl relative z-10"
+          >
+            {/* External Card Glow */}
+            <motion.div
+              animate={{
+                opacity: [0.3, 0.6, 0.3],
+                scale: [1, 1.02, 1]
+              }}
+              transition={{ duration: 4, repeat: Infinity, ease: "easeInOut" }}
+              className="absolute -inset-1 bg-[#E6B23C]/20 rounded-[2.6rem] blur-2xl z-[-1]"
+            />
+
+            <div className={`transition-all duration-700 rounded-[2.5rem] shadow-[0_30px_100px_rgba(0,0,0,0.9)] shadow-[inset_0_1px_1px_rgba(230,178,60,0.1)] overflow-hidden relative ${previewUrl ? "bg-gradient-to-br from-[#1A140F] to-[#0D0A07] border border-[#E6B23C] shadow-[0_0_50px_rgba(230,178,60,0.2)]" : "bg-gradient-to-br from-[#120D08] to-[#0A0805]"
+              }`}>
+
+              {/* Spinning Border Beam Animation */}
+              {!previewUrl && !isLoading && (
+                <div className="absolute inset-0 pointer-events-none rounded-[2.5rem] overflow-hidden">
+                  <div className="absolute inset-[-100%] animate-[spin_8s_linear_infinite] opacity-40"
+                    style={{
+                      background: "conic-gradient(from 0deg, transparent 0%, transparent 40%, #E6B23C 50%, transparent 60%, transparent 100%)"
+                    }}
+                  />
+                  <div className="absolute inset-[2px] bg-gradient-to-br from-[#120D08] to-[#0A0805] rounded-[2.4rem]" />
+                </div>
+              )}
+
+              {/* Subtle Texture Overlay */}
+              <div className="absolute inset-0 opacity-[0.08] bg-[url('https://www.transparenttextures.com/patterns/papyros.png')] pointer-events-none" />
+
+              <div className="p-8 md:p-12 relative z-10 flex-1 flex flex-col justify-center">
+                {/* Internal Header */}
+                <div className="text-center mb-10">
+                  <h1 className="font-display text-3xl font-bold text-[#F5E6D0] tracking-[0.1em] uppercase mb-3" style={{ fontFamily: 'var(--font-cormorant), serif' }}>
+                    Hieroglyphics Decoder
+                  </h1>
+                  <div className="w-24 h-[1px] mx-auto mb-4 bg-gradient-to-r from-transparent via-[#E6B23C]/40 to-transparent" />
+                  <p className="text-[#A08E70] text-sm font-medium opacity-80 max-w-md mx-auto leading-relaxed">
+                    Upload an image of carved hieroglyphs to uncover the stories hidden.
+                  </p>
+                </div>
+
+                {/* Integrated Action Zone */}
+                <div
+                  onDragOver={(e) => { e.preventDefault(); setDragActive(true); }}
+                  onDragLeave={() => setDragActive(false)}
+                  onDrop={(e) => { e.preventDefault(); setDragActive(false); acceptFile(e.dataTransfer.files[0]); }}
+                  className={`relative min-h-[340px] rounded-3xl transition-all duration-500 flex flex-col items-center justify-center p-8 overflow-hidden group ${dragActive ? "bg-[#E6B23C]/[0.08] scale-[1.02]" : "bg-[#E6B23C]/[0.02]"
+                    }`}
+                >
+                  {/* HUD Scanning Accents */}
+                  <motion.div animate={{ opacity: dragActive ? 1 : 0.4 }} className="absolute top-0 left-0 w-12 h-12 border-t-2 border-l-2 border-[#E6B23C] rounded-tl-3xl" />
+                  <motion.div animate={{ opacity: dragActive ? 1 : 0.4 }} className="absolute top-0 right-0 w-12 h-12 border-t-2 border-r-2 border-[#E6B23C] rounded-tr-3xl" />
+                  <motion.div animate={{ opacity: dragActive ? 1 : 0.4 }} className="absolute bottom-0 left-0 w-12 h-12 border-b-2 border-l-2 border-[#E6B23C] rounded-bl-3xl" />
+                  <motion.div animate={{ opacity: dragActive ? 1 : 0.4 }} className="absolute bottom-0 right-0 w-12 h-12 border-b-2 border-r-2 border-[#E6B23C] rounded-br-3xl" />
+
+                  <AnimatePresence mode="wait">
+                    {previewUrl ? (
+                      <motion.div
+                        key="preview"
+                        initial={{ opacity: 0, scale: 0.9 }}
+                        animate={{ opacity: 1, scale: 1 }}
+                        exit={{ opacity: 0, scale: 0.9 }}
+                        className="flex flex-col items-center w-full"
+                      >
+                        <div className="relative group/preview mb-6">
+                          <div className="relative rounded-2xl overflow-hidden border border-[#E6B23C]/30 shadow-[0_0_50px_rgba(230,178,60,0.15)] z-10">
+                            <img
+                              src={previewUrl}
+                              alt="Preview"
+                              className={`max-h-[220px] w-auto object-contain transition-opacity duration-700 ${isLoading ? 'opacity-40' : 'opacity-100'}`}
+                            />
+
+                            {/* Mystical Reveal HUD - Active only during scan */}
+                            <AnimatePresence>
+                              {isLoading && (
+                                <motion.div
+                                  initial={{ opacity: 0 }}
+                                  animate={{ opacity: 1 }}
+                                  exit={{ opacity: 0 }}
+                                  className="absolute inset-0 z-20 pointer-events-none overflow-hidden"
+                                >
+                                  {/* The 'Mystical Lens' Reveal Effect */}
+                                  <motion.div
+                                    animate={{
+                                      x: ["-20%", "60%", "10%"],
+                                      y: ["-10%", "30%", "0%"]
+                                    }}
+                                    transition={{ duration: 10, repeat: Infinity, ease: "easeInOut" }}
+                                    className="absolute w-64 h-64 rounded-full z-10"
+                                    style={{
+                                      background: "radial-gradient(circle, rgba(230,178,60,0.15) 0%, transparent 70%)",
+                                      boxShadow: "0 0 100px rgba(230,178,60,0.1) inset"
+                                    }}
+                                  >
+                                    {/* Inner Lens Glow */}
+                                    <div className="absolute inset-0 rounded-full border border-[#E6B23C]/20 shadow-[0_0_30px_rgba(230,178,60,0.1)]" />
+                                  </motion.div>
+
+                                  {/* Constraint Corner Accents */}
+                                  <div className="absolute top-2 left-2 w-4 h-4 border-t border-l border-[#E6B23C]/40" />
+                                  <div className="absolute top-2 right-2 w-4 h-4 border-t border-r border-[#E6B23C]/40" />
+                                  <div className="absolute bottom-2 left-2 w-4 h-4 border-b border-l border-[#E6B23C]/40" />
+                                  <div className="absolute bottom-2 right-2 w-4 h-4 border-b border-r border-[#E6B23C]/40" />
+                                </motion.div>
+                              )}
+                            </AnimatePresence>
+
+                          </div>
+
+                          <button
+                            onClick={resetAll}
+                            className="absolute -top-3 -right-3 h-8 w-8 bg-[#0D0A07] border border-[#E6B23C]/30 rounded-full flex items-center justify-center text-[#A08E70] hover:text-[#E6B23C] transition-all shadow-xl z-20"
+                          >
+                            <X size={16} />
+                          </button>
+                        </div>
+
+                        <motion.div
+                          initial={{ opacity: 0 }}
+                          animate={{ opacity: 1 }}
+                          className="mb-8"
+                        >
+                          <p className="text-[10px] font-bold text-[#A08E70] tracking-widest uppercase truncate opacity-80">
+                            {fileName}
+                          </p>
+                        </motion.div>
+
+                        <AnimatePresence mode="wait">
+                          {!result && (
+                            <motion.div
+                              key="identify-action-button"
+                              initial={{ opacity: 0, y: 10 }}
+                              animate={{ opacity: 1, y: 0 }}
+                              exit={{ opacity: 0, y: -10 }}
+                              className="w-full max-w-[280px]"
+                            >
+                              <Button
+                                onClick={handleDecipher}
+                                disabled={isLoading}
+                                className="h-14 px-12 rounded-full bg-[#E6B23C]/5 border border-[#E6B23C]/30 text-[#E6B23C] hover:bg-[#E6B23C]/10 font-bold text-sm uppercase tracking-[0.2em] transition-all hover:scale-105 shadow-[0_10px_30px_rgba(230,178,60,0.1)] w-full"
+                              >
+                                {isLoading ? (
+                                  <Loader2 size={20} className="animate-spin" />
+                                ) : (
+                                  <>IDENTIFY INSCRIPTION</>
+                                )}
+                              </Button>
+                            </motion.div>
+                          )}
+                        </AnimatePresence>
+                      </motion.div>
+                    ) : (
+                      <motion.div key="idle" initial={{ opacity: 0 }} animate={{ opacity: 1 }} className="flex flex-col items-center">
+                        {/* Hieroglyph Spirit row */}
+                        <motion.div animate={{ opacity: [0.1, 0.4, 0.1] }} transition={{ duration: 4, repeat: Infinity }} className="text-[#E6B23C] text-3xl font-display tracking-[0.6em] mb-6 select-none">
+                          𓂀 𓃭 𓅃 𓆣 𓇳
+                        </motion.div>
+                        <p className="text-[#F5E6D0] font-bold text-lg mb-2">Place Your Image</p>
+                        <p className="text-[#A08E70] text-[10px] font-medium opacity-60 mb-10 tracking-widest">Drop an image or Use your camera</p>
+
+                        <div className="flex flex-col sm:flex-row gap-4">
+                          <Button onClick={pickFile} className="h-12 px-8 rounded-xl bg-[#E6B23C]/10 border border-[#E6B23C]/20 text-[#E6B23C] hover:bg-[#E6B23C]/20 font-bold text-xs uppercase tracking-widest transition-all">
+                            <Upload className={isRTL ? "ml-2" : "mr-2"} size={16} /> UPLOAD
+                          </Button>
+                          <Button variant="outline" onClick={() => alert("Scanner Initializing...")} className="h-12 px-8 rounded-xl border-[#A08E70]/20 bg-transparent text-[#A08E70] hover:text-[#F5E6D0] hover:border-[#F5E6D0]/30 font-bold text-xs uppercase tracking-widest transition-all">
+                            <Camera className={isRTL ? "ml-2" : "mr-2"} size={16} /> CAPTURE
+                          </Button>
+                        </div>
+                      </motion.div>
+                    )}
+                  </AnimatePresence>
+                  <input
+                    ref={fileInputRef}
+                    type="file"
+                    className="hidden"
+                    accept="image/*"
+                    onChange={(e) => acceptFile(e.target.files?.[0] ?? null)}
+                    onClick={(e) => (e.currentTarget.value = "")}
+                  />
                 </div>
               </div>
             </div>
-          </div>
-        </motion.div>
+          </motion.div>
 
-        {/* Right: Result */}
-        <motion.div initial={{ opacity: 0, x: 20 }} animate={{ opacity: 1, x: 0 }} transition={{ delay: 0.2 }} className="lg:col-span-3 h-full">
-          <div className="glass-surface rounded-3xl h-full flex flex-col overflow-hidden min-h-[500px]">
-            <div className="flex border-b border-[#E6B23C]/[0.06]">
-              {(["translation"] as const).map((tab) => (
-                <button key={tab} onClick={() => setActiveTab(tab)}
-                  className={`flex-1 py-5 text-xs font-bold tracking-[0.2em] uppercase transition-all relative ${activeTab === tab ? "text-[#E6B23C]" : "text-[#A08E70] hover:text-[#F5E6D0]"}`}>
-                  {t("translate.tabs.translation")}
-                  {activeTab === tab && (
-                    <motion.div layoutId="tab-line" className="absolute bottom-0 left-0 right-0 h-[2px]"
-                      style={{ background: "linear-gradient(90deg, transparent, #E6B23C, transparent)", boxShadow: "0 0 10px rgba(230,178,60,0.4)" }}
-                      transition={{ type: "spring", stiffness: 380, damping: 30 }}
-                    />
+          {/* Right Column: Result Area - Only appears during processing or after result */}
+          <AnimatePresence>
+            {(isLoading || result) && (
+              <motion.div
+                layout
+                initial={{ opacity: 0, x: 100 }}
+                animate={{ opacity: 1, x: 0 }}
+                exit={{ opacity: 0, x: 100 }}
+                transition={{ duration: 1, ease: [0.16, 1, 0.3, 1] }}
+                className="lg:col-span-1 h-full"
+              >
+                <div className="papyrus-paper h-[640px] flex flex-col transition-all duration-1000 !p-12">
+                  {!result && (
+                    <div className="flex border-b border-[#E6B23C]/[0.06]">
+                      {(["translation"] as const).map((tab) => (
+                        <button key={tab} onClick={() => setActiveTab(tab)}
+                          className={`flex-1 py-6 text-xs font-bold tracking-[0.2em] uppercase transition-all relative ${activeTab === tab ? "text-[#1A1005]" : "text-[#1A1005]/40 hover:text-[#1A1005]"}`}>
+                          {t("translate.tabs.translation")}
+                          {activeTab === tab && (
+                            <motion.div layoutId="tab-line" className="absolute bottom-0 left-0 right-0 h-[2px]"
+                              style={{ background: "linear-gradient(90deg, transparent, #1A1005, transparent)", opacity: 0.2 }}
+                              transition={{ type: "spring", stiffness: 380, damping: 30 }}
+                            />
+                          )}
+                        </button>
+                      ))}
+                    </div>
                   )}
-                </button>
-              ))}
-            </div>
 
-            <div className="flex-1 p-8 md:p-10">
-              <AnimatePresence mode="wait">
-                {isLoading ? (
-                  <motion.div key="loading" initial={{ opacity: 0 }} animate={{ opacity: 1 }} exit={{ opacity: 0 }} className="space-y-6">
-                    <div className="h-12 w-3/4 rounded-2xl shimmer-gold" />
-                    <div className="h-4 w-full rounded-full shimmer-gold" />
-                    <div className="grid grid-cols-3 gap-4 mt-8">
-                      {[0, 1, 2].map(i => <div key={i} className="h-20 rounded-2xl shimmer-gold" style={{ animationDelay: `${i * 0.3}s` }} />)}
-                    </div>
-                  </motion.div>
-                ) : result ? (
-                  <motion.div key="result" initial={{ opacity: 0, y: 10 }} animate={{ opacity: 1, y: 0 }} className="space-y-10">
-                    <div>
-                      <div className="text-xs font-bold tracking-[0.25em] text-[#E6B23C] uppercase mb-4">{t("translate.result.raw")}</div>
-                      <div className="text-3xl md:text-4xl font-bold text-[#F5E6D0] leading-tight font-display tracking-widest bg-[#E6B23C]/[0.03] p-7 rounded-2xl border border-[#E6B23C]/8">
-                        {result.ocr_text}
-                      </div>
-                    </div>
-                    <div>
-                      <div className="text-xs font-bold tracking-[0.25em] text-[#E6B23C] uppercase mb-4">
-                        {t("translate.result.meaning")}
-                      </div>
-                      <div className="relative group">
-                        <div className="absolute -inset-1 bg-[#E6B23C]/10 blur opacity-20 rounded-2xl group-hover:opacity-35 transition-opacity" />
-                        <div className="relative bg-[#0D0A07]/50 border border-[#E6B23C]/10 p-8 rounded-2xl">
-                          <p className="font-heading text-2xl font-bold text-[#F5E6D0] leading-relaxed">
-                            {result.translation}
-                          </p>
-                        </div>
-                      </div>
-                    </div>
-                    <div className="pt-8 border-t border-[#E6B23C]/[0.06]">
-                      <div className="flex items-center gap-2 mb-3">
-                        <Search size={14} className={`${isRTL ? 'ml-0' : 'mr-0'} text-[#E6B23C]`} />
-                        <span className="text-xs font-bold tracking-[0.15em] text-[#F5E6D0] uppercase">{t("translate.result.explanation")}</span>
-                      </div>
-                      <p className={`text-sm text-[#A08E70] leading-relaxed italic ${isRTL ? 'border-r-2 pr-5' : 'border-l-2 pl-5'} border-[#E6B23C]/20`}>{result.explanation}</p>
-                    </div>
-                  </motion.div>
-                ) : (
-                  <motion.div key="empty" initial={{ opacity: 0 }} animate={{ opacity: 1 }} className="h-full flex flex-col items-center justify-center text-center opacity-30 select-none py-20">
-                    <Languages size={56} className="mb-6 text-[#E6B23C]/50" />
-                    <p className="text-xs font-bold tracking-[0.15em] text-[#A08E70] uppercase max-w-xs">{t("translate.empty")}</p>
-                  </motion.div>
-                )}
-              </AnimatePresence>
-            </div>
+                  <div className="flex-1">
+                    <AnimatePresence mode="wait">
+                      {isLoading ? (
+                        <motion.div key="loading" initial={{ opacity: 0 }} animate={{ opacity: 1 }} exit={{ opacity: 0 }} className="h-full flex flex-col justify-center py-10">
+                          <div className="text-center mb-10">
+                            <motion.div
+                              animate={{ opacity: [0.4, 1, 0.4] }}
+                              transition={{ duration: 2, repeat: Infinity }}
+                              className="text-[10px] font-bold tracking-[0.4em] text-[#1A1005]/60 uppercase mb-2"
+                            >
+                              Neural Processor Active
+                            </motion.div>
+                            <h3 className="text-[#1A1005] font-display text-2xl font-bold tracking-widest italic" style={{ fontFamily: 'var(--font-cormorant), serif' }}>
+                              Deciphering Inscription...
+                            </h3>
+                          </div>
 
-            {result && (
-              <div className="p-5 border-t border-[#E6B23C]/[0.06] flex justify-end">
-                <Button variant="ghost" className="text-[#E6B23C] hover:text-[#FFD369] hover:bg-[#E6B23C]/5 rounded-xl h-10 px-5" onClick={resetAll}>
-                  <Trash2 size={14} className={isRTL ? "ml-2" : "mr-2"} />
-                  <span className="text-xs font-bold tracking-[0.15em] uppercase">{t("translate.button.purge")}</span>
-                </Button>
-              </div>
+                          <div className="relative flex-1 mt-4">
+                            {/* Base Faint Line */}
+                            <svg className="absolute inset-0 w-full h-full overflow-visible pointer-events-none opacity-15" preserveAspectRatio="none" viewBox="0 0 100 100">
+                              <path
+                                d="M 15 15 C 15 35, 85 20, 85 40 C 85 60, 15 45, 15 65 C 15 85, 85 70, 85 90"
+                                stroke="#1A1005"
+                                fill="none"
+                                strokeWidth="0.5"
+                                strokeDasharray="2 2"
+                              />
+                            </svg>
+                            {/* Animated Highlight Line (Achievement) */}
+                            <svg className="absolute inset-0 w-full h-full overflow-visible pointer-events-none opacity-90" preserveAspectRatio="none" viewBox="0 0 100 100">
+                              <motion.path
+                                d="M 15 15 C 15 35, 85 20, 85 40 C 85 60, 15 45, 15 65 C 15 85, 85 70, 85 90"
+                                stroke="#8B4513"
+                                fill="none"
+                                strokeWidth="0.6"
+                                initial={{ pathLength: 0 }}
+                                animate={{ pathLength: 1 }}
+                                transition={{ duration: 9, ease: "linear" }}
+                              />
+                            </svg>
+
+                            <div className="absolute inset-0">
+                              {[
+                                { title: "Scanning Inscription", icon: Search, top: "15%", left: "15%", align: "start", delay: 0 },
+                                { title: "Recognizing Symbols", icon: Cpu, top: "40%", left: "85%", align: "end", delay: 3.0 },
+                                { title: "Determining Sequence", icon: BookOpen, top: "65%", left: "15%", align: "start", delay: 6.0 },
+                                { title: "Generating Translation", icon: "𓅓", top: "90%", left: "85%", align: "end", delay: 9.0 }
+                              ].map((step, i) => (
+                                <motion.div
+                                  key={i}
+                                  initial={{ opacity: 0, scale: 0.8 }}
+                                  animate={{ opacity: 1, scale: 1 }}
+                                  transition={{ delay: step.delay }}
+                                  className="absolute"
+                                  style={{ 
+                                    top: step.top, 
+                                    left: step.left, 
+                                    transform: 'translate(-50%, -50%)' 
+                                  }}
+                                >
+                                  {/* ICON */}
+                                  <motion.div
+                                    animate={{
+                                      borderColor: ["rgba(26,16,5,0.1)", "rgba(26,16,5,0.4)", "rgba(26,16,5,0.1)"],
+                                      boxShadow: ["0 0 0px transparent", "0 0 20px rgba(26,16,5,0.08)", "0 0 0px transparent"]
+                                    }}
+                                    transition={{ duration: 2, repeat: Infinity, delay: step.delay }}
+                                    className="w-12 h-12 rounded-full bg-[#1A1005]/5 border border-[#1A1005]/20 flex items-center justify-center relative z-20"
+                                  >
+                                    {typeof step.icon === 'string' ? (
+                                      <span className="text-2xl text-[#1A1005] leading-none select-none -translate-y-0.5">{step.icon}</span>
+                                    ) : (
+                                      <step.icon size={20} className="text-[#1A1005]" />
+                                    )}
+                                  </motion.div>
+
+                                  {/* TEXT */}
+                                  <div 
+                                    className={`absolute top-1/2 -translate-y-1/2 whitespace-nowrap space-y-0.5 ${step.align === "end" ? "right-[calc(100%+16px)] text-right" : "left-[calc(100%+16px)] text-left"}`}
+                                  >
+                                    <div className="text-[8px] font-bold tracking-[0.3em] text-[#9A4C2E] uppercase font-sans">Phase 0{i + 1}</div>
+                                    <div className="text-[11px] font-bold text-[#1A1005]/80 tracking-widest uppercase font-sans">
+                                      {step.title}
+                                    </div>
+                                  </div>
+                                </motion.div>
+                              ))}
+                            </div>
+                          </div>
+                        </motion.div>
+                      ) : result ? (
+                        <motion.div key="result" initial={{ opacity: 0, y: 10 }} animate={{ opacity: 1, y: 0 }} className="h-full flex flex-col">
+                          <div className="flex-1">
+                            {/* Ancient Title */}
+                            <div className="mb-10 border-b border-[#1A1005]/10 pb-6">
+                              <div className="text-[10px] font-bold tracking-[0.4em] text-[#1A1005]/50 uppercase mb-3 font-sans">Deciphered Inscription</div>
+                              <h2 className="text-4xl md:text-5xl font-bold text-[#1A1005] tracking-tight italic" style={{ fontFamily: "var(--font-cormorant), serif" }}>
+                                &quot;{result.translation}&quot;
+                              </h2>
+                            </div>
+
+                            {/* OCR Text */}
+                            <div className="mb-12">
+                              <div className="text-[10px] font-bold tracking-[0.3em] text-[#1A1005]/40 uppercase mb-5 font-sans">Hieroglyphic Script</div>
+                              <div className="text-5xl md:text-6xl text-[#1A1005] leading-relaxed tracking-[0.25em] select-none py-6 border-l-4 border-[#1A1005]/5 pl-10 italic">
+                                {result.ocr_text}
+                              </div>
+                            </div>
+
+                            <div className="grid md:grid-cols-2 gap-12">
+                              {/* Transliteration */}
+                              <div>
+                                <p className="text-[10px] font-bold tracking-[0.3em] text-[#1A1005]/40 uppercase mb-4">Transliteration</p>
+                                <p className="text-2xl font-medium text-[#1A1005]/80 italic leading-snug" style={{ fontFamily: "var(--font-cormorant), serif" }}>
+                                  {result.transliteration}
+                                </p>
+                              </div>
+
+                              {/* Explanation */}
+                              <div className="bg-[#1A1005]/[0.03] p-8 rounded-2xl border border-[#1A1005]/5 relative overflow-hidden h-full">
+                                <div className="absolute top-0 right-0 p-4 opacity-5">
+                                  <BookOpen size={40} />
+                                </div>
+                                <p className="text-[10px] font-bold tracking-[0.3em] text-[#1A1005]/40 uppercase mb-4">Historical Context</p>
+                                <p className="text-lg text-[#1A1005]/70 leading-relaxed font-medium" style={{ fontFamily: "var(--font-cormorant), serif" }}>
+                                  {result.explanation}
+                                </p>
+                              </div>
+                            </div>
+                          </div>
+
+                          {/* Footer Ornament */}
+                          <div className="mt-12 pt-8 border-t border-[#1A1005]/5 flex justify-center opacity-40">
+                            <div className="text-[10px] font-bold tracking-[0.6em] text-[#1A1005] uppercase">𓋹 𓂀 𓋹</div>
+                          </div>
+                        </motion.div>
+                      ) : null}
+                    </AnimatePresence>
+                  </div>
+
+                  {result && (
+                    <div className="mt-10 flex justify-end">
+                      <Button
+                        variant="ghost"
+                        className="text-[#1A1005]/40 hover:text-[#1A1005] hover:bg-[#1A1005]/5 rounded-xl h-10 px-5 font-bold text-[10px] tracking-[0.2em] uppercase transition-all"
+                        onClick={resetAll}
+                      >
+                        <Trash2 size={14} className={isRTL ? "ml-2" : "mr-2"} />
+                        {t("translate.button.purge")}
+                      </Button>
+                    </div>
+                  )}
+                </div>
+              </motion.div>
             )}
-          </div>
+          </AnimatePresence>
+        </div>
+
+        {/* Global Footer Navigation */}
+        <motion.div
+          initial={{ opacity: 0 }}
+          animate={{ opacity: 1 }}
+          transition={{ delay: 1 }}
+          className="mt-12 flex justify-center w-full"
+        >
+          <button
+            onClick={() => router.back()}
+            className="flex items-center gap-3 px-6 py-2 rounded-full bg-[#E6B23C]/5 border border-[#E6B23C]/10 text-[10px] font-bold tracking-[0.3em] text-[#A08E70]/60 hover:text-[#E6B23C] hover:border-[#E6B23C]/30 uppercase transition-all group cursor-pointer"
+          >
+            <motion.span
+              animate={{ x: isRTL ? [0, 5, 0] : [0, -5, 0] }}
+              transition={{ duration: 2, repeat: Infinity }}
+            >
+              {isRTL ? "→" : "←"}
+            </motion.span>
+            {t("common.return")}
+          </button>
         </motion.div>
       </div>
-    </PageShell>
+    </PageShell >
   );
 }

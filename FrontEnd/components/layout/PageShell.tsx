@@ -13,6 +13,7 @@ import { createClient } from "../../lib/supabase/client";
 import { LogOut, Settings } from "lucide-react";
 
 import Footer from "./Footer";
+import ProfileSidebar from "../profile/ProfileSidebar";
 
 export default function PageShell({ 
   children, 
@@ -32,6 +33,7 @@ export default function PageShell({
   const [menuOpen, setMenuOpen] = useState(false);
   const [langOpen, setLangOpen] = useState(false);
   const [userOpen, setUserOpen] = useState(false);
+  const [profileOpen, setProfileOpen] = useState(false);
   const [user, setUser] = useState<any>(null);
   const supabase = createClient();
 
@@ -198,8 +200,8 @@ export default function PageShell({
                     </Link>
                   ) : (
                     <>
-                      <Link 
-                        href="/profile"
+                      <button 
+                        onClick={() => setProfileOpen(true)}
                         className="h-10 w-10 flex items-center justify-center rounded-full bg-[#E6B23C]/10 border border-[#E6B23C]/20 text-[#E6B23C] hover:bg-[#E6B23C]/20 transition-all shadow-[0_0_15px_rgba(230,178,60,0.1)] group overflow-hidden"
                       >
                         {user.user_metadata?.avatar_url ? (
@@ -207,7 +209,7 @@ export default function PageShell({
                         ) : (
                           <User size={18} className="transition-transform group-hover:scale-110" />
                         )}
-                      </Link>
+                      </button>
                     </>
                   )}
                 </div>
@@ -237,6 +239,9 @@ export default function PageShell({
           <feDisplacementMap in="SourceGraphic" in2="noise" scale="18" />
         </filter>
       </svg>
+
+      {/* Profile Sidebar */}
+      <ProfileSidebar isOpen={profileOpen} onClose={() => setProfileOpen(false)} />
     </main>
   );
 }

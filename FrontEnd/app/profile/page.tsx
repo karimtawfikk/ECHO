@@ -3,7 +3,7 @@
 import PageShell from "../../components/layout/PageShell";
 import { motion, AnimatePresence } from "framer-motion";
 import {
-    LogOut, Settings, Camera, MessageSquare, History as HistoryIcon, Bookmark, Search, ChevronRight, User, History
+    LogOut, Settings, Camera, MessageSquare, History as HistoryIcon, Bookmark, Search, ChevronRight, User, History, Calendar
 } from "lucide-react";
 import { ALL_PHARAOHS, ALL_LANDMARKS } from "../../lib/mock/mock-all-entities";
 import { saveResultToSession } from "../../lib/services/recognition";
@@ -180,6 +180,12 @@ export default function ProfilePage() {
                         <h1 className="text-3xl font-bold text-[#F5E6D0]">
                             {userData.name}
                         </h1>
+                        <div className="flex items-center gap-2 mt-2 text-[#A08E70]">
+                            <Calendar size={13} className="text-[#E6B23C]/60" />
+                            <span className="text-[10px] font-bold uppercase tracking-[0.2em]">
+                                {userData.joined}
+                            </span>
+                        </div>
                     </div>
 
                     {/* ── TABS ─────────────────────────────────────────────── */}
@@ -188,10 +194,10 @@ export default function ProfilePage() {
                             <button
                                 key={tab}
                                 onClick={() => setActiveTab(tab)}
-                                className="flex-1 py-5 text-[11px] font-black tracking-widest uppercase relative transition-colors"
+                                className="flex-1 py-5 flex items-center justify-center relative transition-colors"
                             >
                                 <span className={activeTab === tab ? "text-[#E6B23C]" : "text-[#A08E70] hover:text-[#F5E6D0]"}>
-                                    {tab === "saved" ? "Saved" : tab === "chats" ? "Chats" : "History"}
+                                    {tab === "saved" ? <Bookmark size={20} /> : tab === "chats" ? <MessageSquare size={20} /> : <HistoryIcon size={20} />}
                                 </span>
                                 {activeTab === tab && (
                                     <motion.div

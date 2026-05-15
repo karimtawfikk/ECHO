@@ -1,10 +1,10 @@
 "use client";
 
-import { motion } from "framer-motion";
+import { motion, AnimatePresence } from "framer-motion";
 import { useRouter, useSearchParams } from "next/navigation";
 import PageShell from "@/components/layout/PageShell";
 import { Button } from "@/components/ui/button";
-import { Video, MessageSquare, ChevronLeft, Scroll, Crown, MapPin, Sparkles, Hourglass, Bookmark, Check } from "lucide-react";
+import { Video, MessageSquare, ChevronLeft, Scroll, Crown, MapPin, Sparkles, Hourglass, Bookmark, Check, BookmarkMinus } from "lucide-react";
 import Link from "next/link";
 import { Suspense, useState, useEffect, useMemo } from "react";
 import { PHARAOHS, LANDMARKS } from "@/lib/mock/mock-trending";
@@ -167,34 +167,42 @@ function ResultContent() {
         .single();
 
       const existingFavorites = Array.isArray(profile?.favorites) ? profile.favorites : [];
-      
+
       // Check if already favorited
       const alreadyFavorited = existingFavorites.some((f: any) => f.name === displayName);
-      
+
       if (alreadyFavorited) {
+        // Remove from favorites
+        const updatedFavorites = existingFavorites.filter((f: any) => f.name !== displayName);
+        const { error } = await supabase
+          .from('profiles')
+          .update({
+            favorites: updatedFavorites
+          })
+          .eq('id', user.id);
+
+        if (error) throw error;
+        setIsSaved(false);
+      } else {
+        // Add to favorites
+        const newFavorite = {
+          name: displayName,
+          type: displayType,
+          date: new Date().toLocaleDateString('en-US', { month: 'short', day: 'numeric', year: 'numeric' })
+        };
+
+        const { error } = await supabase
+          .from('profiles')
+          .update({
+            favorites: [...existingFavorites, newFavorite]
+          })
+          .eq('id', user.id);
+
+        if (error) throw error;
         setIsSaved(true);
-        setIsSaving(false);
-        return;
       }
-
-      const newFavorite = {
-        name: displayName, // Original name (e.g. "Tutankhamun (Pharaoh)")
-        type: displayType,
-        date: new Date().toLocaleDateString('en-US', { month: 'short', day: 'numeric', year: 'numeric' })
-      };
-
-      const { error } = await supabase
-        .from('profiles')
-        .update({
-          favorites: [...existingFavorites, newFavorite]
-        })
-        .eq('id', user.id);
-
-      if (error) throw error;
-
-      setIsSaved(true);
     } catch (error) {
-      console.error("Error saving favorite:", error);
+      console.error("Error toggling favorite:", error);
     } finally {
       setIsSaving(false);
     }
@@ -408,28 +416,27 @@ function ResultContent() {
                 </div>
               )}
 
-              <Button
-                onClick={handleToggleFavorite}
-                disabled={isSaving || isSaved}
-                className={`h-14 rounded-2xl font-bold text-base transition-all hover:scale-[1.02] shadow-[0_4px_30px_rgba(0,0,0,0.2)] flex items-center justify-center gap-3
-                  ${isSaved 
-                    ? "bg-[#1A1A1A] text-[#E6B23C] border border-[#E6B23C]/20" 
-                    : "bg-[#D8C09A] hover:bg-[#C8B08A] text-[#1A1005]"}`}
-              >
-                {isSaving ? (
-                  <div className="h-5 w-5 border-2 border-[#1A1005]/30 border-t-[#1A1005] rounded-full animate-spin" />
-                ) : isSaved ? (
-                  <>
-                    <Check size={20} />
-                    Added to favorites
-                  </>
-                ) : (
-                  <>
-                    <Bookmark size={20} />
-                    Add to favorites
-                  </>
-                )}
-              </Button>
+              <div className="flex w-full">
+                <Button
+                  onClick={handleToggleFavorite}
+                  disabled={isSaving}
+                  className="h-14 flex-1 rounded-2xl font-bold text-base transition-all shadow-[0_4px_30px_rgba(0,0,0,0.2)] flex items-center justify-center gap-3 bg-[#D8C09A] text-[#1A1005] hover:bg-[#C8B08A] hover:shadow-[0_0_30px_rgba(216,192,154,0.2)]"
+                >
+                  {isSaving ? (
+                    <div className="h-5 w-5 border-2 border-current border-t-transparent rounded-full animate-spin" />
+                  ) : isSaved ? (
+                    <>
+                      <BookmarkMinus size={20} />
+                      Remove from Favorites
+                    </>
+                  ) : (
+                    <>
+                      <Bookmark size={20} />
+                      Add to Favorites
+                    </>
+                  )}
+                </Button>
+              </div>
             </div>
 
           </motion.div>
