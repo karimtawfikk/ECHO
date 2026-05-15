@@ -45,7 +45,7 @@ export default function TranslatePage() {
       setResult({
         ocr_text: "𓋹 𓎬 𓇳 𓅓 𓊵 𓏏 𓊪",
         transliteration: "Ankh Udja Seneb m Hotep",
-        translation: "Life, Prosperity, Health in Peace",
+        translation: "Life, Prosperity, Health in Peace, Life, Prosperity",
         explanation: "This classic formulary invokes the triad of vital blessings upon the bearer. Found frequently on funerary stelae and royal seals of the New Kingdom.",
       });
       setIsLoading(false);
@@ -116,7 +116,7 @@ export default function TranslatePage() {
 
 
         <div
-          className={`w-full grid gap-12 transition-all duration-1000 ease-[0.16,1,0.3,1] mx-auto items-stretch ${(isLoading || result) ? 'lg:grid-cols-2 max-w-7xl' : 'grid-cols-1 max-w-xl'
+          className={`w-full grid gap-12 transition-all duration-1000 ease-[0.16,1,0.3,1] mx-auto items-center ${(isLoading || result) ? 'lg:grid-cols-2 max-w-7xl' : 'grid-cols-1 max-w-xl'
             }`}
         >
 
@@ -320,150 +320,126 @@ export default function TranslatePage() {
                 animate={{ opacity: 1, x: 0 }}
                 exit={{ opacity: 0, x: 100 }}
                 transition={{ duration: 1, ease: [0.16, 1, 0.3, 1] }}
-                className="lg:col-span-1 h-full"
+                className="lg:col-span-1"
               >
-                <div className="papyrus-paper h-[640px] flex flex-col transition-all duration-1000 !p-12">
-
-
-                  <div className="flex-1">
-                    <AnimatePresence mode="wait">
-                      {isLoading ? (
-                        <motion.div key="loading" initial={{ opacity: 0 }} animate={{ opacity: 1 }} exit={{ opacity: 0 }} className="h-full flex flex-col justify-center py-10">
-                          <div className="text-center mb-6">
-                            <h3 className="text-[#1A1005] font-display text-2xl font-bold tracking-widest italic" style={{ fontFamily: 'var(--font-cormorant), serif' }}>
-                              Deciphering Inscription...
-                            </h3>
-                          </div>
-
-                          <div className="relative flex-1 mt-4">
-                            {/* Base Faint Line (Dashed Trail) */}
-                            <svg className="absolute inset-0 w-full h-full overflow-visible pointer-events-none opacity-10" preserveAspectRatio="none" viewBox="0 0 100 100">
-                              <path
-                                d="M 10 10 C 10 32.5, 90 12.5, 90 35 C 90 57.5, 10 37.5, 10 60 C 10 82.5, 90 62.5, 90 85"
-                                stroke="#1A1005"
-                                fill="none"
-                                strokeWidth="0.5"
-                                strokeDasharray="4 4"
-                              />
-                            </svg>
-                            {/* Animated Highlight Line (Achievement with Glow) */}
-                            <svg className="absolute inset-0 w-full h-full overflow-visible pointer-events-none z-10" preserveAspectRatio="none" viewBox="0 0 100 100">
-                              <motion.path
-                                d="M 10 10 C 10 32.5, 90 12.5, 90 35 C 90 57.5, 10 37.5, 10 60 C 10 82.5, 90 62.5, 90 85"
-                                stroke="#B8860B"
-                                fill="none"
-                                strokeWidth="1.0"
-                                initial={{ pathLength: 0 }}
-                                animate={{ pathLength: 1 }}
-                                transition={{ duration: 9, ease: "linear" }}
-                                className="drop-shadow-[0_0_10px_rgba(184,134,11,0.5)]"
-                              />
-                            </svg>
-
-                            <div className="absolute inset-0">
-                              {[
-                                { title: "Scanning Inscription", icon: Search, top: "10%", left: "10%", align: "start", delay: 0 },
-                                { title: "Recognizing Symbols", icon: Cpu, top: "30%", left: "83%", align: "end", delay: 3.0 },
-                                { title: "Determining Sequence", icon: BookOpen, top: "60%", left: "10%", align: "start", delay: 6.0 },
-                                { title: "Generating Translation", icon: "𓅓", top: "85%", left: "83%", align: "end", delay: 9.0 }
-                              ].map((step, i) => (
-                                <motion.div
-                                  key={i}
-                                  initial={{ opacity: 0, scale: 0.8 }}
-                                  animate={{ opacity: 1, scale: 1 }}
-                                  transition={{ delay: step.delay }}
-                                  className="absolute"
-                                  style={{
-                                    top: step.top,
-                                    left: step.left,
-                                    transform: 'translate(-50%, -50%)'
-                                  }}
-                                >
-                                  {/* ICON */}
-                                  <motion.div
-                                    animate={{
-                                      borderColor: ["rgba(26,16,5,0.1)", "rgba(26,16,5,0.4)", "rgba(26,16,5,0.1)"],
-                                      boxShadow: ["0 0 0px transparent", "0 0 20px rgba(26,16,5,0.08)", "0 0 0px transparent"]
-                                    }}
-                                    transition={{ duration: 2, repeat: Infinity, delay: step.delay }}
-                                    className="w-14 h-14 rounded-full bg-[#1A1005]/5 border border-[#1A1005]/20 flex items-center justify-center relative z-20"
-                                  >
-                                    {typeof step.icon === 'string' ? (
-                                      <span className="text-3xl text-[#1A1005] leading-none select-none -translate-y-0.5">{step.icon}</span>
-                                    ) : (
-                                      <step.icon size={24} className="text-[#1A1005]" />
-                                    )}
-                                  </motion.div>
-
-                                  {/* TEXT */}
-                                  <div
-                                    className={`absolute top-1/2 -translate-y-1/2 whitespace-nowrap space-y-0.5 ${step.align === "end" ? "right-[calc(100%+32px)] text-right" : "left-[calc(100%+32px)] text-left"}`}
-                                  >
-                                    <div className="text-[10px] font-bold tracking-[0.3em] text-[#B8860B] uppercase font-sans">Phase 0{i + 1}</div>
-                                    <div className="text-[13px] font-bold text-[#1A1005]/80 tracking-widest uppercase font-sans">
-                                      {step.title}
-                                    </div>
-                                  </div>
-                                </motion.div>
-                              ))}
-                            </div>
-                          </div>
-                        </motion.div>
-                      ) : result ? (
-                        <motion.div key="result" initial={{ opacity: 0, y: 10 }} animate={{ opacity: 1, y: 0 }} className="h-full flex flex-col">
-                          <div className="flex-1">
-                            {/* Ancient Title */}
-                            <div className="mb-12 text-center">
-                              <div className="text-[10px] font-bold tracking-[0.4em] text-[#1A1005]/50 uppercase mb-2 font-sans">Translation</div>
-                              <div className="w-12 h-[1px] bg-[#1A1005]/20 mx-auto mb-6" />
-                              <h2 className="text-4xl md:text-5xl font-bold text-[#1A1005] tracking-tight italic" style={{ fontFamily: "var(--font-cormorant), serif" }}>
-                                &quot;{result.translation}&quot;
-                              </h2>
-                            </div>
-
-
-                            <div className="grid md:grid-cols-2 gap-12">
-                              {/* Transliteration */}
-                              <div>
-                                <p className="text-[10px] font-bold tracking-[0.3em] text-[#1A1005]/40 uppercase mb-4">Transliteration</p>
-                                <p className="text-2xl font-medium text-[#1A1005]/80 italic leading-snug" style={{ fontFamily: "var(--font-cormorant), serif" }}>
-                                  {result.transliteration}
-                                </p>
-                              </div>
-
-                              {/* Explanation */}
-                              <div className="bg-[#1A1005]/[0.03] p-8 rounded-2xl border border-[#1A1005]/5 relative overflow-hidden h-full">
-                                <div className="absolute top-0 right-0 p-4 opacity-5">
-                                  <BookOpen size={40} />
-                                </div>
-                                <p className="text-[10px] font-bold tracking-[0.3em] text-[#1A1005]/40 uppercase mb-4">Historical Context</p>
-                                <p className="text-lg text-[#1A1005]/70 leading-relaxed font-medium" style={{ fontFamily: "var(--font-cormorant), serif" }}>
-                                  {result.explanation}
-                                </p>
-                              </div>
-                            </div>
-                          </div>
-
-                          {/* Footer Ornament */}
-                          <div className="mt-12 pt-8 border-t border-[#1A1005]/5 flex justify-center opacity-40">
-                          </div>
-                        </motion.div>
-                      ) : null}
-                    </AnimatePresence>
-                  </div>
-
-                  {result && (
-                    <div className="mt-10 flex justify-end">
-                      <Button
-                        variant="ghost"
-                        className="text-[#1A1005]/40 hover:text-[#1A1005] hover:bg-[#1A1005]/5 rounded-xl h-10 px-5 font-bold text-[10px] tracking-[0.2em] uppercase transition-all"
-                        onClick={resetAll}
+                <div>
+                  <AnimatePresence mode="wait">
+                    {isLoading ? (
+                      <motion.div
+                        key="loading"
+                        initial={{ opacity: 0, scale: 0.95 }}
+                        animate={{ opacity: 1, scale: 1 }}
+                        exit={{ opacity: 0, scale: 0.95 }}
+                        className="p-12 h-[640px] flex flex-col relative overflow-hidden"
                       >
-                        <Trash2 size={14} className={isRTL ? "ml-2" : "mr-2"} />
-                        {t("translate.button.purge")}
-                      </Button>
-                    </div>
-                  )}
+
+                        <div className="text-center mb-10 relative z-10">
+                          <h1 className="font-display text-3xl font-bold text-[#F5E6D0] tracking-[0.1em] uppercase mb-3" style={{ fontFamily: 'var(--font-cormorant), serif' }}>
+                            Deciphering Inscription
+                          </h1>
+                          <div className="w-24 h-[1px] mx-auto mb-4 bg-gradient-to-r from-transparent via-[#E6B23C]/40 to-transparent" />
+                        </div>
+
+                        <div className="relative flex-1 mt-4 z-10">
+                          {/* Base Faint Line (Dashed Trail) */}
+                          <svg className="absolute inset-0 w-full h-full overflow-visible pointer-events-none opacity-15" preserveAspectRatio="none" viewBox="0 0 100 100">
+                            <path
+                              d="M 10 10 C 10 32.5, 90 12.5, 90 35 C 90 57.5, 10 37.5, 10 60 C 10 82.5, 90 62.5, 90 85"
+                              stroke="#F5E6D0"
+                              fill="none"
+                              strokeWidth="0.6"
+                              strokeDasharray="4 4"
+                            />
+                          </svg>
+                          {/* Animated Highlight Line (Achievement with Glow) */}
+                          <svg className="absolute inset-0 w-full h-full overflow-visible pointer-events-none z-10" preserveAspectRatio="none" viewBox="0 0 100 100">
+                            <motion.path
+                              d="M 10 10 C 10 32.5, 90 12.5, 90 35 C 90 57.5, 10 37.5, 10 60 C 10 82.5, 90 62.5, 90 85"
+                              stroke="#E6B23C"
+                              fill="none"
+                              strokeWidth="0.4"
+                              initial={{ pathLength: 0 }}
+                              animate={{ pathLength: 1 }}
+                              transition={{ duration: 9, ease: "linear" }}
+                              className="drop-shadow-[0_0_10px_rgba(230,178,60,0.5)]"
+                            />
+                          </svg>
+
+                          <div className="absolute inset-0">
+                            {[
+                              { title: "Scanning Inscription", icon: Search, top: "10%", left: "10%", align: "start", delay: 0 },
+                              { title: "Recognizing Symbols", icon: Cpu, top: "30%", left: "83%", align: "end", delay: 3.0 },
+                              { title: "Determining Sequence", icon: BookOpen, top: "52%", left: "4.7%", align: "start", delay: 6.0 },
+                              { title: "Generating Translation", icon: "𓅓", top: "85%", left: "83%", align: "end", delay: 9.0 }
+                            ].map((step, i) => (
+                              <motion.div
+                                key={i}
+                                initial={{ opacity: 0, scale: 0.8 }}
+                                animate={{ opacity: 1, scale: 1 }}
+                                transition={{ delay: step.delay }}
+                                className="absolute"
+                                style={{
+                                  top: step.top,
+                                  left: step.left,
+                                  transform: 'translate(-50%, -50%)'
+                                }}
+                              >
+                                {/* ICON */}
+                                <motion.div
+                                  animate={{
+                                    borderColor: ["rgba(230,178,60,0.1)", "rgba(230,178,60,0.4)", "rgba(230,178,60,0.1)"],
+                                    boxShadow: ["0 0 0px transparent", "0 0 20px rgba(230,178,60,0.08)", "0 0 0px transparent"]
+                                  }}
+                                  transition={{ duration: 2, repeat: Infinity, delay: step.delay }}
+                                  // Around line 394
+                                  className={`w-14 h-14 rounded-full bg-[#E6B23C]/5 border border-[#E6B23C]/20 flex items-center justify-center relative z-20 ${(i === 0) ? 'translate-y-1' : ''}`}
+                                >
+                                  {typeof step.icon === 'string' ? (
+                                    <span className="text-3xl text-[#E6B23C] leading-none select-none -translate-y-0.5">{step.icon}</span>
+                                  ) : (
+                                    <step.icon size={24} className="text-[#E6B23C]" />
+                                  )}
+                                </motion.div>
+
+                                {/* TEXT */}
+                                <div
+                                  className={`absolute top-1/2 -translate-y-1/2 whitespace-nowrap space-y-0.5 ${step.align === "end" ? "right-[calc(100%+32px)] text-right" : "left-[calc(100%+32px)] text-left"}`}
+                                >
+                                  <div className="text-[10px] font-bold tracking-[0.3em] text-[#E6B23C]/60 uppercase font-sans">Phase 0{i + 1}</div>
+                                  <div className="text-[13px] font-bold text-[#F5E6D0]/80 tracking-widest uppercase font-sans">
+                                    {step.title}
+                                  </div>
+                                </div>
+                              </motion.div>
+                            ))}
+                          </div>
+                        </div>
+                      </motion.div>
+                    ) : result ? (
+                      <motion.div
+                        key="result"
+                        initial={{ opacity: 0, y: 10 }}
+                        animate={{ opacity: 1, y: 0 }}
+                        className="papyrus-paper h-fit flex flex-col transition-all duration-1000 !p-12 shadow-[0_30px_100px_rgba(0,0,0,0.9)]"
+                      >
+                        <div className="flex-1">
+                          {/* Ancient Title */}
+                          <div className="mb-12 text-center">
+                            <h1 className="font-display text-3xl font-bold text-[#1A1005] tracking-[0.1em] uppercase mb-4" style={{ fontFamily: 'var(--font-cormorant), serif' }}>
+                              Translation
+                            </h1>
+                            <div className="w-24 h-[1px] mx-auto mb-10 bg-gradient-to-r from-transparent via-[#1A1005]/20 to-transparent" />
+                          </div>
+
+                          <div className="text-left">
+                            <p className="text-xl md:text-2xl font-medium text-[#1A1005]/90 leading-relaxed" style={{ fontFamily: "var(--font-cormorant), serif" }}>
+                              {result.translation}
+                            </p>
+                          </div>
+                        </div>
+                      </motion.div>
+                    ) : null}
+                  </AnimatePresence>
                 </div>
               </motion.div>
             )}

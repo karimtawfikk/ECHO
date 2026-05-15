@@ -260,7 +260,6 @@
 .papyrus-paper h2 {
   font-family: var(--font-cormorant), serif;
   letter-spacing: 0.08em;
-  border-bottom: 1px dashed rgba(26, 16, 5, 0.12);
   padding-bottom: 1rem;
   margin-bottom: 1.8rem;
   font-weight: 700;
