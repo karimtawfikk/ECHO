@@ -476,10 +476,10 @@ export default function TranslatePage() {
                                   >
                                     {/* ICON */}
                                     <motion.div
-                                        animate={{
-                                          boxShadow: (currentStep >= i && currentStep < i + 1) ? "0 0 30px rgba(230,178,60,0.4)" : "0 0 0px transparent",
-                                          scale: (currentStep >= i && currentStep < i + 1) ? [1, 1.08, 1] : 1
-                                        }}
+                                      animate={{
+                                        boxShadow: (currentStep >= i && currentStep < i + 1) ? "0 0 30px rgba(230,178,60,0.4)" : "0 0 0px transparent",
+                                        scale: (currentStep >= i && currentStep < i + 1) ? [1, 1.08, 1] : 1
+                                      }}
                                       transition={{
                                         duration: (currentStep >= i && currentStep < i + 1) ? 1.5 : 0.5,
                                         repeat: (currentStep >= i && currentStep < i + 1) ? Infinity : 0,

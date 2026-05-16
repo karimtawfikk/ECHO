@@ -110,7 +110,7 @@ class HieroglyphDetectionRuntime:
         print(f"[hieroglyph] Loading detection model: {model_path.name}", flush=True)
         load_start = time.time()
         self._detection_model = YOLO(str(model_path))
-        self._detection_model.to("cpu")
+        self._detection_model.to(self._device)
         print(f"[hieroglyph] Detection model ready in {time.time() - load_start:.2f}s", flush=True)
         return self._detection_model
 
@@ -558,32 +558,33 @@ class HieroglyphDetectionRuntime:
         return final
 
     def _are_stacked(self, a: dict, b: dict, median_h: float, median_w: float) -> bool:
-        """
-        Two symbols are stacked only if:
-        1. They overlap significantly on the X-axis (X-IoU > threshold)
-        2. They are vertically close — dynamic Y gate scaled to symbol size
-        3. They share the same column — dynamic X-center proximity gate
-        """
+        # Gate 0: Outlier exclusion — symbols much larger than median
+        # cannot be part of a stacked group
+        h_a = a["bbox"][3] - a["bbox"][1]
+        h_b = b["bbox"][3] - b["bbox"][1]
+        w_a = a["bbox"][2] - a["bbox"][0]
+        w_b = b["bbox"][2] - b["bbox"][0]
+
+        if h_a > 2.0 * median_h or h_b > 2.0 * median_h:
+            return False
+        if w_a > 2.0 * median_w or w_b > 2.0 * median_w:
+            return False
+
+        # Gate 1: X-IoU
         x_iou = self._get_x_iou(a, b)
         if x_iou <= self.config.quadrant_x_overlap_threshold:
             return False
 
-        h_a = a["bbox"][3] - a["bbox"][1]
-        h_b = b["bbox"][3] - b["bbox"][1]
+        # Gate 2: Y-distance using smaller symbol's own height
         smaller_h = min(h_a, h_b)
         y_dist = abs(a["centre_y"] - b["centre_y"])
-
-        # Dynamic Y multiplier — tighter gate when one symbol is much larger than median
         y_multiplier = np.clip(median_h / (smaller_h + 1e-6), 0.8, 2.0)
         if y_dist >= (y_multiplier * smaller_h):
             return False
 
-        w_a = a["bbox"][2] - a["bbox"][0]
-        w_b = b["bbox"][2] - b["bbox"][0]
+        # Gate 3: X-center proximity using smaller symbol's own width
         smaller_w = min(w_a, w_b)
         x_dist = abs(a["centre_x"] - b["centre_x"])
-        #test
-        # Dynamic X multiplier — more lenient when one symbol is much narrower than median
         x_multiplier = np.clip(median_w / (smaller_w + 1e-6), 0.5, 1.5)
         return x_dist < (x_multiplier * smaller_w)
 
@@ -808,16 +809,11 @@ class HieroglyphDetectionRuntime:
         t_translate_start = time.time()
         gardiner_codes = [s["gardiner_code"] for s in classified_symbols]
         translation_text = self.translate_gardiner_sequence(gardiner_codes)
+        print(f"[hieroglyph] Translation done in {time.time() - t_translate_start:.2f}s", flush=True)
         
         # Phase 4 DONE
         if on_step: on_step(4.0)
         
-        print(f"[hieroglyph] Translation done in {time.time() - t_translate_start:.2f}s", flush=True)
-
-        # 6. Translate (Gardiner → English)
-        t_translate_start = time.time()
-        gardiner_codes = [s["gardiner_code"] for s in classified_symbols]
-        translation_text = self.translate_gardiner_sequence(gardiner_codes)
         print(f"[hieroglyph] Translation done in {time.time() - t_translate_start:.2f}s", flush=True)
 
         # 7. Format output

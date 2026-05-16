@@ -148,7 +148,7 @@ function ChatContent() {
       .filter(chat => {
         // Search Filter
         const matchesSearch = (chat.title?.toLowerCase().includes(allChatsSearch.toLowerCase())) ||
-                             (chat.entity_name?.toLowerCase().includes(allChatsSearch.toLowerCase()));
+          (chat.entity_name?.toLowerCase().includes(allChatsSearch.toLowerCase()));
         if (!matchesSearch) return false;
 
         // Type Filter
@@ -159,7 +159,7 @@ function ChatContent() {
           const chatDate = new Date(chat.created_at);
           const filterDate = new Date();
           filterDate.setMonth(filterDate.getMonth() - filterMonth);
-          
+
           if (!isNaN(chatDate.getTime())) {
             if (chatDate.getTime() < filterDate.getTime()) return false;
           }
@@ -956,120 +956,120 @@ function ChatContent() {
                 <div className="flex-1 overflow-y-auto space-y-1 trending-scrollbar-hide">
                   <div className="px-2 mb-2 text-[10px] font-bold uppercase tracking-[0.2em] text-[#A08E70]/60">Recent Chats</div>
                   {chatHistory
-                    .filter(chat => 
-                      chat.title?.toLowerCase().includes(searchQuery.toLowerCase()) || 
+                    .filter(chat =>
+                      chat.title?.toLowerCase().includes(searchQuery.toLowerCase()) ||
                       chat.entity_name?.toLowerCase().includes(searchQuery.toLowerCase())
                     )
                     .map((chat) => (
                       <div key={chat.id} className="relative group/item chat-menu-container">
-                      <button
-                        onClick={() => window.location.href = `/chat?entity=${chat.entity_name}&type=${chat.entity_type || 'landmark'}&conv=${chat.id}`}
-                        className={`w-full flex items-center gap-3 px-4 py-3 rounded-2xl transition-all text-left ${supabaseConvId === chat.id && !showAllChats
-                          ? 'bg-[#E6B23C]/15 border border-[#E6B23C]/20 shadow-[0_4px_20px_rgba(0,0,0,0.3)]'
-                          : 'hover:bg-white/[0.03] border border-transparent'
-                          }`}
-                      >
-                        <div className="flex-1 overflow-hidden pr-6">
-                          <div className="text-[11px] text-[#E6B23C] font-bold uppercase tracking-[0.15em] mb-1 flex items-center justify-between">
-                            <span>{chat.entity_name}</span>
-                            {chat.is_pinned && (
-                              <Pin size={12} className="text-[#E6B23C] shrink-0" />
-                            )}
-                          </div>
-                          <div className={`text-[13px] md:text-[14px] font-medium transition-colors ${(supabaseConvId === chat.id && !showAllChats) ? 'text-[#F5E6D0]' : 'text-[#A08E70]'} group-hover:text-[#F5E6D0] flex items-center justify-between gap-2`}>
-                            {renamingId === chat.id ? (
-                              <input
-                                autoFocus
-                                className="bg-transparent border-none p-0 w-full outline-none text-[#F5E6D0] text-[13px] shadow-none focus:ring-0"
-                                value={editTitle}
-                                onChange={(e) => setEditTitle(e.target.value)}
-                                onBlur={() => handleRename(chat.id, editTitle)}
-                                onKeyDown={(e) => {
-                                  if (e.key === 'Enter') handleRename(chat.id, editTitle);
-                                  if (e.key === 'Escape') setRenamingId(null);
-                                }}
-                                onFocus={(e) => e.target.select()}
-                                onClick={(e) => e.stopPropagation()}
-                              />
-                            ) : (
-                              <span className="truncate">{chat.title || "New Chat"}</span>
-                            )}
-                          </div>
-                        </div>
-                      </button>
-
-                      {/* Three dots button - visible on hover */}
-                      <div className="absolute right-3 top-1/2 -translate-y-1/2 z-10">
                         <button
-                          onClick={(e) => {
-                            e.stopPropagation();
-                            const rect = e.currentTarget.getBoundingClientRect();
-                            // Position it at the top-right of the button
-                            setMenuPos({ x: rect.right + 12, y: rect.top + 8 });
-                            setOpenMenuId(openMenuId === chat.id ? null : chat.id);
-                          }}
-                          className={`p-1.5 rounded-full transition-all relative ${openMenuId === chat.id
-                            ? 'bg-[#E6B23C] text-[#0D0A07] opacity-100'
-                            : 'opacity-0 group-hover/item:opacity-100 text-[#A08E70] hover:bg-[#E6B23C]/20 hover:text-[#E6B23C]'
+                          onClick={() => window.location.href = `/chat?entity=${chat.entity_name}&type=${chat.entity_type || 'landmark'}&conv=${chat.id}`}
+                          className={`w-full flex items-center gap-3 px-4 py-3 rounded-2xl transition-all text-left ${supabaseConvId === chat.id && !showAllChats
+                            ? 'bg-[#E6B23C]/15 border border-[#E6B23C]/20 shadow-[0_4px_20px_rgba(0,0,0,0.3)]'
+                            : 'hover:bg-white/[0.03] border border-transparent'
                             }`}
                         >
-                          <MoreHorizontal size={16} />
-
-                          {/* Dropdown Menu - using Portal to avoid clipping */}
-                          {openMenuId === chat.id && typeof document !== 'undefined' && createPortal(
-                            <div className="portal-menu" style={{ position: 'fixed', zIndex: 9999 }}>
-                              <AnimatePresence mode="wait">
-                                <motion.div
-                                  initial={{ opacity: 0, scale: 0.9, x: -10, y: 10 }}
-                                  animate={{ opacity: 1, scale: 1, x: 0, y: 0 }}
-                                  exit={{ opacity: 0, scale: 0.9, x: -10, y: 10 }}
-                                  style={{
-                                    position: 'fixed',
-                                    left: menuPos.x,
-                                    bottom: window.innerHeight - menuPos.y,
+                          <div className="flex-1 overflow-hidden pr-6">
+                            <div className="text-[11px] text-[#E6B23C] font-bold uppercase tracking-[0.15em] mb-1 flex items-center justify-between">
+                              <span>{chat.entity_name}</span>
+                              {chat.is_pinned && (
+                                <Pin size={12} className="text-[#E6B23C] shrink-0" />
+                              )}
+                            </div>
+                            <div className={`text-[13px] md:text-[14px] font-medium transition-colors ${(supabaseConvId === chat.id && !showAllChats) ? 'text-[#F5E6D0]' : 'text-[#A08E70]'} group-hover:text-[#F5E6D0] flex items-center justify-between gap-2`}>
+                              {renamingId === chat.id ? (
+                                <input
+                                  autoFocus
+                                  className="bg-transparent border-none p-0 w-full outline-none text-[#F5E6D0] text-[13px] shadow-none focus:ring-0"
+                                  value={editTitle}
+                                  onChange={(e) => setEditTitle(e.target.value)}
+                                  onBlur={() => handleRename(chat.id, editTitle)}
+                                  onKeyDown={(e) => {
+                                    if (e.key === 'Enter') handleRename(chat.id, editTitle);
+                                    if (e.key === 'Escape') setRenamingId(null);
                                   }}
-                                  className="w-40 bg-[#0D0A07]/95 border border-[#E6B23C]/30 rounded-2xl shadow-[0_20px_50px_rgba(0,0,0,0.8)] py-2 px-1.5 backdrop-blur-xl overflow-hidden"
-                                >
-                                  <button
-                                    onClick={(e) => { e.stopPropagation(); setOpenMenuId(null); handleTogglePin(chat); }}
-                                    className="w-full flex items-center gap-3 px-3 py-2 text-[11px] font-medium text-[#A08E70] hover:text-[#F5E6D0] transition-all border border-transparent hover:border-[#E6B23C]/30 hover:bg-[#E6B23C]/5 rounded-lg group"
-                                  >
-                                    <Pin size={14} className={`group-hover:scale-110 transition-transform ${chat.is_pinned ? 'text-[#E6B23C]' : ''}`} />
-                                    <span>{chat.is_pinned ? 'Unpin chat' : 'Pin chat'}</span>
-                                  </button>
-                                  <button
-                                    onClick={(e) => {
-                                      e.stopPropagation();
-                                      setOpenMenuId(null);
-                                      setEditTitle(chat.title || "New Chat");
-                                      setRenamingId(chat.id);
-                                    }}
-                                    className="w-full flex items-center gap-3 px-3 py-2 text-[11px] font-medium text-[#A08E70] hover:text-[#F5E6D0] transition-all border border-transparent hover:border-[#E6B23C]/30 hover:bg-[#E6B23C]/5 rounded-lg group"
-                                  >
-                                    <Pencil size={14} className="group-hover:scale-110 transition-transform" />
-                                    <span>Rename</span>
-                                  </button>
-                                  <div className="h-[1px] bg-[#E6B23C]/10 my-1 mx-2" />
-                                  <button
-                                    onClick={(e) => {
-                                      e.stopPropagation();
-                                      setOpenMenuId(null);
-                                      setDeleteConfirmId(chat.id);
-                                    }}
-                                    className="w-full flex items-center gap-3 px-3 py-2 text-[11px] font-medium text-[#EF4444] hover:text-[#FF5555] transition-all border border-transparent hover:border-[#EF4444]/40 hover:bg-[#EF4444]/10 rounded-lg group"
-                                  >
-                                    <Trash2 size={14} className="group-hover:scale-110 transition-transform" />
-                                    <span>Delete</span>
-                                  </button>
-                                </motion.div>
-                              </AnimatePresence>
-                            </div>,
-                            document.body
-                          )}
+                                  onFocus={(e) => e.target.select()}
+                                  onClick={(e) => e.stopPropagation()}
+                                />
+                              ) : (
+                                <span className="truncate">{chat.title || "New Chat"}</span>
+                              )}
+                            </div>
+                          </div>
                         </button>
+
+                        {/* Three dots button - visible on hover */}
+                        <div className="absolute right-3 top-1/2 -translate-y-1/2 z-10">
+                          <button
+                            onClick={(e) => {
+                              e.stopPropagation();
+                              const rect = e.currentTarget.getBoundingClientRect();
+                              // Position it at the top-right of the button
+                              setMenuPos({ x: rect.right + 12, y: rect.top + 8 });
+                              setOpenMenuId(openMenuId === chat.id ? null : chat.id);
+                            }}
+                            className={`p-1.5 rounded-full transition-all relative ${openMenuId === chat.id
+                              ? 'bg-[#E6B23C] text-[#0D0A07] opacity-100'
+                              : 'opacity-0 group-hover/item:opacity-100 text-[#A08E70] hover:bg-[#E6B23C]/20 hover:text-[#E6B23C]'
+                              }`}
+                          >
+                            <MoreHorizontal size={16} />
+
+                            {/* Dropdown Menu - using Portal to avoid clipping */}
+                            {openMenuId === chat.id && typeof document !== 'undefined' && createPortal(
+                              <div className="portal-menu" style={{ position: 'fixed', zIndex: 9999 }}>
+                                <AnimatePresence mode="wait">
+                                  <motion.div
+                                    initial={{ opacity: 0, scale: 0.9, x: -10, y: 10 }}
+                                    animate={{ opacity: 1, scale: 1, x: 0, y: 0 }}
+                                    exit={{ opacity: 0, scale: 0.9, x: -10, y: 10 }}
+                                    style={{
+                                      position: 'fixed',
+                                      left: menuPos.x,
+                                      bottom: window.innerHeight - menuPos.y,
+                                    }}
+                                    className="w-40 bg-[#0D0A07]/95 border border-[#E6B23C]/30 rounded-2xl shadow-[0_20px_50px_rgba(0,0,0,0.8)] py-2 px-1.5 backdrop-blur-xl overflow-hidden"
+                                  >
+                                    <button
+                                      onClick={(e) => { e.stopPropagation(); setOpenMenuId(null); handleTogglePin(chat); }}
+                                      className="w-full flex items-center gap-3 px-3 py-2 text-[11px] font-medium text-[#A08E70] hover:text-[#F5E6D0] transition-all border border-transparent hover:border-[#E6B23C]/30 hover:bg-[#E6B23C]/5 rounded-lg group"
+                                    >
+                                      <Pin size={14} className={`group-hover:scale-110 transition-transform ${chat.is_pinned ? 'text-[#E6B23C]' : ''}`} />
+                                      <span>{chat.is_pinned ? 'Unpin chat' : 'Pin chat'}</span>
+                                    </button>
+                                    <button
+                                      onClick={(e) => {
+                                        e.stopPropagation();
+                                        setOpenMenuId(null);
+                                        setEditTitle(chat.title || "New Chat");
+                                        setRenamingId(chat.id);
+                                      }}
+                                      className="w-full flex items-center gap-3 px-3 py-2 text-[11px] font-medium text-[#A08E70] hover:text-[#F5E6D0] transition-all border border-transparent hover:border-[#E6B23C]/30 hover:bg-[#E6B23C]/5 rounded-lg group"
+                                    >
+                                      <Pencil size={14} className="group-hover:scale-110 transition-transform" />
+                                      <span>Rename</span>
+                                    </button>
+                                    <div className="h-[1px] bg-[#E6B23C]/10 my-1 mx-2" />
+                                    <button
+                                      onClick={(e) => {
+                                        e.stopPropagation();
+                                        setOpenMenuId(null);
+                                        setDeleteConfirmId(chat.id);
+                                      }}
+                                      className="w-full flex items-center gap-3 px-3 py-2 text-[11px] font-medium text-[#EF4444] hover:text-[#FF5555] transition-all border border-transparent hover:border-[#EF4444]/40 hover:bg-[#EF4444]/10 rounded-lg group"
+                                    >
+                                      <Trash2 size={14} className="group-hover:scale-110 transition-transform" />
+                                      <span>Delete</span>
+                                    </button>
+                                  </motion.div>
+                                </AnimatePresence>
+                              </div>,
+                              document.body
+                            )}
+                          </button>
+                        </div>
                       </div>
-                    </div>
-                  ))}
+                    ))}
 
                   {/* Bottom padding */}
                   <div className="h-4" />
@@ -1099,7 +1099,7 @@ function ChatContent() {
                       />
                     </div>
                     <div className="relative">
-                      <button 
+                      <button
                         onClick={() => setShowMainFilters(!showMainFilters)}
                         className={`h-[58px] w-[58px] shrink-0 rounded-2xl transition-all flex items-center justify-center ${showMainFilters ? 'bg-[#E6B23C] text-[#0D0A07]' : 'bg-transparent text-[#A08E70] hover:text-[#E6B23C]'}`}
                       >
@@ -1115,7 +1115,7 @@ function ChatContent() {
                     {filterType && (
                       <div className="relative group">
                         <div className="flex items-center bg-[#0D0A07] border border-[#E6B23C]/20 rounded-full h-9 overflow-hidden">
-                          <button 
+                          <button
                             onClick={() => setFilterType(null)}
                             className="h-full px-3 flex items-center justify-center hover:bg-red-500/10 text-[#A08E70] hover:text-red-500 transition-colors border-r border-[#E6B23C]/10"
                           >
@@ -1123,7 +1123,7 @@ function ChatContent() {
                           </button>
                           <div className="px-3 flex items-center gap-2">
                             <span className="text-[11px] text-[#A08E70] font-medium">Type |</span>
-                            <button 
+                            <button
                               onClick={() => setActiveDropdown(activeDropdown === 'type' ? null : 'type')}
                               className="flex items-center gap-1 text-[11px] text-[#E6B23C] font-bold hover:text-[#FFD369] transition-colors"
                             >
@@ -1132,10 +1132,10 @@ function ChatContent() {
                             </button>
                           </div>
                         </div>
-                        
+
                         <AnimatePresence>
                           {activeDropdown === 'type' && (
-                            <motion.div 
+                            <motion.div
                               initial={{ opacity: 0, y: 5 }} animate={{ opacity: 1, y: 0 }} exit={{ opacity: 0, y: 5 }}
                               className="absolute left-10 top-full mt-2 w-32 bg-[#1A1208] border border-[#E6B23C]/20 rounded-xl py-1 shadow-2xl z-[60]"
                             >
@@ -1150,7 +1150,7 @@ function ChatContent() {
                     {filterMonth !== null && (
                       <div className="relative group">
                         <div className="flex items-center bg-[#0D0A07] border border-[#E6B23C]/20 rounded-full h-9 overflow-hidden">
-                          <button 
+                          <button
                             onClick={() => setFilterMonth(null)}
                             className="h-full px-3 flex items-center justify-center hover:bg-red-500/10 text-[#A08E70] hover:text-red-500 transition-colors border-r border-[#E6B23C]/10"
                           >
@@ -1158,7 +1158,7 @@ function ChatContent() {
                           </button>
                           <div className="px-3 flex items-center gap-2">
                             <span className="text-[11px] text-[#A08E70] font-medium">Date |</span>
-                            <button 
+                            <button
                               onClick={() => setActiveDropdown(activeDropdown === 'date' ? null : 'date')}
                               className="flex items-center gap-1 text-[11px] text-[#E6B23C] font-bold hover:text-[#FFD369] transition-colors"
                             >
@@ -1170,7 +1170,7 @@ function ChatContent() {
 
                         <AnimatePresence>
                           {activeDropdown === 'date' && (
-                            <motion.div 
+                            <motion.div
                               initial={{ opacity: 0, y: 5 }} animate={{ opacity: 1, y: 0 }} exit={{ opacity: 0, y: 5 }}
                               className="absolute left-10 top-full mt-2 w-40 bg-[#1A1208] border border-[#E6B23C]/20 rounded-xl py-1 shadow-2xl z-[60]"
                             >
@@ -1188,7 +1188,7 @@ function ChatContent() {
                     {sortBy !== 'name' && (
                       <div className="relative group">
                         <div className="flex items-center bg-[#0D0A07] border border-[#E6B23C]/20 rounded-full h-9 overflow-hidden">
-                          <button 
+                          <button
                             onClick={() => setSortBy('name')}
                             className="h-full px-3 flex items-center justify-center hover:bg-red-500/10 text-[#A08E70] hover:text-red-500 transition-colors border-r border-[#E6B23C]/10"
                           >
@@ -1196,7 +1196,7 @@ function ChatContent() {
                           </button>
                           <div className="px-3 flex items-center gap-2">
                             <span className="text-[11px] text-[#A08E70] font-medium">Sort |</span>
-                            <button 
+                            <button
                               onClick={() => setActiveDropdown(activeDropdown === 'sort' ? null : 'sort')}
                               className="flex items-center gap-1 text-[11px] text-[#E6B23C] font-bold hover:text-[#FFD369] transition-colors"
                             >
@@ -1208,7 +1208,7 @@ function ChatContent() {
 
                         <AnimatePresence>
                           {activeDropdown === 'sort' && (
-                            <motion.div 
+                            <motion.div
                               initial={{ opacity: 0, y: 5 }} animate={{ opacity: 1, y: 0 }} exit={{ opacity: 0, y: 5 }}
                               className="absolute left-10 top-full mt-2 w-32 bg-[#1A1208] border border-[#E6B23C]/20 rounded-xl py-1 shadow-2xl z-[60]"
                             >
@@ -1221,7 +1221,7 @@ function ChatContent() {
                     )}
 
                     {(filterType || filterMonth !== null || sortBy !== 'name') && (
-                      <button 
+                      <button
                         onClick={() => { setFilterType(null); setFilterMonth(null); setSortBy('name'); setActiveDropdown(null); }}
                         className="text-[11px] font-bold text-[#A08E70] hover:text-red-500 flex items-center gap-1.5 ml-2 mr-4 transition-colors group whitespace-nowrap"
                       >
@@ -1235,7 +1235,7 @@ function ChatContent() {
                       <>
                         {!filterType && (
                           <div className="relative">
-                            <button 
+                            <button
                               onClick={() => setActiveDropdown(activeDropdown === 'pill-type' ? null : 'pill-type')}
                               className="flex items-center gap-1.5 px-3 py-1.5 rounded-full border border-[#E6B23C]/10 bg-[#E6B23C]/5 text-[#A08E70] hover:text-[#E6B23C] hover:border-[#E6B23C]/30 transition-all text-[11px] font-medium"
                             >
@@ -1255,7 +1255,7 @@ function ChatContent() {
 
                         {filterMonth === null && (
                           <div className="relative">
-                            <button 
+                            <button
                               onClick={() => setActiveDropdown(activeDropdown === 'pill-date' ? null : 'pill-date')}
                               className="flex items-center gap-1.5 px-3 py-1.5 rounded-full border border-[#E6B23C]/10 bg-[#E6B23C]/5 text-[#A08E70] hover:text-[#E6B23C] hover:border-[#E6B23C]/30 transition-all text-[11px] font-medium"
                             >
@@ -1276,7 +1276,7 @@ function ChatContent() {
 
                         {sortBy === 'name' && (
                           <div className="relative">
-                            <button 
+                            <button
                               onClick={() => setActiveDropdown(activeDropdown === 'pill-sort' ? null : 'pill-sort')}
                               className="flex items-center gap-1.5 px-3 py-1.5 rounded-full border border-[#E6B23C]/10 bg-[#E6B23C]/5 text-[#A08E70] hover:text-[#E6B23C] hover:border-[#E6B23C]/30 transition-all text-[11px] font-medium"
                             >
@@ -1305,57 +1305,57 @@ function ChatContent() {
                   {groupedChats.length > 0 ? (
                     <div className="bg-[#1A1208]/30 border border-[#E6B23C]/10 rounded-3xl p-6 md:p-10 backdrop-blur-md shadow-[0_10px_40px_rgba(0,0,0,0.4)]">
                       {groupedChats.map(([entity, chats]: [string, any[]]) => (
-                    <div key={entity} className="mb-4">
-                      <button
-                        onClick={() => setExpandedEntity(expandedEntity === entity ? null : entity)}
-                        className="w-full text-left group/header py-4"
-                      >
-                        <h3 className="text-[13px] font-bold uppercase tracking-[0.4em] text-[#E6B23C]/50 flex items-center gap-4 group-hover/header:text-[#E6B23C] transition-all">
-                          <span className="min-w-fit">{entity}</span>
-                          <div className="flex-1 h-[1px] bg-[#E6B23C]/10 group-hover/header:bg-[#E6B23C]/30" />
-                          <span className="text-[11px] font-mono opacity-40 group-hover/header:opacity-100">{chats.length} {chats.length === 1 ? 'RECORD' : 'RECORDS'}</span>
-                        </h3>
-                      </button>
-
-                      <AnimatePresence>
-                        {expandedEntity === entity && (
-                          <motion.div
-                            initial={{ height: 0, opacity: 0 }}
-                            animate={{ height: 'auto', opacity: 1 }}
-                            exit={{ height: 0, opacity: 0 }}
-                            className="overflow-hidden"
+                        <div key={entity} className="mb-4">
+                          <button
+                            onClick={() => setExpandedEntity(expandedEntity === entity ? null : entity)}
+                            className="w-full text-left group/header py-4"
                           >
-                            <div className="space-y-4 pt-2 pb-8">
-                              {[...chats]
-                                .sort((a: any, b: any) => new Date(b.created_at).getTime() - new Date(a.created_at).getTime())
-                                .map((chat: any) => (
-                                  <div
-                                    key={chat.id}
-                                    onClick={() => {
-                                      setShowAllChats(false);
-                                      window.location.href = `/chat?entity=${chat.entity_name}&type=${chat.entity_type || 'landmark'}&conv=${chat.id}`;
-                                    }}
-                                    className="group cursor-pointer border-b border-[#E6B23C]/5 p-6 -mx-6 rounded-2xl hover:bg-[#E6B23C]/5 hover:border-[#E6B23C]/20 transition-all active:scale-[0.98]"
-                                  >
-                                    <div className="flex items-start justify-between mb-1">
-                                      <h4 className="text-lg font-bold text-[#E6B23C] group-hover:text-[#FFD369] transition-colors line-clamp-1">
-                                        {chat.title || "New Chat"}
-                                      </h4>
-                                      <span className="text-[10px] text-[#A08E70] font-mono group-hover:text-[#E6B23C]/60 transition-colors">
-                                        {new Date(chat.created_at).toLocaleDateString()}
-                                      </span>
-                                    </div>
-                                    <div className="text-sm font-normal text-[#A08E70] group-hover:text-[#D4C4A8] transition-colors line-clamp-2">
-                                      {chat.entity_name} &bull; {new Date(chat.created_at).toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' })}
-                                    </div>
-                                  </div>
-                                ))}
-                            </div>
-                          </motion.div>
-                        )}
-                      </AnimatePresence>
-                    </div>
-                  ))}
+                            <h3 className="text-[13px] font-bold uppercase tracking-[0.4em] text-[#E6B23C]/50 flex items-center gap-4 group-hover/header:text-[#E6B23C] transition-all">
+                              <span className="min-w-fit">{entity}</span>
+                              <div className="flex-1 h-[1px] bg-[#E6B23C]/10 group-hover/header:bg-[#E6B23C]/30" />
+                              <span className="text-[11px] font-mono opacity-40 group-hover/header:opacity-100">{chats.length} {chats.length === 1 ? 'RECORD' : 'RECORDS'}</span>
+                            </h3>
+                          </button>
+
+                          <AnimatePresence>
+                            {expandedEntity === entity && (
+                              <motion.div
+                                initial={{ height: 0, opacity: 0 }}
+                                animate={{ height: 'auto', opacity: 1 }}
+                                exit={{ height: 0, opacity: 0 }}
+                                className="overflow-hidden"
+                              >
+                                <div className="space-y-4 pt-2 pb-8">
+                                  {[...chats]
+                                    .sort((a: any, b: any) => new Date(b.created_at).getTime() - new Date(a.created_at).getTime())
+                                    .map((chat: any) => (
+                                      <div
+                                        key={chat.id}
+                                        onClick={() => {
+                                          setShowAllChats(false);
+                                          window.location.href = `/chat?entity=${chat.entity_name}&type=${chat.entity_type || 'landmark'}&conv=${chat.id}`;
+                                        }}
+                                        className="group cursor-pointer border-b border-[#E6B23C]/5 p-6 -mx-6 rounded-2xl hover:bg-[#E6B23C]/5 hover:border-[#E6B23C]/20 transition-all active:scale-[0.98]"
+                                      >
+                                        <div className="flex items-start justify-between mb-1">
+                                          <h4 className="text-lg font-bold text-[#E6B23C] group-hover:text-[#FFD369] transition-colors line-clamp-1">
+                                            {chat.title || "New Chat"}
+                                          </h4>
+                                          <span className="text-[10px] text-[#A08E70] font-mono group-hover:text-[#E6B23C]/60 transition-colors">
+                                            {new Date(chat.created_at).toLocaleDateString()}
+                                          </span>
+                                        </div>
+                                        <div className="text-sm font-normal text-[#A08E70] group-hover:text-[#D4C4A8] transition-colors line-clamp-2">
+                                          {chat.entity_name} &bull; {new Date(chat.created_at).toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' })}
+                                        </div>
+                                      </div>
+                                    ))}
+                                </div>
+                              </motion.div>
+                            )}
+                          </AnimatePresence>
+                        </div>
+                      ))}
                     </div>
                   ) : (
                     <div className="flex flex-col items-center justify-center py-24 text-center">
@@ -1364,10 +1364,10 @@ function ChatContent() {
                       </div>
                       <h3 className="text-xl font-bold text-[#E6B23C] mb-3 uppercase tracking-[0.2em]">No Records Found</h3>
                       <p className="text-[#A08E70] text-sm max-w-sm leading-relaxed mx-auto">
-                        We couldn't find any conversations matching your current filters or search terms. 
+                        We couldn't find any conversations matching your current filters or search terms.
                         Try adjusting your criteria or clearing all filters.
                       </p>
-                      <button 
+                      <button
                         onClick={() => { setFilterType(null); setFilterMonth(null); setSortBy('name'); setAllChatsSearch(''); setActiveDropdown(null); }}
                         className="mt-10 px-8 py-3 rounded-xl border border-[#E6B23C]/20 text-[#E6B23C] text-xs font-bold uppercase tracking-widest hover:bg-[#E6B23C] hover:text-[#0D0A07] transition-all"
                       >
@@ -1375,8 +1375,8 @@ function ChatContent() {
                       </button>
                     </div>
                   )}
+                </div>
               </div>
-            </div>
             </div>
           ) : (
             <>
