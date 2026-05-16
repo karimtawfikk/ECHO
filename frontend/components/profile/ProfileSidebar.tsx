@@ -389,7 +389,7 @@ export default function ProfileSidebar({ isOpen, onClose }: ProfileSidebarProps)
                                     </div>
 
                                     {/* Top Actions */}
-                                    <div className="px-8 pb-8 flex gap-4">
+                                    <div className="px-8 pb-5 flex gap-4">
                                         <button
                                             onClick={() => setView("settings")}
                                             className="flex-1 py-2.5 rounded-xl border border-[#E6B23C]/20 bg-[#E6B23C]/5 text-[#F5E6D0] hover:bg-[#E6B23C]/15 font-bold text-[10px] uppercase tracking-widest transition-all flex items-center justify-center gap-2"
@@ -409,7 +409,7 @@ export default function ProfileSidebar({ isOpen, onClose }: ProfileSidebarProps)
                                     </div>
 
                                     {/* Tabs */}
-                                    <div className="flex px-4 bg-[#0D0A07]/40 border-y border-[#E6B23C]/10">
+                                    <div className="flex px-4 bg-[#0D0A07]/40 border-b border-[#E6B23C]/10">
                                         {(["saved", "chats", "history"] as TabType[]).map((tab) => (
                                             <button
                                                 key={tab}
