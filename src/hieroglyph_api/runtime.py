@@ -582,7 +582,7 @@ class HieroglyphDetectionRuntime:
         w_b = b["bbox"][2] - b["bbox"][0]
         smaller_w = min(w_a, w_b)
         x_dist = abs(a["centre_x"] - b["centre_x"])
-
+        #test
         # Dynamic X multiplier — more lenient when one symbol is much narrower than median
         x_multiplier = np.clip(median_w / (smaller_w + 1e-6), 0.5, 1.5)
         return x_dist < (x_multiplier * smaller_w)
