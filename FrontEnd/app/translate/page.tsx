@@ -8,7 +8,7 @@ import { Button } from "../../components/ui/button";
 import { motion, AnimatePresence } from "framer-motion";
 import { useLanguage } from "../../context/LanguageContext";
 import { Camera, Languages, Trash2, Upload, BookOpen, Search, X, Cpu, Loader2, Image as ImageIcon } from "lucide-react";
-import { api } from "../../lib/services/api";
+import { api, API_BASE_URL } from "../../lib/services/api";
 
 type TranslateResponse = {
   translation: string;
@@ -32,59 +32,93 @@ export default function TranslatePage() {
   const [currentStep, setCurrentStep] = useState(0);
   const timeoutRef = useRef<NodeJS.Timeout | null>(null);
   const stepIntervalRef = useRef<NodeJS.Timeout | null>(null);
+  const abortControllerRef = useRef<AbortController | null>(null);
 
   const pickFile = () => fileInputRef.current?.click();
 
   useEffect(() => {
-    return () => { if (previewUrl) URL.revokeObjectURL(previewUrl); };
+    return () => {
+      if (previewUrl) URL.revokeObjectURL(previewUrl);
+      if (abortControllerRef.current) abortControllerRef.current.abort();
+    };
   }, [previewUrl]);
 
   const handleDecipher = async () => {
-    if (!file || isLoading) return;
+    if (abortControllerRef.current) abortControllerRef.current.abort();
+    abortControllerRef.current = new AbortController();
+
     setIsLoading(true);
     setResult(null);
-    setCurrentStep(0);
-
-    // Start simulated progress for the first 3 steps
-    if (stepIntervalRef.current) clearInterval(stepIntervalRef.current);
-    stepIntervalRef.current = setInterval(() => {
-      setCurrentStep(prev => {
-        if (prev < 3) return prev + 1;
-        if (stepIntervalRef.current) clearInterval(stepIntervalRef.current);
-        return prev;
-      });
-    }, 2500);
+    setCurrentStep(0.1);
 
     const formData = new FormData();
-    formData.append("image", file);
+    formData.append("image", file as File);
 
     try {
-      const response = await api.post("/hieroglyphs/translate", formData, {
-        headers: { "Content-Type": "multipart/form-data" },
+      // Use native fetch to support streaming from the backend
+      const response = await fetch(`${API_BASE_URL}/hieroglyphs/translate/stream`, {
+        method: "POST",
+        body: formData,
+        signal: abortControllerRef.current.signal,
       });
 
-      if (response.data) {
-        // Complete the journey
-        setCurrentStep(4);
-        
-        // Brief pause to show completion before revealing result
-        setTimeout(() => {
-          setResult({
-            translation: response.data.translation_text,
-            symbols: response.data.symbols,
-            num_symbols_detected: response.data.num_symbols_detected,
-            num_clusters: response.data.num_clusters,
-            annotated_image_base64: response.data.annotated_image_base64,
-          });
-          setIsLoading(false);
-          if (stepIntervalRef.current) clearInterval(stepIntervalRef.current);
-        }, 1000);
+      if (!response.ok) throw new Error("Translation failed");
+
+      const reader = response.body?.getReader();
+      const decoder = new TextDecoder();
+
+      if (!reader) throw new Error("No reader");
+
+      let buffer = "";
+      while (true) {
+        const { done, value } = await reader.read();
+        if (done) break;
+
+        buffer += decoder.decode(value, { stream: true });
+        const parts = buffer.split("\n\n");
+        buffer = parts.pop() || "";
+
+        for (const part of parts) {
+          const line = part.trim();
+          if (!line.startsWith("data: ")) continue;
+
+          try {
+            const message = JSON.parse(line.substring(6));
+
+            if (message.type === "progress") {
+              // Real-time ping from backend module
+              setCurrentStep(message.step);
+            } else if (message.type === "result") {
+              const data = message.data;
+              // Ensure we reached the final step
+              setCurrentStep(4);
+
+              // Brief delay for the last animation phase to feel smooth
+              setTimeout(() => {
+                setResult({
+                  translation: data.translation_text,
+                  symbols: data.symbols,
+                  num_symbols_detected: data.num_symbols_detected,
+                  num_clusters: data.num_clusters,
+                  annotated_image_base64: data.annotated_image_base64,
+                });
+                setIsLoading(false);
+              }, 1200);
+            } else if (message.type === "error") {
+              throw new Error(message.message);
+            }
+          } catch (e) {
+            console.error("Error parsing stream chunk:", e);
+          }
+        }
       }
-    } catch (error) {
+    } catch (error: any) {
+      if (error.name === 'AbortError') return;
       console.error("Translation error:", error);
       alert("Failed to decipher the inscription. Please try again.");
       setIsLoading(false);
-      if (stepIntervalRef.current) clearInterval(stepIntervalRef.current);
+    } finally {
+      abortControllerRef.current = null;
     }
   };
 
@@ -100,6 +134,10 @@ export default function TranslatePage() {
 
 
   const resetAll = () => {
+    if (abortControllerRef.current) {
+      abortControllerRef.current.abort();
+      abortControllerRef.current = null;
+    }
     if (timeoutRef.current) clearTimeout(timeoutRef.current);
     if (stepIntervalRef.current) clearInterval(stepIntervalRef.current);
     setResult(null);
@@ -176,7 +214,7 @@ export default function TranslatePage() {
               className="absolute -inset-1 bg-[#E6B23C]/20 rounded-[2.6rem] blur-2xl z-[-1]"
             />
 
-            <div className={`transition-all duration-700 rounded-[2.5rem] shadow-[0_30px_100px_rgba(0,0,0,0.9)] shadow-[inset_0_1px_1px_rgba(230,178,60,0.1)] overflow-hidden relative ${previewUrl ? "bg-gradient-to-br from-[#1A140F] to-[#0D0A07] border border-[#E6B23C] shadow-[0_0_50px_rgba(230,178,60,0.2)]" : "bg-gradient-to-br from-[#120D08] to-[#0A0805]"
+            <div className={`transition-all duration-700 rounded-[2.5rem] shadow-[0_30px_100px_rgba(0,0,0,0.9)] shadow-[inset_0_1px_1px_rgba(230,178,60,0.11)] overflow-hidden relative ${previewUrl ? "bg-gradient-to-br from-[#1A140F] to-[#0D0A07] border border-[#E6B23C] shadow-[0_0_50px_rgba(230,178,60,0.2)]" : "bg-gradient-to-br from-[#120D08] to-[#0A0805]"
               }`}>
 
               {/* Spinning Border Beam Animation */}
@@ -379,85 +417,104 @@ export default function TranslatePage() {
                         </div>
 
                         <div className="relative flex-1 mt-4 z-10">
-                          {/* Base Faint Line (Dashed Trail) */}
-                          <svg className="absolute inset-0 w-full h-full overflow-visible pointer-events-none opacity-15" preserveAspectRatio="none" viewBox="0 0 100 100">
+                          {/* Path & Animated Highlight with Mask */}
+                          <svg className="absolute inset-0 w-full h-full overflow-visible pointer-events-none z-10" preserveAspectRatio="none" viewBox="0 0 100 100">
+                            <defs>
+                              <mask id="line-mask">
+                                <rect x="0" y="0" width="100" height="100" fill="white" />
+                                {/* Holes adjusted to match path trajectory better */}
+                                <circle cx="10" cy="10" r="9" fill="black" />
+                                <circle cx="83" cy="35" r="7.47" fill="black" />
+                                <circle cx="6" cy="58" r="9" fill="black" />
+
+                              </mask>
+                            </defs>
+
+                            {/* Base Faint Line (Dashed Trail) - Continuous (No Mask) */}
                             <path
-                              d="M 10 10 C 10 32.5, 90 12.5, 90 35 C 90 57.5, 10 37.5, 10 60 C 10 82.5, 90 62.5, 90 85"
+                              d="M 10 10 C 10 32.5, 90 12.5, 90 35 C 90 57.5, 10 37.5, 10 60 C 10 82.5, 90 62.5, 95 85"
                               stroke="#F5E6D0"
                               fill="none"
                               strokeWidth="0.6"
                               strokeDasharray="4 4"
+                              className="opacity-15"
+                              mask="url(#line-mask)"
                             />
-                          </svg>
-                          {/* Animated Highlight Line (Achievement with Glow) */}
-                          <svg className="absolute inset-0 w-full h-full overflow-visible pointer-events-none z-10" preserveAspectRatio="none" viewBox="0 0 100 100">
+
+                            {/* Animated Highlight Line (Achievement with Glow) */}
                             <motion.path
-                              d="M 10 10 C 10 32.5, 90 12.5, 90 35 C 90 57.5, 10 37.5, 10 60 C 10 82.5, 90 62.5, 90 85"
+                              d="M 10 10 C 10 32.5, 90 12.5, 90 35 C 90 57.5, 10 37.5, 10 60 C 10 82.5, 90 62.5, 95 85"
                               stroke="#E6B23C"
                               fill="none"
                               strokeWidth="0.4"
                               initial={{ pathLength: 0 }}
-                              animate={{ pathLength: currentStep / 4 }}
+                              animate={{ pathLength: currentStep / 3 }}
                               transition={{ duration: 1.5, ease: "easeInOut" }}
                               className="drop-shadow-[0_0_10px_rgba(230,178,60,0.5)]"
+                              mask="url(#line-mask)"
                             />
                           </svg>
 
                           <div className="absolute inset-0">
                             {[
-                              { title: "Scanning Inscription", icon: Search, top: "10%", left: "10%", align: "start", delay: 0 },
-                              { title: "Determining Sequence", icon: BookOpen, top: "30%", left: "83%", align: "end", delay: 3.0 },
-                              { title: "Recognizing Symbols", icon: Cpu, top: "52%", left: "4.7%", align: "start", delay: 6.0 },
-                              { title: "Generating Translation", icon: "𓅓", top: "85%", left: "83%", align: "end", delay: 9.0 }
+                              { title: "Scanning Inscription", icon: Search, top: "10%", left: "10%", align: "start" },
+                              { title: "Determining Sequence", icon: BookOpen, top: "30%", left: "83%", align: "end" },
+                              { title: "Recognizing Symbols", icon: Cpu, top: "52%", left: "4.7%", align: "start" },
+                              { title: "Generating Translation", icon: "𓅓", top: "85%", left: "83%", align: "end" }
                             ].map((step, i) => (
-                              <motion.div
-                                key={i}
-                                initial={{ opacity: 0, scale: 0.8 }}
-                                animate={{ opacity: 1, scale: 1 }}
-                                transition={{ delay: step.delay }}
-                                className="absolute"
-                                style={{
-                                  top: step.top,
-                                  left: step.left,
-                                  transform: 'translate(-50%, -50%)'
-                                }}
-                              >
-                                {/* ICON */}
-                                <motion.div
-                                  animate={{
-                                    borderColor: currentStep >= i + 1 ? "rgba(230,178,60,0.8)" : "rgba(230,178,60,0.2)",
-                                    backgroundColor: currentStep >= i + 1 ? "rgba(230,178,60,0.15)" : "rgba(230,178,60,0.05)",
-                                    boxShadow: currentStep >= i + 1 ? "0 0 20px rgba(230,178,60,0.3)" : "0 0 0px transparent"
-                                  }}
-                                  transition={{ duration: 0.5 }}
-                                  className={`w-14 h-14 rounded-full border flex items-center justify-center relative z-20 ${(i === 0) ? 'translate-y-1' : ''}`}
-                                >
-                                  {typeof step.icon === 'string' ? (
-                                    <span className={`text-3xl leading-none select-none -translate-y-0.5 transition-colors ${currentStep >= i + 1 ? "text-[#E6B23C]" : "text-[#E6B23C]/40"}`}>{step.icon}</span>
-                                  ) : (
-                                    <step.icon size={24} className={`transition-colors ${currentStep >= i + 1 ? "text-[#E6B23C]" : "text-[#E6B23C]/40"}`} />
-                                  )}
-                                  {currentStep > i + 1 && (
+                              <AnimatePresence key={i}>
+                                {currentStep >= i + 0.1 && (
+                                  <motion.div
+                                    initial={{ opacity: 1, scale: 0.8, y: 10 }}
+                                    animate={{ opacity: 1, scale: 1, y: 0 }}
+                                    className="absolute"
+                                    style={{
+                                      top: step.top,
+                                      left: step.left,
+                                      transform: 'translate(-50%, -50%)'
+                                    }}
+                                  >
+                                    {/* ICON */}
                                     <motion.div
-                                      initial={{ scale: 0 }}
-                                      animate={{ scale: 1 }}
-                                      className="absolute -top-1 -right-1 w-5 h-5 bg-[#E6B23C] rounded-full flex items-center justify-center text-[#120D08]"
+                                        animate={{
+                                          boxShadow: (currentStep >= i && currentStep < i + 1) ? "0 0 30px rgba(230,178,60,0.4)" : "0 0 0px transparent",
+                                          scale: (currentStep >= i && currentStep < i + 1) ? [1, 1.08, 1] : 1
+                                        }}
+                                      transition={{
+                                        duration: (currentStep >= i && currentStep < i + 1) ? 1.5 : 0.5,
+                                        repeat: (currentStep >= i && currentStep < i + 1) ? Infinity : 0,
+                                        ease: "easeInOut"
+                                      }}
+                                      className={`w-14 h-14 rounded-full border border-[#E6B23C] bg-[#E6B23C] flex items-center justify-center relative z-20 ${(i === 0) ? 'translate-y-1' : ''}`}
                                     >
-                                      <svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="4" strokeLinecap="round" strokeLinejoin="round"><polyline points="20 6 9 17 4 12"></polyline></svg>
+                                      {typeof step.icon === 'string' ? (
+                                        <span className={`text-3xl font-black leading-none select-none -translate-y-0.5 transition-colors ${currentStep >= i + 0.1 ? "text-[#120D08]" : "text-[#E6B23C]/40"}`}>{step.icon}</span>
+                                      ) : (
+                                        <step.icon size={24} strokeWidth={3} className={`transition-colors ${currentStep >= i + 0.1 ? "text-[#120D08]" : "text-[#E6B23C]/40"}`} />
+                                      )}
+                                      {currentStep >= i + 1 && (
+                                        <motion.div
+                                          initial={{ scale: 0 }}
+                                          animate={{ scale: 1 }}
+                                          className="absolute -top-1 -right-1 w-5 h-5 bg-[#120D08] rounded-full flex items-center justify-center text-[#E6B23C]"
+                                        >
+                                          <svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="4" strokeLinecap="round" strokeLinejoin="round"><polyline points="20 6 9 17 4 12"></polyline></svg>
+                                        </motion.div>
+                                      )}
                                     </motion.div>
-                                  )}
-                                </motion.div>
 
-                                {/* TEXT */}
-                                <div
-                                  className={`absolute top-1/2 -translate-y-1/2 whitespace-nowrap space-y-0.5 ${step.align === "end" ? "right-[calc(100%+32px)] text-right" : "left-[calc(100%+32px)] text-left"}`}
-                                >
-                                  <div className="text-[10px] font-bold tracking-[0.3em] text-[#E6B23C]/60 uppercase font-sans">Phase 0{i + 1}</div>
-                                  <div className="text-[13px] font-bold text-[#F5E6D0]/80 tracking-widest uppercase font-sans">
-                                    {step.title}
-                                  </div>
-                                </div>
-                              </motion.div>
+                                    {/* TEXT */}
+                                    <div
+                                      className={`absolute top-1/2 -translate-y-1/2 whitespace-nowrap space-y-0.5 ${step.align === "end" ? "right-[calc(100%+32px)] text-right" : "left-[calc(100%+32px)] text-left"}`}
+                                    >
+                                      <div className="text-[10px] font-bold tracking-[0.3em] text-[#E6B23C]/60 uppercase font-sans">Phase 0{i + 1}</div>
+                                      <div className="text-[13px] font-bold text-[#F5E6D0]/80 tracking-widest uppercase font-sans">
+                                        {step.title}
+                                      </div>
+                                    </div>
+                                  </motion.div>
+                                )}
+                              </AnimatePresence>
                             ))}
                           </div>
                         </div>
@@ -514,6 +571,6 @@ export default function TranslatePage() {
           </button>
         </motion.div>
       </div>
-    </PageShell >
+    </PageShell>
   );
 }

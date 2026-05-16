@@ -1,5 +1,7 @@
 from fastapi import APIRouter, UploadFile, File, HTTPException
+from fastapi.responses import StreamingResponse
 import httpx
+import base64
 
 router = APIRouter()
 
@@ -31,3 +33,26 @@ async def translate_hieroglyphs(image: UploadFile = File(...)):
             raise HTTPException(status_code=503, detail=f"Hieroglyph microservice unavailable: {str(e)}")
         except Exception as e:
             raise HTTPException(status_code=500, detail=f"Internal proxy error: {str(e)}")
+
+@router.post("/translate/stream")
+async def translate_hieroglyphs_stream(image: UploadFile = File(...)):
+    """
+    Proxies the streaming hieroglyph translation request.
+    """
+    if not image.content_type.startswith("image/"):
+        raise HTTPException(status_code=400, detail="Invalid file type.")
+
+    image_data = await image.read()
+    image_b64 = base64.b64encode(image_data).decode("utf-8")
+    
+    async def stream_proxy():
+        async with httpx.AsyncClient(timeout=180.0) as client:
+            async with client.stream(
+                "POST", 
+                f"{HIEROGLYPH_API_URL}/translate/stream", 
+                json={"image_base64": image_b64}
+            ) as response:
+                async for chunk in response.aiter_raw():
+                    yield chunk
+
+    return StreamingResponse(stream_proxy(), media_type="text/event-stream")

@@ -369,7 +369,6 @@ class HieroglyphDetectionRuntime:
     # -------------------------------------------------------------------
     # Stage 4: Clustering & Ordering
     # -------------------------------------------------------------------
-
     def cluster(self, detections: list[dict[str, Any]]) -> dict[int, list[dict[str, Any]]]:
         """
         Two-Pass DBSCAN Clustering.
@@ -385,6 +384,10 @@ class HieroglyphDetectionRuntime:
 
         # FIX 1: median instead of mean — outlier-resistant to large symbols like birds
         median_h = np.median([d["bbox"][3] - d["bbox"][1] for d in detections])
+
+        # Store median_h and median_w for use in _are_stacked
+        self._median_h = median_h
+        self._median_w = np.median([d["bbox"][2] - d["bbox"][0] for d in detections])
 
         coords = np.array([[d["centre_x"], d["centre_y"]] for d in detections])
 
@@ -413,6 +416,7 @@ class HieroglyphDetectionRuntime:
         for i, row_label in enumerate(pass2.labels_):
             print(f"[cluster] Pass2 label={row_label} | "
                   f"centroid=({group_centroids[i][0]:.1f}, {group_centroids[i][1]:.1f})")
+
         # Map Pass 2 row-label → list of original detections
         final_groups: dict[int, list[dict]] = {}
         for i, row_label in enumerate(pass2.labels_):
@@ -482,16 +486,16 @@ class HieroglyphDetectionRuntime:
                 syms.sort(key=lambda s: s["centre_y"])
 
             # Step 7: Stacked Symbol Detection & Handling
-            resolved_syms = self._resolve_stacked_groups(syms)
+            resolved_syms = self._resolve_stacked_groups(syms, self._median_h, self._median_w)
             final_sequence.extend(resolved_syms)
 
         return final_sequence
 
-    def _resolve_stacked_groups(self, syms: list[dict[str, Any]]) -> list[dict[str, Any]]:
+    def _resolve_stacked_groups(self, syms: list[dict[str, Any]], median_h: float, median_w: float) -> list[dict[str, Any]]:
         """
         Detects and resolves stacked symbols/quadrants within a sequence.
-        FIX 2: Checks ALL pairs instead of only adjacent pairs so stacked
-        symbols are never missed due to an intervening symbol in the sorted list.
+        FIX 2: Checks ALL pairs instead of only adjacent pairs.
+        FIX 5: Y-distance and X-center proximity gates with dynamic multipliers.
         """
         if len(syms) < 2:
             return syms
@@ -500,7 +504,6 @@ class HieroglyphDetectionRuntime:
         visited = [False] * n
         groups = []
 
-        # FIX 2: All-pairs X-IoU check instead of adjacent-only
         for i in range(n):
             if visited[i]:
                 continue
@@ -509,9 +512,8 @@ class HieroglyphDetectionRuntime:
             for j in range(n):
                 if visited[j]:
                     continue
-                # Check against ANY symbol already in the current group
                 for g in group:
-                    if self._get_x_iou(g, syms[j]) > self.config.quadrant_x_overlap_threshold:
+                    if self._are_stacked(g, syms[j], median_h, median_w):
                         group.append(syms[j])
                         visited[j] = True
                         break
@@ -534,7 +536,6 @@ class HieroglyphDetectionRuntime:
 
     def _resolve_quadrant(self, group: list[dict[str, Any]]) -> list[dict[str, Any]]:
         """Handles 2x2 or larger blocks by finding vertical sub-stacks."""
-        # Sort group by X first (RTL) to find potential sub-columns
         sorted_by_x = sorted(group, key=lambda s: -s["centre_x"])
 
         sub_stacks = []
@@ -556,6 +557,36 @@ class HieroglyphDetectionRuntime:
             final.extend(sorted(stack, key=lambda s: s["bbox"][1]))
         return final
 
+    def _are_stacked(self, a: dict, b: dict, median_h: float, median_w: float) -> bool:
+        """
+        Two symbols are stacked only if:
+        1. They overlap significantly on the X-axis (X-IoU > threshold)
+        2. They are vertically close — dynamic Y gate scaled to symbol size
+        3. They share the same column — dynamic X-center proximity gate
+        """
+        x_iou = self._get_x_iou(a, b)
+        if x_iou <= self.config.quadrant_x_overlap_threshold:
+            return False
+
+        h_a = a["bbox"][3] - a["bbox"][1]
+        h_b = b["bbox"][3] - b["bbox"][1]
+        smaller_h = min(h_a, h_b)
+        y_dist = abs(a["centre_y"] - b["centre_y"])
+
+        # Dynamic Y multiplier — tighter gate when one symbol is much larger than median
+        y_multiplier = np.clip(median_h / (smaller_h + 1e-6), 0.8, 2.0)
+        if y_dist >= (y_multiplier * smaller_h):
+            return False
+
+        w_a = a["bbox"][2] - a["bbox"][0]
+        w_b = b["bbox"][2] - b["bbox"][0]
+        smaller_w = min(w_a, w_b)
+        x_dist = abs(a["centre_x"] - b["centre_x"])
+
+        # Dynamic X multiplier — more lenient when one symbol is much narrower than median
+        x_multiplier = np.clip(median_w / (smaller_w + 1e-6), 0.5, 1.5)
+        return x_dist < (x_multiplier * smaller_w)
+
     def _get_x_iou(self, a, b):
         """Calculates X-axis Intersection over Union."""
         ax1, _, ax2, _ = a["bbox"]
@@ -563,7 +594,6 @@ class HieroglyphDetectionRuntime:
         inter = max(0, min(ax2, bx2) - max(ax1, bx1))
         min_w = min(ax2 - ax1, bx2 - bx1)
         return inter / min_w if min_w > 0 else 0
-
     # -------------------------------------------------------------------
     # Stage 5: Classification (EfficientNetV2B0)
     # -------------------------------------------------------------------
@@ -713,17 +743,24 @@ class HieroglyphDetectionRuntime:
     # Full Pipeline Orchestration
     # -------------------------------------------------------------------
 
-    def run_pipeline(self, image_bgr: np.ndarray) -> tuple[dict[str, Any], dict[str, Any]]:
+    def run_pipeline(self, image_bgr: np.ndarray, on_step: Any | None = None) -> tuple[dict[str, Any], dict[str, Any]]:
         """
         Full pipeline: Preprocess → Detect → Refine → Cluster → Sort → Classify → Translate.
         """
         t0 = time.time()
+
+        # Start (Scanning Inscription)
+        if on_step: on_step(0.1) # Show the first icon immediately
 
         # 1. Preprocess
         enhanced = self.preprocess(image_bgr)
 
         # 2. Detect
         raw = self.detect(enhanced)
+        
+        # Phase 1 DONE -> Move to Determining Sequence (Icon 2)
+        if on_step: on_step(1.0) 
+
         t_detect = time.time()
         print(f"[hieroglyph] Detection: {len(raw)} raw detections in {t_detect - t0:.2f}s", flush=True)
 
@@ -752,12 +789,30 @@ class HieroglyphDetectionRuntime:
         t_order_start = time.time()
         groups = self.cluster(filtered)
         ordered = self.sort_order(groups)
+        
+        # Phase 2 DONE -> Move to Recognizing Symbols (Icon 3)
+        if on_step: on_step(2.0) 
+        
         print(f"[hieroglyph] Clustering & Sorting done in {time.time() - t_order_start:.2f}s", flush=True)
 
         # 5. Classify (Gardiner codes)
         t_classify_start = time.time()
         classified_symbols = self.classify_symbols(image_bgr, ordered)
+        
+        # Phase 3 DONE -> Move to Generating Translation (Icon 4)
+        if on_step: on_step(3.0) 
+        
         print(f"[hieroglyph] Classification: {len(classified_symbols)} symbols in {time.time() - t_classify_start:.2f}s", flush=True)
+
+        # 6. Translate (Gardiner → English)
+        t_translate_start = time.time()
+        gardiner_codes = [s["gardiner_code"] for s in classified_symbols]
+        translation_text = self.translate_gardiner_sequence(gardiner_codes)
+        
+        # Phase 4 DONE
+        if on_step: on_step(4.0)
+        
+        print(f"[hieroglyph] Translation done in {time.time() - t_translate_start:.2f}s", flush=True)
 
         # 6. Translate (Gardiner → English)
         t_translate_start = time.time()

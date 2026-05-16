@@ -1,6 +1,11 @@
+import asyncio
 import base64
+import json
+from concurrent.futures import ThreadPoolExecutor
 
 from fastapi import FastAPI, File, HTTPException, UploadFile
+from fastapi.middleware.cors import CORSMiddleware
+from fastapi.responses import StreamingResponse
 
 from .schemas import (
     HealthResponse,
@@ -12,7 +17,6 @@ from .service import hieroglyph_service
 
 
 app = FastAPI(title="ECHO Hieroglyph Detection API", version="0.1.0")
-from fastapi.middleware.cors import CORSMiddleware
 
 app.add_middleware(
     CORSMiddleware,
@@ -21,6 +25,8 @@ app.add_middleware(
     allow_methods=["*"],
     allow_headers=["*"],
 )
+
+executor = ThreadPoolExecutor(max_workers=4)
 
 
 @app.on_event("startup")
@@ -40,6 +46,43 @@ def detect_hieroglyphs(request: HieroglyphTranslationRequest) -> TranslationResu
         return result
     except Exception as exc:
         raise HTTPException(status_code=500, detail=str(exc)) from exc
+
+
+@app.post("/translate/stream")
+async def detect_hieroglyphs_stream(request: HieroglyphTranslationRequest):
+    """
+    Streaming version of the translate endpoint.
+    Sends progress updates (phase 1-4) as they happen.
+    """
+    queue = asyncio.Queue()
+    loop = asyncio.get_event_loop()
+
+    def on_step(step: int):
+        loop.call_soon_threadsafe(queue.put_nowait, {"type": "progress", "step": step})
+
+    def run_pipeline():
+        try:
+            result, _metadata = hieroglyph_service.detect(request, on_step=on_step)
+            loop.call_soon_threadsafe(queue.put_nowait, {"type": "result", "data": result.dict()})
+        except Exception as e:
+            loop.call_soon_threadsafe(queue.put_nowait, {"type": "error", "message": str(e)})
+
+    # Start pipeline in a background thread
+    loop.run_in_executor(executor, run_pipeline)
+
+    async def event_generator():
+        while True:
+            message = await queue.get()
+            if message["type"] == "error":
+                yield f"data: {json.dumps(message)}\n\n"
+                break
+            
+            yield f"data: {json.dumps(message)}\n\n"
+            
+            if message["type"] == "result":
+                break
+
+    return StreamingResponse(event_generator(), media_type="text/event-stream")
 
 
 @app.post("/translate/upload", response_model=TranslationResult)

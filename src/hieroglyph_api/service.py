@@ -1,6 +1,7 @@
 from __future__ import annotations
 
 from threading import Semaphore
+from typing import Any
 from .runtime import hieroglyph_runtime
 from .schemas import (
     ClassifiedSymbol,
@@ -21,6 +22,7 @@ class HieroglyphDetectionService:
     def detect(
         self,
         request: HieroglyphTranslationRequest,
+        on_step: Any | None = None
     ) -> tuple[TranslationResult, HieroglyphTranslationMetadata]:
         """Run the full pipeline (Preprocess → Detect → Classify → Translate)."""
 
@@ -29,7 +31,7 @@ class HieroglyphDetectionService:
 
         # 2. Run Pipeline (GPU Serialized)
         with self._gpu_semaphore:
-            raw_result, raw_metadata = hieroglyph_runtime.run_pipeline(image_bgr)
+            raw_result, raw_metadata = hieroglyph_runtime.run_pipeline(image_bgr, on_step=on_step)
 
         # 3. Model Conversion
         symbols = [
