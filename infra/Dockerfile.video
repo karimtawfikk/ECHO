@@ -13,8 +13,8 @@ RUN apt-get update \
     && apt-get install -y --no-install-recommends ffmpeg libsndfile1 \
     && rm -rf /var/lib/apt/lists/*
 
-COPY requirements.video.txt .
-RUN pip install --no-cache-dir --upgrade pip && pip install --no-cache-dir -r requirements.video.txt
+COPY requirements/video.txt .
+RUN pip install --no-cache-dir --upgrade pip && pip install --no-cache-dir -r video.txt
 
 COPY scripts/preload_video_models.py scripts/preload_video_models.py
 

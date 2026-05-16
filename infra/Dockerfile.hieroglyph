@@ -10,8 +10,8 @@ RUN apt-get update \
     && apt-get install -y --no-install-recommends libgl1 libglib2.0-0 \
     && rm -rf /var/lib/apt/lists/*
 
-COPY requirements.hieroglyph.txt .
-RUN pip install --no-cache-dir --upgrade pip && pip install --no-cache-dir -r requirements.hieroglyph.txt
+COPY requirements/hieroglyph.txt .
+RUN pip install --no-cache-dir --upgrade pip && pip install --no-cache-dir -r hieroglyph.txt
 
 COPY src/hieroglyph_api src/hieroglyph_api
 COPY src/hieroglyph_models src/hieroglyph_models
