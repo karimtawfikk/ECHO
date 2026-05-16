@@ -29,7 +29,9 @@ export default function TranslatePage() {
   const [previewUrl, setPreviewUrl] = useState<string | null>(null);
   const [activeTab, setActiveTab] = useState<"translation">("translation");
   const [result, setResult] = useState<TranslateResponse | null>(null);
+  const [currentStep, setCurrentStep] = useState(0);
   const timeoutRef = useRef<NodeJS.Timeout | null>(null);
+  const stepIntervalRef = useRef<NodeJS.Timeout | null>(null);
 
   const pickFile = () => fileInputRef.current?.click();
 
@@ -41,33 +43,48 @@ export default function TranslatePage() {
     if (!file || isLoading) return;
     setIsLoading(true);
     setResult(null);
+    setCurrentStep(0);
+
+    // Start simulated progress for the first 3 steps
+    if (stepIntervalRef.current) clearInterval(stepIntervalRef.current);
+    stepIntervalRef.current = setInterval(() => {
+      setCurrentStep(prev => {
+        if (prev < 3) return prev + 1;
+        if (stepIntervalRef.current) clearInterval(stepIntervalRef.current);
+        return prev;
+      });
+    }, 2500);
 
     const formData = new FormData();
-    formData.append("file", file);
+    formData.append("image", file);
 
     try {
-      // Real API call to the backend proxy
       const response = await api.post("/hieroglyphs/translate", formData, {
-        headers: {
-          "Content-Type": "multipart/form-data",
-        },
+        headers: { "Content-Type": "multipart/form-data" },
       });
 
       if (response.data) {
-        setResult({
-          translation: response.data.translation_text,
-          symbols: response.data.symbols,
-          num_symbols_detected: response.data.num_symbols_detected,
-          num_clusters: response.data.num_clusters,
-          annotated_image_base64: response.data.annotated_image_base64,
-        });
+        // Complete the journey
+        setCurrentStep(4);
+        
+        // Brief pause to show completion before revealing result
+        setTimeout(() => {
+          setResult({
+            translation: response.data.translation_text,
+            symbols: response.data.symbols,
+            num_symbols_detected: response.data.num_symbols_detected,
+            num_clusters: response.data.num_clusters,
+            annotated_image_base64: response.data.annotated_image_base64,
+          });
+          setIsLoading(false);
+          if (stepIntervalRef.current) clearInterval(stepIntervalRef.current);
+        }, 1000);
       }
     } catch (error) {
       console.error("Translation error:", error);
-      // Fallback or error handling
       alert("Failed to decipher the inscription. Please try again.");
-    } finally {
       setIsLoading(false);
+      if (stepIntervalRef.current) clearInterval(stepIntervalRef.current);
     }
   };
 
@@ -84,10 +101,12 @@ export default function TranslatePage() {
 
   const resetAll = () => {
     if (timeoutRef.current) clearTimeout(timeoutRef.current);
+    if (stepIntervalRef.current) clearInterval(stepIntervalRef.current);
     setResult(null);
     setFile(null);
     setFileName("");
     setIsLoading(false);
+    setCurrentStep(0);
     if (previewUrl) URL.revokeObjectURL(previewUrl);
     setPreviewUrl(null);
     if (fileInputRef.current) fileInputRef.current.value = "";
@@ -378,8 +397,8 @@ export default function TranslatePage() {
                               fill="none"
                               strokeWidth="0.4"
                               initial={{ pathLength: 0 }}
-                              animate={{ pathLength: 1 }}
-                              transition={{ duration: 9, ease: "linear" }}
+                              animate={{ pathLength: currentStep / 4 }}
+                              transition={{ duration: 1.5, ease: "easeInOut" }}
                               className="drop-shadow-[0_0_10px_rgba(230,178,60,0.5)]"
                             />
                           </svg>
@@ -387,8 +406,8 @@ export default function TranslatePage() {
                           <div className="absolute inset-0">
                             {[
                               { title: "Scanning Inscription", icon: Search, top: "10%", left: "10%", align: "start", delay: 0 },
-                              { title: "Recognizing Symbols", icon: Cpu, top: "30%", left: "83%", align: "end", delay: 3.0 },
-                              { title: "Determining Sequence", icon: BookOpen, top: "52%", left: "4.7%", align: "start", delay: 6.0 },
+                              { title: "Determining Sequence", icon: BookOpen, top: "30%", left: "83%", align: "end", delay: 3.0 },
+                              { title: "Recognizing Symbols", icon: Cpu, top: "52%", left: "4.7%", align: "start", delay: 6.0 },
                               { title: "Generating Translation", icon: "𓅓", top: "85%", left: "83%", align: "end", delay: 9.0 }
                             ].map((step, i) => (
                               <motion.div
@@ -406,17 +425,26 @@ export default function TranslatePage() {
                                 {/* ICON */}
                                 <motion.div
                                   animate={{
-                                    borderColor: ["rgba(230,178,60,0.1)", "rgba(230,178,60,0.4)", "rgba(230,178,60,0.1)"],
-                                    boxShadow: ["0 0 0px transparent", "0 0 20px rgba(230,178,60,0.08)", "0 0 0px transparent"]
+                                    borderColor: currentStep >= i + 1 ? "rgba(230,178,60,0.8)" : "rgba(230,178,60,0.2)",
+                                    backgroundColor: currentStep >= i + 1 ? "rgba(230,178,60,0.15)" : "rgba(230,178,60,0.05)",
+                                    boxShadow: currentStep >= i + 1 ? "0 0 20px rgba(230,178,60,0.3)" : "0 0 0px transparent"
                                   }}
-                                  transition={{ duration: 2, repeat: Infinity, delay: step.delay }}
-                                  // Around line 394
-                                  className={`w-14 h-14 rounded-full bg-[#E6B23C]/5 border border-[#E6B23C]/20 flex items-center justify-center relative z-20 ${(i === 0) ? 'translate-y-1' : ''}`}
+                                  transition={{ duration: 0.5 }}
+                                  className={`w-14 h-14 rounded-full border flex items-center justify-center relative z-20 ${(i === 0) ? 'translate-y-1' : ''}`}
                                 >
                                   {typeof step.icon === 'string' ? (
-                                    <span className="text-3xl text-[#E6B23C] leading-none select-none -translate-y-0.5">{step.icon}</span>
+                                    <span className={`text-3xl leading-none select-none -translate-y-0.5 transition-colors ${currentStep >= i + 1 ? "text-[#E6B23C]" : "text-[#E6B23C]/40"}`}>{step.icon}</span>
                                   ) : (
-                                    <step.icon size={24} className="text-[#E6B23C]" />
+                                    <step.icon size={24} className={`transition-colors ${currentStep >= i + 1 ? "text-[#E6B23C]" : "text-[#E6B23C]/40"}`} />
+                                  )}
+                                  {currentStep > i + 1 && (
+                                    <motion.div
+                                      initial={{ scale: 0 }}
+                                      animate={{ scale: 1 }}
+                                      className="absolute -top-1 -right-1 w-5 h-5 bg-[#E6B23C] rounded-full flex items-center justify-center text-[#120D08]"
+                                    >
+                                      <svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="4" strokeLinecap="round" strokeLinejoin="round"><polyline points="20 6 9 17 4 12"></polyline></svg>
+                                    </motion.div>
                                   )}
                                 </motion.div>
 

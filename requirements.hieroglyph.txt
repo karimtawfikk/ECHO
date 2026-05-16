@@ -1,3 +1,5 @@
 # ML / Vision
 ultralytics
-opencv-python-headless
+opencv-python
+sentencepiece
+protobuf

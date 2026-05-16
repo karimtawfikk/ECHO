@@ -7,19 +7,19 @@ router = APIRouter()
 HIEROGLYPH_API_URL = "http://127.0.0.1:8003"
 
 @router.post("/translate")
-async def translate_hieroglyphs(file: UploadFile = File(...)):
+async def translate_hieroglyphs(image: UploadFile = File(...)):
     """
     Proxies the hieroglyph translation request to the dedicated microservice.
     """
     # Validate file type
-    if not file.content_type.startswith("image/"):
+    if not image.content_type.startswith("image/"):
         raise HTTPException(status_code=400, detail="Invalid file type. Please upload an image.")
 
-    image_data = await file.read()
+    image_data = await image.read()
     
-    async with httpx.AsyncClient(timeout=60.0) as client:
+    async with httpx.AsyncClient(timeout=120.0) as client:
         try:
-            files = {"file": (file.filename, image_data, file.content_type)}
+            files = {"image": (image.filename, image_data, image.content_type)}
             response = await client.post(f"{HIEROGLYPH_API_URL}/translate/upload", files=files)
             
             if response.status_code != 200:
