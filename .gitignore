@@ -34,5 +34,4 @@ tts_Outputs/
 # Local generated/test files
 request.json
 
-# Local recognition model artifacts
-ml_models/
+
