@@ -6,7 +6,7 @@ import { motion, AnimatePresence } from "framer-motion";
 import { Input } from "../../components/ui/input";
 import { Button } from "../../components/ui/button";
 import { Label } from "../../components/ui/label";
-import { Loader2, Mail, Lock, LogIn, UserPlus, User, ShieldCheck, Sparkles, ArrowRight, Eye, EyeOff } from "lucide-react";
+import { Loader2, Mail, Lock, LogIn, UserPlus, User, ShieldCheck, Sparkles, ArrowRight, Eye, EyeOff, Check } from "lucide-react";
 import PageShell from "../../components/layout/PageShell";
 
 export default function LoginPage() {
@@ -19,6 +19,9 @@ export default function LoginPage() {
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState<string | null>(null);
   const [isSignUp, setIsSignUp] = useState(false);
+  const [isForgotPassword, setIsForgotPassword] = useState(false);
+  const [resetSent, setResetSent] = useState(false);
+  const [countdown, setCountdown] = useState(0);
   const [mounted, setMounted] = useState(false);
   const supabase = createClient();
 
@@ -26,10 +29,32 @@ export default function LoginPage() {
     setMounted(true);
   }, []);
 
+  useEffect(() => {
+    let timer: NodeJS.Timeout;
+    if (countdown > 0) {
+      timer = setTimeout(() => setCountdown(countdown - 1), 1000);
+    }
+    return () => clearTimeout(timer);
+  }, [countdown]);
+
   const handleEmailAuth = async (e: React.FormEvent) => {
     e.preventDefault();
     setLoading(true);
     setError(null);
+
+    if (isForgotPassword) {
+      const { error } = await supabase.auth.resetPasswordForEmail(email, {
+        redirectTo: `${window.location.origin}/auth/callback?next=/auth/reset`,
+      });
+      if (error) {
+        setError(error.message);
+      } else {
+        setResetSent(true);
+        setCountdown(60);
+      }
+      setLoading(false);
+      return;
+    }
 
     // Email validation
     const emailRegex = /^[^\s@]+@[^\s@]+\.[^\s@]+$/;
@@ -155,10 +180,12 @@ export default function LoginPage() {
               <div className="bg-[#0D0A07]/80 backdrop-blur-3xl rounded-[30px] p-8 md:p-10 border border-white/5">
                 <div className="text-center mb-6">
                   <h2 className="text-3xl font-bold text-white mb-2">
-                    {isSignUp ? "Create Your Identity" : "Welcome Back"}
+                    {isForgotPassword ? "Reset Password" : (isSignUp ? "Create Your Identity" : "Welcome Back")}
                   </h2>
                   <p className="text-[#A08E70] text-sm">
-                    {isSignUp ? "Join the explorers of the Nile" : "Continue your journey through time"}
+                    {isForgotPassword
+                      ? "Enter your email to receive a reset link"
+                      : (isSignUp ? "Join the explorers of the Nile" : "Continue your journey through time")}
                   </p>
                 </div>
 
@@ -236,29 +263,44 @@ export default function LoginPage() {
                       </div>
                     </div>
 
-                    <div className="space-y-1.5">
-                      <Label htmlFor="password" className="text-[#A08E70] text-[10px] uppercase font-bold tracking-widest pl-1">Password</Label>
-                      <div className="relative">
-                        <Lock className="absolute left-4 top-3 h-4 w-4 text-[#E6B23C]/40" />
-                        <Input
-                          id="password"
-                          type={showPassword ? "text" : "password"}
-                          placeholder={isSignUp ? "Minimum 8 characters" : "••••••••"}
-                          className="h-11 pl-12 pr-12 bg-white/5 border-white/10 text-white rounded-xl focus-visible:ring-[#E6B23C]/30 focus:border-[#E6B23C]/50 transition-all"
-                          value={password}
-                          onChange={(e) => setPassword(e.target.value)}
-                          required
-                        />
-                        <button
-                          type="button"
-                          onClick={() => setShowPassword(!showPassword)}
-                          className="absolute right-4 top-2.5 text-[#A08E70]/40 hover:text-[#E6B23C] transition-colors"
-                          title={showPassword ? "Hide" : "Reveal"}
-                        >
-                          {showPassword ? <EyeOff size={18} /> : <Eye size={18} />}
-                        </button>
+                    {!isForgotPassword && (
+                      <div className="space-y-1.5">
+                        <div className="flex items-center justify-between pl-1">
+                          <Label htmlFor="password" className="text-[#A08E70] text-[10px] uppercase font-bold tracking-widest">Password</Label>
+                        </div>
+                        <div className="relative">
+                          <Lock className="absolute left-4 top-3 h-4 w-4 text-[#E6B23C]/40" />
+                          <Input
+                            id="password"
+                            type={showPassword ? "text" : "password"}
+                            placeholder={isSignUp ? "Minimum 8 characters" : "••••••••"}
+                            className="h-11 pl-12 pr-12 bg-white/5 border-white/10 text-white rounded-xl focus-visible:ring-[#E6B23C]/30 focus:border-[#E6B23C]/50 transition-all"
+                            value={password}
+                            onChange={(e) => setPassword(e.target.value)}
+                            required={!isForgotPassword}
+                          />
+                          <button
+                            type="button"
+                            onClick={() => setShowPassword(!showPassword)}
+                            className="absolute right-4 top-2.5 text-[#A08E70]/40 hover:text-[#E6B23C] transition-colors"
+                            title={showPassword ? "Hide" : "Reveal"}
+                          >
+                            {showPassword ? <EyeOff size={18} /> : <Eye size={18} />}
+                          </button>
+                        </div>
+                        {!isSignUp && (
+                          <div className="flex justify-end">
+                            <button
+                              type="button"
+                              onClick={() => setIsForgotPassword(true)}
+                              className="text-xs text-[#E6B23C]/60 hover:text-[#E6B23C] font-medium transition-colors pr-1"
+                            >
+                              Forgot Password?
+                            </button>
+                          </div>
+                        )}
                       </div>
-                    </div>
+                    )}
 
                     {error && (
                       <motion.p
@@ -272,13 +314,18 @@ export default function LoginPage() {
 
                     <Button
                       type="submit"
-                      disabled={loading}
+                      disabled={loading || (resetSent && countdown > 0)}
                       className="w-full h-12 mt-2 rounded-xl bg-transparent border-2 border-[#E6B23C] text-[#E6B23C] font-bold uppercase tracking-widest hover:bg-[#E6B23C]/10 hover:shadow-[0_0_30px_rgba(230,178,60,0.2)] transition-all flex items-center justify-center gap-2"
                     >
                       {loading ? (
                         <Loader2 className="h-4 w-4 animate-spin" />
+                      ) : (resetSent && countdown > 0) ? (
+                        <div className="flex items-center gap-2">
+                          <Check className="h-4 w-4" />
+                          <span>Resend in {countdown}<span className="text-[10px] lowercase ml-0.5">s</span></span>
+                        </div>
                       ) : (
-                        <>{isSignUp ? "Sign Up" : "Sign In"}</>
+                        <>{isForgotPassword ? (resetSent ? "Resend Link" : "Send Reset Link") : (isSignUp ? "Sign Up" : "Sign In")}</>
                       )}
                     </Button>
                   </form>
@@ -308,13 +355,26 @@ export default function LoginPage() {
 
                   <div className="text-center">
                     <div className="text-[#A08E70] text-sm flex items-center justify-center gap-1.5 mx-auto">
-                      <span>{isSignUp ? "Already have an account?" : "First time?"}</span>
+                      <span>
+                        {isForgotPassword
+                          ? ""
+                          : (isSignUp ? "Already have an account?" : "First time?")}
+                      </span>
                       <button
                         type="button"
-                        onClick={() => setIsSignUp(!isSignUp)}
+                        onClick={() => {
+                          if (isForgotPassword) {
+                            setIsForgotPassword(false);
+                            setResetSent(false);
+                          } else {
+                            setIsSignUp(!isSignUp);
+                          }
+                        }}
                         className="text-[#E6B23C] hover:text-[#FFD369] font-bold transition-colors"
                       >
-                        {isSignUp ? "Sign in" : "Sign up for free"}
+                        {isForgotPassword
+                          ? "Back to Sign In"
+                          : (isSignUp ? "Sign In" : "Sign up for free")}
                       </button>
                     </div>
                   </div>

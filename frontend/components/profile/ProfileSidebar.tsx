@@ -674,7 +674,7 @@ export default function ProfileSidebar({ isOpen, onClose }: ProfileSidebarProps)
                                                                 type="text"
                                                                 value={firstName}
                                                                 onChange={(e) => setFirstName(e.target.value)}
-                                                                className="w-full bg-[#1A1208] border border-[#E6B23C]/10 rounded-xl py-3.5 pl-12 pr-12 text-sm text-[#F5E6D0] focus:border-[#E6B23C]/40 outline-none transition-all"
+                                                                className="w-full bg-[#E6B23C]/5 border border-[#E6B23C]/30 rounded-xl py-3.5 pl-12 pr-12 text-sm text-[#F5E6D0] focus:border-[#E6B23C]/60 focus:shadow-[0_0_25px_rgba(230,178,60,0.15)] outline-none transition-all shadow-[0_0_15px_rgba(230,178,60,0.05)]"
                                                                 placeholder="First name"
                                                             />
                                                             <button
@@ -694,7 +694,7 @@ export default function ProfileSidebar({ isOpen, onClose }: ProfileSidebarProps)
                                                                 type="text"
                                                                 value={lastName}
                                                                 onChange={(e) => setLastName(e.target.value)}
-                                                                className="w-full bg-[#1A1208] border border-[#E6B23C]/10 rounded-xl py-3.5 pl-12 pr-12 text-sm text-[#F5E6D0] focus:border-[#E6B23C]/40 outline-none transition-all"
+                                                                className="w-full bg-[#E6B23C]/5 border border-[#E6B23C]/30 rounded-xl py-3.5 pl-12 pr-12 text-sm text-[#F5E6D0] focus:border-[#E6B23C]/60 focus:shadow-[0_0_25px_rgba(230,178,60,0.15)] outline-none transition-all shadow-[0_0_15px_rgba(230,178,60,0.05)]"
                                                                 placeholder="Last name"
                                                             />
                                                             <button
@@ -716,7 +716,7 @@ export default function ProfileSidebar({ isOpen, onClose }: ProfileSidebarProps)
                                                             type="text"
                                                             value={username}
                                                             onChange={(e) => setUsername(e.target.value)}
-                                                            className="w-full bg-[#1A1208] border border-[#E6B23C]/10 rounded-xl py-3.5 pl-12 pr-12 text-sm text-[#F5E6D0] focus:border-[#E6B23C]/40 outline-none transition-all"
+                                                            className="w-full bg-[#E6B23C]/5 border border-[#E6B23C]/30 rounded-xl py-3.5 pl-12 pr-12 text-sm text-[#F5E6D0] focus:border-[#E6B23C]/60 focus:shadow-[0_0_25px_rgba(230,178,60,0.15)] outline-none transition-all shadow-[0_0_15px_rgba(230,178,60,0.05)]"
                                                             placeholder="Username"
                                                         />
                                                         <button
