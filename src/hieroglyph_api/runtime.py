@@ -55,7 +55,7 @@ class HieroglyphPipelineConfig:
     classification_img_size: int = 224
 
     # Translation (M2M-100 Fine-tuned)
-    translation_model_path = "src/ml_models/hieroglyph_models/translation"
+    translation_model_path = "ECHO-EG/echo-m2m100-hieroglyph"
 
     translation_max_input_length: int = 512
     translation_max_target_length: int = 128
@@ -144,7 +144,8 @@ class HieroglyphDetectionRuntime:
                 print(f"[hieroglyph] TF Memory Growth Error: {e}", flush=True)
         tf.get_logger().setLevel("ERROR")
         
-        print("[hieroglyph] TensorFlow imported", flush=True)
+        device_used = "GPU" if gpus else "CPU"
+        print(f"[hieroglyph] Classification model will use: {device_used}", flush=True)
 
         # Keras 3 native save format
         config_path = model_path.parent / "config.json"
@@ -193,21 +194,25 @@ class HieroglyphDetectionRuntime:
         if self._translation_model is not None:
             return self._translation_model, self._translation_tokenizer
 
-        model_path = self._resolve_path(self.config.translation_model_path)
-        if not model_path.exists():
-            print(f"[hieroglyph] WARNING: Translation model not found at {model_path}", flush=True)
-            return None
+        model_id = self.config.translation_model_path
+        model_path = self._resolve_path(model_id)
+        
+        # Use local path if it exists, otherwise assume it's a Hugging Face repo ID
+        if model_path.exists():
+            load_path = str(model_path)
+        else:
+            load_path = model_id
 
         # Returning to GPU with FP16 optimization to prevent timeouts
         # However, this model is 3.5GB. If it fails, we MUST fallback to CPU.
         self._device = "cuda" if torch.cuda.is_available() else "cpu"
-        print(f"[hieroglyph] Translation model will use: {self._device} (Optimized)", flush=True)
+        print(f"[hieroglyph] Translation model will use: {self._device} (Optimized) from {load_path}", flush=True)
 
         load_start = time.time()
         try:
             from transformers import M2M100Tokenizer, M2M100ForConditionalGeneration
             
-            self._translation_tokenizer = M2M100Tokenizer.from_pretrained(str(model_path))
+            self._translation_tokenizer = M2M100Tokenizer.from_pretrained(load_path)
             
             # Clear cache before loading big model
             if torch.cuda.is_available():
@@ -217,15 +222,15 @@ class HieroglyphDetectionRuntime:
             if self._device == "cuda":
                 try:
                     self._translation_model = M2M100ForConditionalGeneration.from_pretrained(
-                        str(model_path), 
+                        load_path, 
                         torch_dtype=torch.float16
                     ).to(self._device)
                 except Exception as cuda_err:
                     print(f"[hieroglyph] CUDA OOM or Error: {cuda_err}. Falling back to CPU for translation...", flush=True)
                     self._device = "cpu"
-                    self._translation_model = M2M100ForConditionalGeneration.from_pretrained(str(model_path)).to("cpu")
+                    self._translation_model = M2M100ForConditionalGeneration.from_pretrained(load_path).to("cpu")
             else:
-                self._translation_model = M2M100ForConditionalGeneration.from_pretrained(str(model_path)).to("cpu")
+                self._translation_model = M2M100ForConditionalGeneration.from_pretrained(load_path).to("cpu")
             
             self._translation_model.eval()
 
@@ -238,6 +243,9 @@ class HieroglyphDetectionRuntime:
             print(f"[hieroglyph] CRITICAL ERROR loading translation model: {e}", flush=True)
             self._translation_model = None
             self._translation_tokenizer = None
+            
+        if self._translation_model is None or self._translation_tokenizer is None:
+            return None
             
         return self._translation_model, self._translation_tokenizer
 

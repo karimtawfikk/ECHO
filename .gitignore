@@ -8,6 +8,7 @@ __pycache__/
 # Virtual environments
 venv_studio/
 venv/
+.venv/
 .venv_310/
 
 # Environment variables
@@ -25,13 +26,7 @@ alembic/versions/__pycache__/
 
 # folder
 data/
-tts_Outputs/
 
 .vscode/
 .idea/
 .langgraph_api/
-
-# Local generated/test files
-request.json
-
-

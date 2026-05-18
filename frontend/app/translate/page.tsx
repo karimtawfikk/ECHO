@@ -463,7 +463,7 @@ export default function TranslatePage() {
                               { title: "Generating Translation", icon: "𓅓", top: "85%", left: "83%", align: "end" }
                             ].map((step, i) => (
                               <AnimatePresence key={i}>
-                                {currentStep >= i + 0.1 && (
+                                {currentStep >= (i === 0 ? 0.1 : i) && (
                                   <motion.div
                                     initial={{ opacity: 1, scale: 0.8, y: 10 }}
                                     animate={{ opacity: 1, scale: 1, y: 0 }}
@@ -488,9 +488,9 @@ export default function TranslatePage() {
                                       className={`w-14 h-14 rounded-full border border-[#E6B23C] bg-[#E6B23C] flex items-center justify-center relative z-20 ${(i === 0) ? 'translate-y-1' : ''}`}
                                     >
                                       {typeof step.icon === 'string' ? (
-                                        <span className={`text-3xl font-black leading-none select-none -translate-y-0.5 transition-colors ${currentStep >= i + 0.1 ? "text-[#120D08]" : "text-[#E6B23C]/40"}`}>{step.icon}</span>
+                                        <span className={`text-3xl font-black leading-none select-none -translate-y-0.5 transition-colors ${currentStep >= (i === 0 ? 0.1 : i) ? "text-[#120D08]" : "text-[#E6B23C]/40"}`}>{step.icon}</span>
                                       ) : (
-                                        <step.icon size={24} strokeWidth={3} className={`transition-colors ${currentStep >= i + 0.1 ? "text-[#120D08]" : "text-[#E6B23C]/40"}`} />
+                                        <step.icon size={24} strokeWidth={3} className={`transition-colors ${currentStep >= (i === 0 ? 0.1 : i) ? "text-[#120D08]" : "text-[#E6B23C]/40"}`} />
                                       )}
                                       {currentStep >= i + 1 && (
                                         <motion.div
