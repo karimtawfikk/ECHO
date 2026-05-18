@@ -1,7 +1,7 @@
 "use client";
 
 import { motion, AnimatePresence } from "framer-motion";
-import { X, LogOut, Settings, Camera, MessageSquare, History as HistoryIcon, Bookmark, Search, User, Calendar, ChevronRight, ArrowLeft, AtSign, Mail, Trash2, ChevronDown, Pencil } from "lucide-react";
+import { X, LogOut, Settings, Camera, MessageSquare, History as HistoryIcon, Bookmark, Search, User, Calendar, ChevronRight, ArrowLeft, AtSign, Mail, Trash2, ChevronDown, Pencil, Lock, Eye, EyeOff } from "lucide-react";
 import { useState, useEffect, useRef } from "react";
 import { createClient } from "../../lib/supabase/client";
 import { useLanguage } from "../../context/LanguageContext";
@@ -42,6 +42,14 @@ export default function ProfileSidebar({ isOpen, onClose }: ProfileSidebarProps)
     const [showSuccess, setShowSuccess] = useState(false);
     const [showNoChanges, setShowNoChanges] = useState(false);
     const fileInputRef = useRef<HTMLInputElement>(null);
+
+    // Password States
+    const [currentPassword, setCurrentPassword] = useState("");
+    const [newPassword, setNewPassword] = useState("");
+    const [showCurrentPassword, setShowCurrentPassword] = useState(false);
+    const [showNewPassword, setShowNewPassword] = useState(false);
+    const [isSavingPassword, setIsSavingPassword] = useState(false);
+    const [showPasswordSuccess, setShowPasswordSuccess] = useState(false);
 
     const baseUrl = process.env.NEXT_PUBLIC_API_URL?.replace(/\/api\/v1\/?$/, "") ?? "http://localhost:8010";
 
@@ -273,6 +281,54 @@ export default function ProfileSidebar({ isOpen, onClose }: ProfileSidebarProps)
         }
     };
 
+    const handleUpdatePassword = async () => {
+        if (!currentPassword || !newPassword) {
+            alert("Please fill in both current and new password fields.");
+            return;
+        }
+
+        setIsSavingPassword(true);
+        try {
+            if (!user || !user.email) {
+                alert("You must be logged in to update your password.");
+                return;
+            }
+
+            // 1. Verify current password by signing in
+            const { error: verifyError } = await supabase.auth.signInWithPassword({
+                email: user.email,
+                password: currentPassword
+            });
+
+            if (verifyError) {
+                alert("Invalid current password. Please verify and try again.");
+                return;
+            }
+
+            // 2. Update to new password
+            const { error: updateError } = await supabase.auth.updateUser({
+                password: newPassword
+            });
+
+            if (updateError) {
+                throw updateError;
+            }
+
+            setShowPasswordSuccess(true);
+            setCurrentPassword("");
+            setNewPassword("");
+            setTimeout(() => {
+                setShowPasswordSuccess(false);
+                setView("profile");
+            }, 2500);
+        } catch (err: any) {
+            console.error("Error updating password:", err);
+            alert(`Password update failed: ${err.message || "Unknown error"}`);
+        } finally {
+            setIsSavingPassword(false);
+        }
+    };
+
     const formatJoinedDate = (dateString: string) => {
         if (!dateString) return "Joined May 2024";
         try {
@@ -325,6 +381,11 @@ export default function ProfileSidebar({ isOpen, onClose }: ProfileSidebarProps)
         acc[key].push(chat);
         return acc;
     }, {} as Record<string, any[]>);
+
+    const isEmailUser = user && (
+        (user.app_metadata?.provider || "").toLowerCase() === "email" ||
+        user.identities?.some((identity: any) => (identity.provider || "").toLowerCase() === "email")
+    );
 
     return (
         <AnimatePresence>
@@ -740,6 +801,77 @@ export default function ProfileSidebar({ isOpen, onClose }: ProfileSidebarProps)
                                                         />
                                                     </div>
                                                 </div>
+
+                                                {isEmailUser && (
+                                                    <div className="pt-6 mt-6 border-t border-[#E6B23C]/10 space-y-4">
+                                                        <h3 className="text-xs font-bold text-[#F5E6D0] uppercase tracking-wider">Change Password</h3>
+                                                        
+                                                        <div className="space-y-2">
+                                                            <label className="text-[9px] font-bold text-[#A08E70] uppercase tracking-widest px-1">Current Password</label>
+                                                            <div className="relative group">
+                                                                <Lock size={16} className="absolute left-4 top-1/2 -translate-y-1/2 text-[#E6B23C]/40" />
+                                                                <input
+                                                                    type={showCurrentPassword ? "text" : "password"}
+                                                                    value={currentPassword}
+                                                                    onChange={(e) => setCurrentPassword(e.target.value)}
+                                                                    className="w-full bg-[#E6B23C]/5 border border-[#E6B23C]/30 rounded-xl py-3.5 pl-12 pr-12 text-sm text-[#F5E6D0] focus:border-[#E6B23C]/60 focus:shadow-[0_0_25px_rgba(230,178,60,0.15)] outline-none transition-all shadow-[0_0_15px_rgba(230,178,60,0.05)]"
+                                                                    placeholder="Enter password"
+                                                                />
+                                                                <button
+                                                                    type="button"
+                                                                    onClick={() => setShowCurrentPassword(!showCurrentPassword)}
+                                                                    className="absolute right-4 top-1/2 -translate-y-1/2 text-[#A08E70]/30 hover:text-[#E6B23C] transition-colors"
+                                                                >
+                                                                    {showCurrentPassword ? <EyeOff size={14} /> : <Eye size={14} />}
+                                                                </button>
+                                                            </div>
+                                                        </div>
+
+                                                        <div className="space-y-2">
+                                                            <label className="text-[9px] font-bold text-[#A08E70] uppercase tracking-widest px-1">New Password</label>
+                                                            <div className="relative group">
+                                                                <Lock size={16} className="absolute left-4 top-1/2 -translate-y-1/2 text-[#E6B23C]/40" />
+                                                                <input
+                                                                    type={showNewPassword ? "text" : "password"}
+                                                                    value={newPassword}
+                                                                    onChange={(e) => setNewPassword(e.target.value)}
+                                                                    className="w-full bg-[#E6B23C]/5 border border-[#E6B23C]/30 rounded-xl py-3.5 pl-12 pr-12 text-sm text-[#F5E6D0] focus:border-[#E6B23C]/60 focus:shadow-[0_0_25px_rgba(230,178,60,0.15)] outline-none transition-all shadow-[0_0_15px_rgba(230,178,60,0.05)]"
+                                                                    placeholder="Enter password"
+                                                                />
+                                                                <button
+                                                                    type="button"
+                                                                    onClick={() => setShowNewPassword(!showNewPassword)}
+                                                                    className="absolute right-4 top-1/2 -translate-y-1/2 text-[#A08E70]/30 hover:text-[#E6B23C] transition-colors"
+                                                                >
+                                                                    {showNewPassword ? <EyeOff size={14} /> : <Eye size={14} />}
+                                                                </button>
+                                                            </div>
+                                                        </div>
+
+                                                        <div className="pt-2">
+                                                             <Button
+                                                                 onClick={handleUpdatePassword}
+                                                                 disabled={isSavingPassword}
+                                                                 className="w-full bg-[#E6B23C] text-[#0D0A07] hover:scale-[1.02] active:scale-[0.98] font-bold py-6 rounded-xl transition-all shadow-[0_0_30px_rgba(230,178,60,0.15)] hover:shadow-[0_0_40px_rgba(230,178,60,0.3)] uppercase tracking-widest text-[12px]"
+                                                             >
+                                                                 {isSavingPassword ? "SAVING..." : "UPDATE PASSWORD"}
+                                                             </Button>
+                                                            <AnimatePresence mode="wait">
+                                                                {showPasswordSuccess && (
+                                                                    <motion.div
+                                                                        key="pw-success"
+                                                                        initial={{ opacity: 0, y: -5 }}
+                                                                        animate={{ opacity: 1, y: 0 }}
+                                                                        exit={{ opacity: 0, y: -5 }}
+                                                                        className="text-[10px] font-bold text-[#E6B23C] uppercase tracking-[0.2em] text-center mt-2"
+                                                                    >
+                                                                        Password updated successfully
+                                                                    </motion.div>
+                                                                )}
+                                                            </AnimatePresence>
+                                                        </div>
+                                                    </div>
+                                                )}
                                             </div>
 
                                             <div className="mt-4 flex flex-col items-center gap-3">
