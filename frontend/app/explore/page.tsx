@@ -153,8 +153,8 @@ function EgyptMap({
   onSelectCity: (label: string | null) => void;
 }) {
   return (
-    <div className="relative w-full max-w-2xl mx-auto overflow-hidden rounded-2xl md:rounded-3xl border border-[#E6B23C]/10 shadow-[0_20px_50px_rgba(0,0,0,0.5)] bg-[#0D0A07]">
-      <div className="absolute inset-0 bg-gradient-to-t from-[#0D0A07]/60 via-transparent to-transparent z-10 pointer-events-none" />
+    <div className="relative w-full max-w-2xl mx-auto overflow-hidden rounded-2xl md:rounded-3xl bg-transparent">
+      <div className="absolute inset-0 bg-gradient-to-t from-transparent via-transparent to-transparent z-10 pointer-events-none" />
 
       <div className="relative aspect-square w-full">
         <img

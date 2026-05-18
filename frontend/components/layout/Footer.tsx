@@ -68,7 +68,7 @@ export default function Footer() {
                         </div>
                         <ul className="space-y-4">
                             <li>
-                                <Link href="#" className="text-[#A08E70] hover:text-[#E6B23C] transition-colors text-sm font-medium">
+                                <Link href="/about" className="text-[#A08E70] hover:text-[#E6B23C] transition-colors text-sm font-medium">
                                     {t("footer.about")}
                                 </Link>
                             </li>
