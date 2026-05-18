@@ -9,6 +9,7 @@ import { motion, AnimatePresence } from "framer-motion";
 import { useLanguage } from "../../context/LanguageContext";
 import { Image, Upload, Camera, X, ArrowRight, Loader2, AlertCircle, Sparkles } from "lucide-react";
 import { recognizeImage, saveResultToSession } from "../../lib/services/recognition";
+import { createClient } from "../../lib/supabase/client";
 
 export default function UploadPage() {
   const { t, isRTL } = useLanguage();
@@ -64,6 +65,38 @@ export default function UploadPage() {
     try {
       const result = await recognizeImage(selectedFile);
       if (currentReq !== reqIdRef.current) return;
+
+      // Save to recognition_history if user is logged in
+      try {
+        const supabase = createClient();
+        const { data: { user } } = await supabase.auth.getUser();
+        if (user) {
+          const API_BASE = process.env.NEXT_PUBLIC_API_URL?.replace(/\/api\/v1\/?$/, "") ?? "http://localhost:8010";
+          const uploadData = new FormData();
+          uploadData.append("file", selectedFile);
+          uploadData.append("user_id", user.id);
+          uploadData.append("task_type", "recognition");
+
+          const uploadRes = await fetch(`${API_BASE}/api/v1/assets/upload/history`, {
+            method: "POST",
+            body: uploadData,
+          });
+
+          if (uploadRes.ok) {
+            const { key } = await uploadRes.json();
+            
+            await supabase.from('recognition_history').insert({
+              user_id: user.id,
+              image_path: key,
+              entity_name: (result.raw_name || result.name).replace(/_/g, " "),
+              entity_type: result.type
+            });
+          }
+        }
+      } catch (dbErr) {
+        console.error("Failed to save recognition history:", dbErr);
+      }
+
       const reader = new FileReader();
       reader.onloadend = () => {
         if (currentReq !== reqIdRef.current) return;

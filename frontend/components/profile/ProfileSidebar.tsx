@@ -27,6 +27,7 @@ export default function ProfileSidebar({ isOpen, onClose }: ProfileSidebarProps)
     const [user, setUser] = useState<any>(null);
     const [profileData, setProfileData] = useState<any>(null);
     const [chatHistory, setChatHistory] = useState<any[]>([]);
+    const [historyList, setHistoryList] = useState<any[]>([]);
     const [expandedEntity, setExpandedEntity] = useState<string | null>(null);
     const [isLoading, setIsLoading] = useState(true);
     const router = useRouter();
@@ -50,12 +51,27 @@ export default function ProfileSidebar({ isOpen, onClose }: ProfileSidebarProps)
     const [showNewPassword, setShowNewPassword] = useState(false);
     const [isSavingPassword, setIsSavingPassword] = useState(false);
     const [showPasswordSuccess, setShowPasswordSuccess] = useState(false);
+    const [passwordError, setPasswordError] = useState<string | null>(null);
+    const [dbEntities, setDbEntities] = useState<{ pharaohs: any[]; landmarks: any[] } | null>(null);
+    const [historyFilter, setHistoryFilter] = useState<"all" | "recognition" | "translation">("all");
 
     const baseUrl = process.env.NEXT_PUBLIC_API_URL?.replace(/\/api\/v1\/?$/, "") ?? "http://localhost:8010";
 
     const getEntityImage = (name: string, type: string = "") => {
         const safeType = (type || "").toLowerCase();
         const entityType = safeType.includes("pharaoh") ? "pharaoh" : "landmark";
+
+        // Try dynamic entities first to find image from DB
+        if (dbEntities) {
+            const list = entityType === "pharaoh" ? dbEntities.pharaohs : dbEntities.landmarks;
+            const found = list.find((e: any) => e.name.toLowerCase() === name.toLowerCase());
+            if (found && found.image) {
+                if (found.image.startsWith('/') || found.image.startsWith('http')) return found.image;
+                if (found.image.startsWith("data/")) return `${baseUrl}/api/v1/assets/r2/${encodeURI(found.image)}`;
+                return `${baseUrl}/${encodeURI(found.image)}`;
+            }
+        }
+
         const source = entityType === "pharaoh" ? ALL_PHARAOHS : ALL_LANDMARKS;
         const entity = source.find(e => e.name.toLowerCase() === name.toLowerCase());
 
@@ -77,6 +93,16 @@ export default function ProfileSidebar({ isOpen, onClose }: ProfileSidebarProps)
     const getEntityDescription = (name: string, type: string = "") => {
         const safeType = (type || "").toLowerCase();
         const entityType = safeType.includes("pharaoh") ? "pharaoh" : "landmark";
+
+        // Try searching in the dynamically fetched dbEntities first!
+        if (dbEntities) {
+            const list = entityType === "pharaoh" ? dbEntities.pharaohs : dbEntities.landmarks;
+            const found = list.find((e: any) => e.name.toLowerCase() === name.toLowerCase());
+            if (found && found.description) {
+                return found.description;
+            }
+        }
+
         const source = entityType === "pharaoh" ? ALL_PHARAOHS : ALL_LANDMARKS;
         const entity = source.find(e => e.name.toLowerCase() === name.toLowerCase());
         return entity?.description || "Explore the legacy of this ancient entity...";
@@ -84,7 +110,7 @@ export default function ProfileSidebar({ isOpen, onClose }: ProfileSidebarProps)
 
     const cleanName = (name: string) => name.includes("(") ? name.split("(")[0].trim() : name;
 
-    const handleEntityClick = (name: string, type: string) => {
+    const handleEntityClick = (name: string, type: string, imageUrl: string | null = null) => {
         const entityType = type.toLowerCase().includes("pharaoh") ? "pharaoh" : "landmark";
         const source = entityType === "pharaoh" ? ALL_PHARAOHS : ALL_LANDMARKS;
         const entity = source.find(e => e.name.toLowerCase() === name.toLowerCase()) as unknown as RecognitionEntity;
@@ -100,11 +126,11 @@ export default function ProfileSidebar({ isOpen, onClose }: ProfileSidebarProps)
                 entity: entity,
                 debug_info: null,
             };
-            saveResultToSession({ result, imageDataUrl: null });
-            router.push("/result");
+            saveResultToSession({ result, imageDataUrl: imageUrl });
+            router.push(`/result?t=${Date.now()}`);
             onClose();
         } else {
-            router.push(`/result?name=${encodeURIComponent(name)}&type=${entityType}`);
+            router.push(`/result?name=${encodeURIComponent(name)}&type=${entityType}${imageUrl ? `&imageUrl=${encodeURIComponent(imageUrl)}` : ""}&t=${Date.now()}`);
             onClose();
         }
     };
@@ -114,6 +140,17 @@ export default function ProfileSidebar({ isOpen, onClose }: ProfileSidebarProps)
 
         const fetchProfile = async () => {
             try {
+                // Fetch dynamic dbEntities from DB
+                try {
+                    const dbRes = await fetch(`${baseUrl}/api/v1/entities/all`);
+                    if (dbRes.ok) {
+                        const dbData = await dbRes.json();
+                        setDbEntities(dbData);
+                    }
+                } catch (dbErr) {
+                    console.error("Error loading dbEntities:", dbErr);
+                }
+
                 const { data: { user } } = await supabase.auth.getUser();
                 if (user) {
                     const { data, error } = await supabase
@@ -140,6 +177,30 @@ export default function ProfileSidebar({ isOpen, onClose }: ProfileSidebarProps)
                         .order('created_at', { ascending: false });
 
                     if (convs) setChatHistory(convs);
+
+                    // Fetch history records from dynamic tables
+                    const { data: recData } = await supabase
+                        .from('recognition_history')
+                        .select('*')
+                        .eq('user_id', user.id);
+
+                    const { data: transData } = await supabase
+                        .from('translation_history')
+                        .select('*')
+                        .eq('user_id', user.id);
+
+                    const merged = [
+                        ...(recData || []).map((item: any) => ({
+                            ...item,
+                            history_type: "recognition"
+                        })),
+                        ...(transData || []).map((item: any) => ({
+                            ...item,
+                            history_type: "translation"
+                        }))
+                    ].sort((a: any, b: any) => new Date(b.created_at).getTime() - new Date(a.created_at).getTime());
+
+                    setHistoryList(merged);
 
                     setUser(user);
                 }
@@ -221,7 +282,7 @@ export default function ProfileSidebar({ isOpen, onClose }: ProfileSidebarProps)
         const currentFullName = `${firstName} ${lastName}`.trim();
         const initialFullName = profileData?.full_name || "";
         const initialUsername = profileData?.username || "";
-        
+
         const hasChanges = currentFullName !== initialFullName || username !== initialUsername;
 
         if (!hasChanges) {
@@ -240,9 +301,9 @@ export default function ProfileSidebar({ isOpen, onClose }: ProfileSidebarProps)
             const fullName = currentFullName;
 
             const { error: authError } = await supabase.auth.updateUser({
-                data: { 
+                data: {
                     full_name: fullName,
-                    user_name: username 
+                    user_name: username
                 }
             });
             if (authError) throw authError;
@@ -254,20 +315,20 @@ export default function ProfileSidebar({ isOpen, onClose }: ProfileSidebarProps)
                     username: username
                 })
                 .eq('id', user.id);
-            
+
             if (dbError) throw dbError;
 
             // Update local state
             setProfileData({ ...profileData, full_name: fullName, username: username });
-            setUser({ 
-                ...user, 
-                user_metadata: { 
-                    ...user.user_metadata, 
+            setUser({
+                ...user,
+                user_metadata: {
+                    ...user.user_metadata,
                     full_name: fullName,
-                    user_name: username 
-                } 
+                    user_name: username
+                }
             });
-            
+
             setShowSuccess(true);
             setTimeout(() => {
                 setShowSuccess(false);
@@ -282,15 +343,17 @@ export default function ProfileSidebar({ isOpen, onClose }: ProfileSidebarProps)
     };
 
     const handleUpdatePassword = async () => {
+        setPasswordError(null);
+
         if (!currentPassword || !newPassword) {
-            alert("Please fill in both current and new password fields.");
+            setPasswordError("Please fill in both current and new password fields.");
             return;
         }
 
         setIsSavingPassword(true);
         try {
             if (!user || !user.email) {
-                alert("You must be logged in to update your password.");
+                setPasswordError("You must be logged in to update your password.");
                 return;
             }
 
@@ -301,7 +364,7 @@ export default function ProfileSidebar({ isOpen, onClose }: ProfileSidebarProps)
             });
 
             if (verifyError) {
-                alert("Invalid current password. Please verify and try again.");
+                setPasswordError("Invalid current password.");
                 return;
             }
 
@@ -323,7 +386,7 @@ export default function ProfileSidebar({ isOpen, onClose }: ProfileSidebarProps)
             }, 2500);
         } catch (err: any) {
             console.error("Error updating password:", err);
-            alert(`Password update failed: ${err.message || "Unknown error"}`);
+            setPasswordError(`Password update failed: ${err.message || "Unknown error"}`);
         } finally {
             setIsSavingPassword(false);
         }
@@ -349,7 +412,7 @@ export default function ProfileSidebar({ isOpen, onClose }: ProfileSidebarProps)
             document.body.style.overflow = "unset";
             setTimeout(() => setView("profile"), 300);
         }
-        
+
         return () => {
             document.body.style.overflow = "unset";
         };
@@ -367,12 +430,47 @@ export default function ProfileSidebar({ isOpen, onClose }: ProfileSidebarProps)
             description: getEntityDescription(fav.name, fav.type)
         })),
         chats: chatHistory,
-        history: ((profileData?.history || []) as any[]).map((hist: any) => ({
-            ...hist,
-            image: getEntityImage(hist.name, hist.type),
-            description: getEntityDescription(hist.name, hist.type)
-        }))
+        history: historyList.map((entry: any) => {
+            const dateObj = new Date(entry.created_at);
+            const dateStr = dateObj.toLocaleDateString(language === "AR" ? "ar-EG" : "en-US", {
+                month: "short",
+                day: "numeric",
+                year: "numeric"
+            });
+            
+            const imageUrl = entry.image_path?.startsWith("http")
+                ? entry.image_path
+                : `${baseUrl}/api/v1/assets/r2-history/${entry.image_path}`;
+            
+            if (entry.history_type === "recognition") {
+                return {
+                    id: entry.id,
+                    name: entry.entity_name,
+                    type: entry.entity_type,
+                    image: imageUrl,
+                    date: dateStr,
+                    history_type: "recognition",
+                    confidence: "98%",
+                    description: getEntityDescription(entry.entity_name, entry.entity_type)
+                };
+            } else {
+                return {
+                    id: entry.id,
+                    name: "Hieroglyphic Translation",
+                    type: "translation",
+                    image: imageUrl,
+                    date: dateStr,
+                    history_type: "translation",
+                    translation: entry.translation,
+                    description: entry.translation
+                };
+            }
+        })
     };
+
+    const filteredHistory = userData.history.filter(
+        (entry) => historyFilter === "all" || entry.history_type === historyFilter
+    );
 
     // Group chats by entity for the records view
     const groupedChats = userData.chats.reduce((acc, chat) => {
@@ -605,45 +703,84 @@ export default function ProfileSidebar({ isOpen, onClose }: ProfileSidebarProps)
                                                     )}
 
                                                     {activeTab === "history" && (
-                                                        userData.history.length > 0 ? (
-                                                            userData.history.map((entry, i) => (
-                                                                <div
-                                                                    key={i}
-                                                                    onClick={() => handleEntityClick(entry.name, entry.type)}
-                                                                    className="p-4 flex gap-4 hover:bg-[#E6B23C]/[0.05] transition-colors group cursor-pointer"
-                                                                >
-                                                                    <div className="h-14 w-14 rounded-lg overflow-hidden border border-[#E6B23C]/10 shrink-0 relative">
-                                                                        <img src={entry.image} alt={entry.name} className="h-full w-full object-cover" />
-                                                                        <div className="absolute inset-0 bg-[#0D0A07]/40 flex items-center justify-center opacity-0 group-hover:opacity-100 transition-opacity">
-                                                                            <Search size={16} className="text-[#E6B23C]" />
-                                                                        </div>
-                                                                    </div>
-                                                                    <div className="flex-1 py-0.5">
-                                                                        <div className="flex items-center justify-between mb-0.5">
-                                                                            <h3 className="text-[#F5E6D0] font-bold text-sm group-hover:text-[#E6B23C] transition-colors">
-                                                                                {cleanName(entry.name)}
-                                                                            </h3>
-                                                                            <span className="text-[9px] text-[#A08E70]">{entry.date}</span>
-                                                                        </div>
-                                                                        <div className="flex items-center gap-2">
-                                                                            <div className="flex-1 h-1 bg-[#E6B23C]/10 rounded-full overflow-hidden">
-                                                                                <motion.div
-                                                                                    initial={{ width: 0 }}
-                                                                                    animate={{ width: entry.confidence || "100%" }}
-                                                                                    className="h-full bg-[#E6B23C]"
-                                                                                />
-                                                                            </div>
-                                                                            <span className="text-[9px] font-bold text-[#E6B23C]">{entry.confidence || "100%"} Match</span>
-                                                                        </div>
-                                                                    </div>
-                                                                </div>
-                                                            ))
-                                                        ) : (
-                                                            <div className="p-20 text-center">
-                                                                <HistoryIcon size={32} className="mx-auto mb-4 text-[#A08E70]/20" />
-                                                                <p className="text-xs text-[#A08E70]">Your journey has just begun.</p>
+                                                        <>
+                                                            {/* Dynamic Sub-Filter Buttons */}
+                                                            <div className="flex justify-center gap-3 px-6 py-4 bg-[#0D0A07]/40 border-b border-[#E6B23C]/5">
+                                                                {([
+                                                                    { id: "all", label: language === "AR" ? "الكل" : language === "FR" ? "Tout" : "All" },
+                                                                    { id: "recognition", label: language === "AR" ? "التعرف" : language === "FR" ? "Reconnaissances" : "Recognitions" },
+                                                                    { id: "translation", label: language === "AR" ? "الترجمة" : language === "FR" ? "Translations" : "Translations" }
+                                                                ] as const).map((filter) => (
+                                                                    <button
+                                                                        key={filter.id}
+                                                                        onClick={() => setHistoryFilter(filter.id)}
+                                                                        className={`px-4 py-1.5 rounded-full text-[10px] font-bold uppercase tracking-wider transition-all duration-300 ${
+                                                                            historyFilter === filter.id
+                                                                                ? "bg-[#E6B23C] text-[#0D0A07] shadow-[0_2px_10px_rgba(230,178,60,0.3)]"
+                                                                                : "bg-[#E6B23C]/5 border border-[#E6B23C]/10 text-[#A08E70] hover:text-[#F5E6D0] hover:border-[#E6B23C]/20"
+                                                                        }`}
+                                                                    >
+                                                                        {filter.label}
+                                                                    </button>
+                                                                ))}
                                                             </div>
-                                                        )
+
+                                                            {filteredHistory.length > 0 ? (
+                                                                filteredHistory.map((entry, i) => (
+                                                                     <div
+                                                                         key={i}
+                                                                         onClick={() => {
+                                                                             if (entry.history_type === "recognition") {
+                                                                                 handleEntityClick(entry.name, entry.type, entry.image);
+                                                                             } else {
+                                                                                 sessionStorage.setItem("echo_translation_history_result", JSON.stringify({
+                                                                                     translation: entry.translation,
+                                                                                     imageUrl: entry.image
+                                                                                 }));
+                                                                                 router.push("/translate");
+                                                                                 onClose();
+                                                                             }
+                                                                         }}
+                                                                         className="p-4 flex gap-4 hover:bg-[#E6B23C]/[0.05] transition-colors group cursor-pointer"
+                                                                     >
+                                                                         <div className="h-14 w-14 rounded-lg overflow-hidden border border-[#E6B23C]/10 shrink-0 relative">
+                                                                             <img src={entry.image} alt={entry.name} className="h-full w-full object-cover" />
+                                                                             <div className="absolute inset-0 bg-[#0D0A07]/40 flex items-center justify-center opacity-0 group-hover:opacity-100 transition-opacity">
+                                                                                 <Search size={16} className="text-[#E6B23C]" />
+                                                                             </div>
+                                                                         </div>
+                                                                         <div className="flex-1 py-0.5">
+                                                                             <div className="flex items-center justify-between mb-0.5">
+                                                                                 <span className="text-[9px] font-bold tracking-widest text-[#E6B23C] uppercase">
+                                                                                     {entry.history_type === "recognition" ? entry.type : (language === "AR" ? "ترجمة" : language === "FR" ? "Traduction" : "Translation")}
+                                                                                 </span>
+                                                                                 <span className="text-[9px] text-[#A08E70]">{entry.date}</span>
+                                                                             </div>
+                                                                             <h3 className="text-[#F5E6D0] font-bold text-sm mb-0.5 group-hover:text-[#E6B23C] transition-colors">
+                                                                                 {entry.history_type === "recognition" ? cleanName(entry.name) : (language === "AR" ? "ترجمة هيروغليفية" : language === "FR" ? "Traduction Hiéroglyphique" : "Hieroglyphic Translation")}
+                                                                             </h3>
+                                                                             
+                                                                             {entry.history_type === "recognition" ? (
+                                                                                 <p className="text-[11px] text-[#A08E70] line-clamp-1">
+                                                                                     {entry.description}
+                                                                                 </p>
+                                                                             ) : (
+                                                                                 <p className="text-[11px] text-[#A08E70] line-clamp-1 italic">
+                                                                                     "{entry.translation}"
+                                                                                 </p>
+                                                                             )}
+                                                                         </div>
+                                                                     </div>
+                                                                 ))
+                                                            ) : (
+                                                                <div className="p-20 text-center">
+                                                                    <HistoryIcon size={32} className="mx-auto mb-4 text-[#A08E70]/20" />
+                                                                    <p className="text-xs text-[#A08E70]">
+                                                                        {language === "AR" ? "لا يوجد سجل للبحث حالياً." : language === "FR" ? "Aucun historique trouvé." : "No history found."}
+                                                                    </p>
+                                                                </div>
+                                                            )}
+                                                        </>
                                                     )}
                                                 </>
                                             )}
@@ -802,10 +939,42 @@ export default function ProfileSidebar({ isOpen, onClose }: ProfileSidebarProps)
                                                     </div>
                                                 </div>
 
+                                               <div className="mt-4 flex flex-col items-center gap-3">
+                                                   <Button
+                                                       onClick={handleSaveSettings}
+                                                       disabled={isSaving}
+                                                       className="w-full bg-[#E6B23C] text-[#0D0A07] hover:scale-[1.02] active:scale-[0.98] font-bold py-6 rounded-xl transition-all shadow-[0_0_30px_rgba(230,178,60,0.15)] hover:shadow-[0_0_40px_rgba(230,178,60,0.3)] uppercase tracking-widest text-[12px]"
+                                                   >
+                                                       {isSaving ? "SAVING..." : "SAVE CHANGES"}
+                                                   </Button>
+                                                   <AnimatePresence mode="wait">
+                                                       {showSuccess ? (
+                                                           <motion.div
+                                                               key="success"
+                                                               initial={{ opacity: 0, y: -5 }}
+                                                               animate={{ opacity: 1, y: 0 }}
+                                                               exit={{ opacity: 0, y: -5 }}
+                                                               className="text-[10px] font-bold text-[#A08E70] uppercase tracking-[0.2em]"
+                                                           >
+                                                               Changes saved
+                                                           </motion.div>
+                                                       ) : showNoChanges ? (
+                                                           <motion.div
+                                                               key="no-changes"
+                                                               initial={{ opacity: 0, y: -5 }}
+                                                               animate={{ opacity: 1, y: 0 }}
+                                                               exit={{ opacity: 0, y: -5 }}
+                                                               className="text-[10px] font-bold text-[#A08E70] uppercase tracking-[0.2em]"
+                                                           >
+                                                               No changes detected
+                                                           </motion.div>
+                                                       ) : null}
+                                                   </AnimatePresence>
+                                               </div>
                                                 {isEmailUser && (
                                                     <div className="pt-6 mt-6 border-t border-[#E6B23C]/10 space-y-4">
-                                                        <h3 className="text-xs font-bold text-[#F5E6D0] uppercase tracking-wider">Change Password</h3>
-                                                        
+                                                        <h3 className="text-[10px] font-bold tracking-[0.2em] text-[#E6B23C] uppercase mb-4 opacity-60">Change Password</h3>
+
                                                         <div className="space-y-2">
                                                             <label className="text-[9px] font-bold text-[#A08E70] uppercase tracking-widest px-1">Current Password</label>
                                                             <div className="relative group">
@@ -849,15 +1018,15 @@ export default function ProfileSidebar({ isOpen, onClose }: ProfileSidebarProps)
                                                         </div>
 
                                                         <div className="pt-2">
-                                                             <Button
-                                                                 onClick={handleUpdatePassword}
-                                                                 disabled={isSavingPassword}
-                                                                 className="w-full bg-[#E6B23C] text-[#0D0A07] hover:scale-[1.02] active:scale-[0.98] font-bold py-6 rounded-xl transition-all shadow-[0_0_30px_rgba(230,178,60,0.15)] hover:shadow-[0_0_40px_rgba(230,178,60,0.3)] uppercase tracking-widest text-[12px]"
-                                                             >
-                                                                 {isSavingPassword ? "SAVING..." : "UPDATE PASSWORD"}
-                                                             </Button>
+                                                            <Button
+                                                                onClick={handleUpdatePassword}
+                                                                disabled={isSavingPassword}
+                                                                className="w-full bg-[#E6B23C] text-[#0D0A07] hover:scale-[1.02] active:scale-[0.98] font-bold py-6 rounded-xl transition-all shadow-[0_0_30px_rgba(230,178,60,0.15)] hover:shadow-[0_0_40px_rgba(230,178,60,0.3)] uppercase tracking-widest text-[12px]"
+                                                            >
+                                                                {isSavingPassword ? "SAVING..." : "UPDATE PASSWORD"}
+                                                            </Button>
                                                             <AnimatePresence mode="wait">
-                                                                {showPasswordSuccess && (
+                                                                {showPasswordSuccess ? (
                                                                     <motion.div
                                                                         key="pw-success"
                                                                         initial={{ opacity: 0, y: -5 }}
@@ -867,45 +1036,23 @@ export default function ProfileSidebar({ isOpen, onClose }: ProfileSidebarProps)
                                                                     >
                                                                         Password updated successfully
                                                                     </motion.div>
-                                                                )}
+                                                                ) : passwordError ? (
+                                                                    <motion.div
+                                                                        key="pw-error"
+                                                                        initial={{ opacity: 0, y: -5 }}
+                                                                        animate={{ opacity: 1, y: 0 }}
+                                                                        exit={{ opacity: 0, y: -5 }}
+                                                                        className="text-xs text-red-500 font-bold text-center mt-2"
+                                                                    >
+                                                                        {passwordError}
+                                                                    </motion.div>
+                                                                ) : null}
                                                             </AnimatePresence>
                                                         </div>
                                                     </div>
                                                 )}
                                             </div>
 
-                                            <div className="mt-4 flex flex-col items-center gap-3">
-                                                <Button
-                                                    onClick={handleSaveSettings}
-                                                    disabled={isSaving}
-                                                    className="w-full bg-[#E6B23C] text-[#0D0A07] hover:scale-[1.02] active:scale-[0.98] font-bold py-6 rounded-xl transition-all shadow-[0_0_30px_rgba(230,178,60,0.15)] hover:shadow-[0_0_40px_rgba(230,178,60,0.3)] uppercase tracking-widest text-[12px]"
-                                                >
-                                                    {isSaving ? "SAVING..." : "SAVE CHANGES"}
-                                                </Button>
-                                                <AnimatePresence mode="wait">
-                                                    {showSuccess ? (
-                                                        <motion.div
-                                                            key="success"
-                                                            initial={{ opacity: 0, y: -5 }}
-                                                            animate={{ opacity: 1, y: 0 }}
-                                                            exit={{ opacity: 0, y: -5 }}
-                                                            className="text-[10px] font-bold text-[#A08E70] uppercase tracking-[0.2em]"
-                                                        >
-                                                            Changes saved
-                                                        </motion.div>
-                                                    ) : showNoChanges ? (
-                                                        <motion.div
-                                                            key="no-changes"
-                                                            initial={{ opacity: 0, y: -5 }}
-                                                            animate={{ opacity: 1, y: 0 }}
-                                                            exit={{ opacity: 0, y: -5 }}
-                                                            className="text-[10px] font-bold text-[#A08E70] uppercase tracking-[0.2em]"
-                                                        >
-                                                            No changes detected
-                                                        </motion.div>
-                                                    ) : null}
-                                                </AnimatePresence>
-                                            </div>
                                         </section>
 
                                         {/* Danger Zone */}

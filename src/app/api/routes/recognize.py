@@ -73,6 +73,7 @@ async def recognize_artifact(
             "source": "recognition",
             "type": predicted_type,
             "name": display_name,
+            "raw_name": predicted_name,
             "confidence": final_conf,
             "binary_confidence": binary_conf,
             "entity": entity_data,

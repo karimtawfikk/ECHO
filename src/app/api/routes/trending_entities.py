@@ -106,3 +106,56 @@ def get_all_entities(db: Session = Depends(get_db), search: str = ""):
         }
     except Exception as e:
         return {"pharaohs": [], "landmarks": [], "error": str(e)}
+
+
+@router.get("/details")
+def get_entity_details(name: str, type: str, db: Session = Depends(get_db)):
+    """
+    Fetches the full entity metadata from the database by exact/similar name match,
+    including composite entity sub-fields and lists.
+    """
+    try:
+        from src.app.services.entity_loader import load_entity
+        entity = load_entity(type, name, db)
+        if not entity:
+            return {"error": "Entity not found"}
+
+        entity_data = {
+            "id": entity.id,
+            "name": entity.name,
+            "description": entity.description,
+        }
+
+        if type == "pharaoh":
+            entity_data["type"] = getattr(entity, "type", None)
+            entity_data["dynasty"] = getattr(entity, "dynasty", None)
+            entity_data["period"] = getattr(entity, "period", None)
+            composite_raw = getattr(entity, "composite_entity", None)
+            entity_data["composite_entity"] = composite_raw
+
+            # Load full metadata for nested composite sub-entities
+            if composite_raw:
+                sub_names = [s.strip() for s in composite_raw.split(",") if s.strip()]
+                entity_data["composite_entities_data"] = [
+                    {
+                        "name": sn,
+                        "type": getattr(row, "type", None) if row else None,
+                        "dynasty": getattr(row, "dynasty", None) if row else None,
+                        "period": getattr(row, "period", None) if row else None,
+                    }
+                    for sn in sub_names
+                    for row in [db.query(Pharaoh).filter(Pharaoh.name.ilike(sn)).first()]
+                ]
+        else:
+            entity_data["location"] = getattr(entity, "location", None)
+
+        return {
+            "source": "explore",
+            "type": type,
+            "name": entity.name,
+            "confidence": 1.0,
+            "binary_confidence": 1.0,
+            "entity": entity_data,
+        }
+    except Exception as e:
+        return {"error": str(e)}

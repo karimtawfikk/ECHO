@@ -9,6 +9,7 @@ import { motion, AnimatePresence } from "framer-motion";
 import { useLanguage } from "../../context/LanguageContext";
 import { Camera, Languages, Trash2, Upload, BookOpen, Search, X, Cpu, Loader2, Image as ImageIcon } from "lucide-react";
 import { api, API_BASE_URL } from "../../lib/services/api";
+import { createClient } from "../../lib/supabase/client";
 
 type TranslateResponse = {
   translation: string;
@@ -37,8 +38,24 @@ export default function TranslatePage() {
   const pickFile = () => fileInputRef.current?.click();
 
   useEffect(() => {
+    try {
+      const raw = sessionStorage.getItem("echo_translation_history_result");
+      if (raw) {
+        const payload = JSON.parse(raw);
+        setResult({
+          translation: payload.translation,
+        });
+        setPreviewUrl(payload.imageUrl);
+        sessionStorage.removeItem("echo_translation_history_result");
+      }
+    } catch (e) {
+      console.error("Error reading translation history result:", e);
+    }
+  }, []);
+
+  useEffect(() => {
     return () => {
-      if (previewUrl) URL.revokeObjectURL(previewUrl);
+      if (previewUrl && !previewUrl.startsWith("http")) URL.revokeObjectURL(previewUrl);
       if (abortControllerRef.current) abortControllerRef.current.abort();
     };
   }, [previewUrl]);
@@ -92,6 +109,36 @@ export default function TranslatePage() {
               const data = message.data;
               // Ensure we reached the final step
               setCurrentStep(4);
+
+              // Save to translation_history if user is logged in
+              try {
+                const supabase = createClient();
+                const { data: { user } } = await supabase.auth.getUser();
+                if (user && file) {
+                  const API_BASE = process.env.NEXT_PUBLIC_API_URL?.replace(/\/api\/v1\/?$/, "") ?? "http://localhost:8010";
+                  const uploadData = new FormData();
+                  uploadData.append("file", file);
+                  uploadData.append("user_id", user.id);
+                  uploadData.append("task_type", "hieroglyphics");
+
+                  const uploadRes = await fetch(`${API_BASE}/api/v1/assets/upload/history`, {
+                    method: "POST",
+                    body: uploadData,
+                  });
+
+                  if (uploadRes.ok) {
+                    const { key } = await uploadRes.json();
+                    
+                    await supabase.from('translation_history').insert({
+                      user_id: user.id,
+                      image_path: key,
+                      translation: data.translation_text
+                    });
+                  }
+                }
+              } catch (dbErr) {
+                console.error("Failed to save translation history:", dbErr);
+              }
 
               // Brief delay for the last animation phase to feel smooth
               setTimeout(() => {

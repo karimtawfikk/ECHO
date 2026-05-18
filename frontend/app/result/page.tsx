@@ -44,20 +44,52 @@ function ResultContent() {
 
   useEffect(() => {
     setMounted(true);
-    const payload = loadResultFromSession();
-    if (payload) {
-      setSessionResult(payload.result);
-      if (payload.imageDataUrl) setUploadedImageUrl(payload.imageDataUrl);
+    
+    const entityTypeParam = searchParams.get("type");
+    const entityNameParam = searchParams.get("entity") || searchParams.get("name");
+    const imageUrlParam = searchParams.get("imageUrl");
+
+    if (entityNameParam && entityTypeParam) {
+      const fetchDetails = async () => {
+        try {
+          const res = await fetch(`${baseUrl}/api/v1/entities/details?name=${encodeURIComponent(entityNameParam)}&type=${entityTypeParam}`);
+          if (res.ok) {
+            const data = await res.json();
+            if (!data.error) {
+              setSessionResult(data);
+              setUploadedImageUrl(imageUrlParam || null);
+              return;
+            }
+          }
+        } catch (err) {
+          console.error("Failed to fetch entity details:", err);
+        }
+        fallbackToSession();
+      };
+      fetchDetails();
+    } else {
+      fallbackToSession();
     }
-  }, []);
+
+    function fallbackToSession() {
+      const payload = loadResultFromSession();
+      if (payload) {
+        setSessionResult(payload.result);
+        setUploadedImageUrl(payload.imageDataUrl || null);
+      } else {
+        setSessionResult(null);
+        setUploadedImageUrl(null);
+      }
+    }
+  }, [searchParams, baseUrl]);
 
   // ── 2. Check for URL params (quick-link / home card flow) ─────────────
   const entityTypeParam = searchParams.get("type");
   const entityNameParam = searchParams.get("entity") || searchParams.get("name");
 
   // ── Derive display data source ───────────────────────────────────────
-  // If we have a URL name parameter, we prioritize the lookup flow over any old session data
-  const isApiFlow = !!sessionResult && !entityNameParam;
+  // If we have a dynamic or session-based API result, use it! Otherwise fallback to mock lookup.
+  const isApiFlow = !!sessionResult;
   const isQuickLink = !isApiFlow && !!entityNameParam;
   const isFromExplore = sessionResult?.source === "explore";
   const isFromTrending = sessionResult?.source === "quick-link" || isQuickLink;

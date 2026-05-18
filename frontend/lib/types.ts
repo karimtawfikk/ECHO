@@ -31,6 +31,7 @@ export interface RecognitionResult {
     source: string;
     type: "pharaoh" | "landmark" | "error" | string;
     name: string;          // raw model label e.g. "Ramesses_II"
+    raw_name?: string;
     category: string | null;
     confidence: number;
     binary_confidence: number;

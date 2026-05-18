@@ -23,6 +23,10 @@ export default function ProfilePage() {
     const [user, setUser] = useState<any>(null);
     const [profileData, setProfileData] = useState<any>(null);
     const [isLoading, setIsLoading] = useState(true);
+    const [historyList, setHistoryList] = useState<any[]>([]);
+    const [selectedTranslation, setSelectedTranslation] = useState<string | null>(null);
+    const [dbEntities, setDbEntities] = useState<{ pharaohs: any[]; landmarks: any[] } | null>(null);
+    const [historyFilter, setHistoryFilter] = useState<"all" | "recognition" | "translation">("all");
     const router = useRouter();
     const supabase = createClient();
 
@@ -31,6 +35,18 @@ export default function ProfilePage() {
     const getEntityImage = (name: string, type: string = "") => {
         const safeType = (type || "").toLowerCase();
         const entityType = safeType.includes("pharaoh") ? "pharaoh" : "landmark";
+        
+        // Try dynamic entities first to find image from DB
+        if (dbEntities) {
+            const list = entityType === "pharaoh" ? dbEntities.pharaohs : dbEntities.landmarks;
+            const found = list.find((e: any) => e.name.toLowerCase() === name.toLowerCase());
+            if (found && found.image) {
+                if (found.image.startsWith('/') || found.image.startsWith('http')) return found.image;
+                if (found.image.startsWith("data/")) return `${baseUrl}/api/v1/assets/r2/${encodeURI(found.image)}`;
+                return `${baseUrl}/${encodeURI(found.image)}`;
+            }
+        }
+
         const source = entityType === "pharaoh" ? ALL_PHARAOHS : ALL_LANDMARKS;
         const entity = source.find(e => e.name.toLowerCase() === name.toLowerCase());
 
@@ -54,6 +70,16 @@ export default function ProfilePage() {
     const getEntityDescription = (name: string, type: string = "") => {
         const safeType = (type || "").toLowerCase();
         const entityType = safeType.includes("pharaoh") ? "pharaoh" : "landmark";
+        
+        // Try searching in the dynamically fetched dbEntities first!
+        if (dbEntities) {
+            const list = entityType === "pharaoh" ? dbEntities.pharaohs : dbEntities.landmarks;
+            const found = list.find((e: any) => e.name.toLowerCase() === name.toLowerCase());
+            if (found && found.description) {
+                return found.description;
+            }
+        }
+
         const source = entityType === "pharaoh" ? ALL_PHARAOHS : ALL_LANDMARKS;
         const entity = source.find(e => e.name.toLowerCase() === name.toLowerCase());
         return entity?.description || "Explore the legacy of this ancient entity...";
@@ -61,7 +87,7 @@ export default function ProfilePage() {
 
     const cleanName = (name: string) => name.includes("(") ? name.split("(")[0].trim() : name;
 
-    const handleEntityClick = (name: string, type: string) => {
+    const handleEntityClick = (name: string, type: string, imageUrl: string | null = null) => {
         const entityType = type.toLowerCase().includes("pharaoh") ? "pharaoh" : "landmark";
         const source = entityType === "pharaoh" ? ALL_PHARAOHS : ALL_LANDMARKS;
         const entity = source.find(e => e.name.toLowerCase() === name.toLowerCase()) as unknown as RecognitionEntity;
@@ -77,16 +103,27 @@ export default function ProfilePage() {
                 entity: entity,
                 debug_info: null,
             };
-            saveResultToSession({ result, imageDataUrl: null });
-            router.push("/result");
+            saveResultToSession({ result, imageDataUrl: imageUrl });
+            router.push(`/result?t=${Date.now()}`);
         } else {
-            router.push(`/result?name=${encodeURIComponent(name)}&type=${entityType}`);
+            router.push(`/result?name=${encodeURIComponent(name)}&type=${entityType}${imageUrl ? `&imageUrl=${encodeURIComponent(imageUrl)}` : ""}&t=${Date.now()}`);
         }
     };
 
     useEffect(() => {
         const fetchProfile = async () => {
             try {
+                // Fetch dynamic dbEntities from DB
+                try {
+                    const dbRes = await fetch(`${baseUrl}/api/v1/entities/all`);
+                    if (dbRes.ok) {
+                        const dbData = await dbRes.json();
+                        setDbEntities(dbData);
+                    }
+                } catch (dbErr) {
+                    console.error("Error loading dbEntities:", dbErr);
+                }
+
                 const { data: { user } } = await supabase.auth.getUser();
                 if (user) {
                     const { data, error } = await supabase
@@ -97,6 +134,30 @@ export default function ProfilePage() {
 
                     if (data) setProfileData(data);
                     setUser(user);
+
+                    // Fetch history records from dynamic tables
+                    const { data: recData } = await supabase
+                        .from('recognition_history')
+                        .select('*')
+                        .eq('user_id', user.id);
+
+                    const { data: transData } = await supabase
+                        .from('translation_history')
+                        .select('*')
+                        .eq('user_id', user.id);
+
+                    const merged = [
+                        ...(recData || []).map((item: any) => ({
+                            ...item,
+                            history_type: "recognition"
+                        })),
+                        ...(transData || []).map((item: any) => ({
+                            ...item,
+                            history_type: "translation"
+                        }))
+                    ].sort((a: any, b: any) => new Date(b.created_at).getTime() - new Date(a.created_at).getTime());
+
+                    setHistoryList(merged);
                 }
             } catch (err) {
                 console.error("Error fetching profile:", err);
@@ -107,35 +168,74 @@ export default function ProfilePage() {
         fetchProfile();
     }, [supabase]);
 
+    const formatJoinedDate = (dateString: string) => {
+        if (!dateString) return "Joined May 2024";
+        try {
+            const date = new Date(dateString);
+            const month = date.toLocaleString('en-US', { month: 'short' });
+            const year = date.getFullYear();
+            return `Joined ${month} ${year}`;
+        } catch (e) {
+            return "Joined May 2024";
+        }
+    };
+
     // Mock Data
     const userData = {
         name: profileData?.full_name || user?.user_metadata?.full_name || user?.email?.split('@')[0] || "Explorer",
         username: profileData?.username || user?.user_metadata?.user_name || user?.email?.split('@')[0],
         avatar: profileData?.avatar_url || user?.user_metadata?.avatar_url,
-        title: "High Priest of Discovery",
-        joined: "Joined May 2024",
-        location: "Giza, Egypt",
-        stats: {
-            discoveries: profileData?.history?.length || 0,
-            favorites: profileData?.favorites?.length || 0,
-            chats: 3
-        },
+        joined: formatJoinedDate(profileData?.created_at),
         favorites: ((profileData?.favorites || []) as any[]).map((fav: any) => ({
             ...fav,
             image: getEntityImage(fav.name, fav.type),
             description: getEntityDescription(fav.name, fav.type)
         })),
         chats: [
-            { name: "Ramesses II", lastMsg: "The Battle of Kadesh was a triumph...", date: "2h ago", image: "/assets/trending/pharaohs/ramesses.jpg" },
-            { name: "The Sphinx", lastMsg: "I have stood watch for millennia...", date: "Yesterday", image: "/assets/trending/landmarks/sphinx.jpg" },
-            { name: "Hatshepsut", lastMsg: "My temple at Deir el-Bahari is unique...", date: "3 days ago", image: "/assets/trending/pharaohs/hatshepsut.jpg" }
+            { id: 1, name: "Giza Pyramids Chat", lastMsg: "The Great Pyramid of Giza is the oldest...", date: "2 mins ago", image: "/assets/trending/landmarks/giza.jpg" },
+            { id: 2, name: "Tutankhamun Chat", lastMsg: "Tutankhamun was an ancient Egyptian pharaoh...", date: "1 hour ago", image: "/assets/trending/pharaohs/tutankhamun.jpg" },
         ],
-        history: ((profileData?.history || []) as any[]).map((hist: any) => ({
-            ...hist,
-            image: getEntityImage(hist.name, hist.type),
-            description: getEntityDescription(hist.name, hist.type)
-        }))
+        history: historyList.map((entry: any) => {
+            const dateObj = new Date(entry.created_at);
+            const dateStr = dateObj.toLocaleDateString(language === "AR" ? "ar-EG" : "en-US", {
+                month: "short",
+                day: "numeric",
+                year: "numeric"
+            });
+            
+            const imageUrl = entry.image_path?.startsWith("http")
+                ? entry.image_path
+                : `${baseUrl}/api/v1/assets/r2-history/${entry.image_path}`;
+            
+            if (entry.history_type === "recognition") {
+                return {
+                    id: entry.id,
+                    name: entry.entity_name,
+                    type: entry.entity_type,
+                    image: imageUrl,
+                    date: dateStr,
+                    history_type: "recognition",
+                    confidence: "98%",
+                    description: getEntityDescription(entry.entity_name, entry.entity_type)
+                };
+            } else {
+                return {
+                    id: entry.id,
+                    name: "Hieroglyphic Translation",
+                    type: "translation",
+                    image: imageUrl,
+                    date: dateStr,
+                    history_type: "translation",
+                    translation: entry.translation,
+                    description: entry.translation
+                };
+            }
+        })
     };
+
+    const filteredHistory = userData.history.filter(
+        (entry) => historyFilter === "all" || entry.history_type === historyFilter
+    );
 
     if (isLoading) {
         return (
@@ -259,42 +359,140 @@ export default function ProfilePage() {
                                     </Link>
                                 ))}
 
-                                {activeTab === "history" && userData.history.map((entry, i) => (
-                                    <div
-                                        key={i}
-                                        onClick={() => handleEntityClick(entry.name, entry.type)}
-                                        className="p-4 flex gap-4 hover:bg-[#E6B23C]/[0.05] transition-colors group cursor-pointer"
-                                    >
-                                        <div className="h-16 w-16 rounded-lg overflow-hidden border border-[#E6B23C]/10 shrink-0 relative">
-                                            <img src={entry.image} alt={entry.name} className="h-full w-full object-cover" />
-                                            <div className="absolute inset-0 bg-[#0D0A07]/40 flex items-center justify-center opacity-0 group-hover:opacity-100 transition-opacity">
-                                                <Search size={20} className="text-[#E6B23C]" />
-                                            </div>
+                                {activeTab === "history" && (
+                                    <>
+                                        {/* Dynamic Sub-Filter Buttons */}
+                                        <div className="flex justify-center gap-3 px-6 py-4 bg-[#0D0A07]/40 border-b border-[#E6B23C]/5">
+                                            {([
+                                                { id: "all", label: language === "AR" ? "الكل" : language === "FR" ? "Tout" : "All" },
+                                                { id: "recognition", label: language === "AR" ? "التعرف" : language === "FR" ? "Reconnaissances" : "Recognitions" },
+                                                { id: "translation", label: language === "AR" ? "الترجمة" : language === "FR" ? "Translations" : "Translations" }
+                                            ] as const).map((filter) => (
+                                                <button
+                                                    key={filter.id}
+                                                    onClick={() => setHistoryFilter(filter.id)}
+                                                    className={`px-4 py-1.5 rounded-full text-[10px] font-bold uppercase tracking-wider transition-all duration-300 ${
+                                                        historyFilter === filter.id
+                                                            ? "bg-[#E6B23C] text-[#0D0A07] shadow-[0_2px_10px_rgba(230,178,60,0.3)]"
+                                                            : "bg-[#E6B23C]/5 border border-[#E6B23C]/10 text-[#A08E70] hover:text-[#F5E6D0] hover:border-[#E6B23C]/20"
+                                                    }`}
+                                                >
+                                                    {filter.label}
+                                                </button>
+                                            ))}
                                         </div>
-                                        <div className="flex-1 py-1">
-                                            <div className="flex items-center justify-between mb-1">
-                                                <h3 className="text-[#F5E6D0] font-bold group-hover:text-[#E6B23C] transition-colors">
-                                                    {cleanName(entry.name)}
-                                                </h3>
-                                                <span className="text-[10px] text-[#A08E70]">{entry.date}</span>
-                                            </div>
-                                            <div className="flex items-center gap-2">
-                                                <div className="flex-1 h-1.5 bg-[#E6B23C]/10 rounded-full overflow-hidden">
-                                                    <motion.div
-                                                        initial={{ width: 0 }}
-                                                        animate={{ width: entry.confidence || "100%" }}
-                                                        className="h-full bg-[#E6B23C]"
-                                                    />
+
+                                        {/* History items list */}
+                                        {filteredHistory.length > 0 ? (
+                                            filteredHistory.map((entry, i) => (
+                                                <div
+                                                    key={i}
+                                                    onClick={() => {
+                                                        if (entry.history_type === "recognition") {
+                                                            handleEntityClick(entry.name, entry.type, entry.image);
+                                                        } else {
+                                                            sessionStorage.setItem("echo_translation_history_result", JSON.stringify({
+                                                                translation: entry.translation,
+                                                                imageUrl: entry.image
+                                                            }));
+                                                            router.push("/translate");
+                                                        }
+                                                    }}
+                                                    className="p-4 flex gap-4 hover:bg-[#E6B23C]/[0.05] transition-colors group cursor-pointer"
+                                                >
+                                                    <div className="h-16 w-16 rounded-lg overflow-hidden border border-[#E6B23C]/10 shrink-0 relative">
+                                                        <img src={entry.image} alt={entry.name} className="h-full w-full object-cover" />
+                                                        <div className="absolute inset-0 bg-[#0D0A07]/40 flex items-center justify-center opacity-0 group-hover:opacity-100 transition-opacity">
+                                                            <Search size={20} className="text-[#E6B23C]" />
+                                                        </div>
+                                                    </div>
+                                                    <div className="flex-1 py-1">
+                                                        <div className="flex items-center justify-between mb-1">
+                                                            <span className="text-[10px] font-bold tracking-widest text-[#E6B23C] uppercase">
+                                                                {entry.history_type === "recognition" ? entry.type : (language === "AR" ? "ترجمة" : language === "FR" ? "Traduction" : "Translation")}
+                                                            </span>
+                                                            <span className="text-[10px] text-[#A08E70]">{entry.date}</span>
+                                                        </div>
+                                                        <h3 className="text-[#F5E6D0] font-bold text-lg mb-1 group-hover:text-[#E6B23C] transition-colors">
+                                                            {entry.history_type === "recognition" ? cleanName(entry.name) : (language === "AR" ? "ترجمة هيروغليفية" : language === "FR" ? "Traduction Hiéroglyphique" : "Hieroglyphic Translation")}
+                                                        </h3>
+                                                        
+                                                        {entry.history_type === "recognition" ? (
+                                                            <p className="text-xs text-[#A08E70] line-clamp-1">
+                                                                {entry.description}
+                                                            </p>
+                                                        ) : (
+                                                            <p className="text-xs text-[#A08E70] line-clamp-1 italic">
+                                                                "{entry.translation}"
+                                                            </p>
+                                                        )}
+                                                    </div>
                                                 </div>
-                                                <span className="text-[10px] font-bold text-[#E6B23C]">{entry.confidence || "100%"} Match</span>
+                                            ))
+                                        ) : (
+                                            <div className="p-20 text-center">
+                                                <HistoryIcon size={32} className="mx-auto mb-4 text-[#A08E70]/20" />
+                                                <p className="text-xs text-[#A08E70]">
+                                                    {language === "AR" ? "لا يوجد سجل للبحث حالياً." : language === "FR" ? "Aucun historique trouvé." : "No history found."}
+                                                </p>
                                             </div>
-                                        </div>
-                                    </div>
-                                ))}
+                                        )}
+                                    </>
+                                )}
                             </motion.div>
                         </AnimatePresence>
                     </div>
                 </motion.div>
+
+                {/* ── TRANSLATION DETAIL MODAL ────────────────────────── */}
+                <AnimatePresence>
+                    {selectedTranslation && (
+                        <motion.div
+                            initial={{ opacity: 0 }}
+                            animate={{ opacity: 1 }}
+                            exit={{ opacity: 0 }}
+                            onClick={() => setSelectedTranslation(null)}
+                            className="fixed inset-0 bg-black/80 backdrop-blur-md z-50 flex items-center justify-center p-4 cursor-pointer"
+                        >
+                            <motion.div
+                                initial={{ opacity: 0, scale: 0.9, y: 20 }}
+                                animate={{ opacity: 1, scale: 1, y: 0 }}
+                                exit={{ opacity: 0, scale: 0.9, y: 20 }}
+                                transition={{ duration: 0.3 }}
+                                onClick={(e) => e.stopPropagation()}
+                                className="w-full max-w-lg bg-[#0F0C08]/95 border border-[#E6B23C]/30 rounded-[2.5rem] p-8 md:p-10 relative overflow-hidden shadow-[0_20px_60px_rgba(0,0,0,0.8)] cursor-default"
+                            >
+                                <div className="absolute inset-0 opacity-[0.05] bg-[url('https://www.transparenttextures.com/patterns/papyros.png')] pointer-events-none" />
+                                <div className="absolute -inset-1 bg-[#E6B23C]/5 rounded-[2.5rem] blur-xl pointer-events-none" />
+
+                                <div className="relative z-10 flex flex-col items-center">
+                                    <div className="text-[#E6B23C] text-2xl font-display tracking-[0.4em] mb-4 select-none">
+                                        𓂀 𓅃 𓆣
+                                    </div>
+                                    
+                                    <h3 className="font-display text-2xl font-bold text-[#F5E6D0] tracking-[0.05em] uppercase text-center mb-2" style={{ fontFamily: 'var(--font-cormorant), serif' }}>
+                                        {language === "AR" ? "الترجمة الهيروغليفية" : language === "FR" ? "Traduction Hiéroglyphique" : "Hieroglyphic Translation"}
+                                    </h3>
+                                    
+                                    <div className="w-20 h-[1px] bg-gradient-to-r from-transparent via-[#E6B23C]/30 to-transparent mb-8" />
+                                    
+                                    <div className="w-full bg-[#1A1208]/30 rounded-2xl p-6 border border-[#E6B23C]/10 mb-8 max-h-[250px] overflow-y-auto">
+                                        <p className="text-[#F5E6D0] text-lg leading-relaxed text-center font-medium italic">
+                                            "{selectedTranslation}"
+                                        </p>
+                                    </div>
+
+                                    <Button
+                                        onClick={() => setSelectedTranslation(null)}
+                                        className="h-12 px-8 rounded-full bg-[#E6B23C]/10 border border-[#E6B23C]/20 text-[#E6B23C] hover:bg-[#E6B23C]/20 font-bold text-xs uppercase tracking-widest transition-all"
+                                    >
+                                        {language === "AR" ? "إغلاق" : language === "FR" ? "Fermer" : "Close"}
+                                    </Button>
+                                </div>
+                            </motion.div>
+                        </motion.div>
+                    )}
+                </AnimatePresence>
             </div>
         </PageShell>
     );

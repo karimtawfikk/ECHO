@@ -22,6 +22,8 @@ class RecognitionResponse(BaseModel):
     source: str = "recognition"
     type: str # "pharaoh" | "landmark"
     name: str
+    raw_name: Optional[str] = None
     confidence: float
     binary_confidence: float
     entity: Optional[EntityResponse] = None # Optional in case DB is missing the entity
+
