@@ -2,7 +2,7 @@ from fastapi import APIRouter, Depends
 from sqlalchemy.orm import Session
 from sqlalchemy import select
 from src.db import get_db
-from src.models import Pharaoh, Landmark
+from src.db_models import Pharaoh, Landmark
 
 router = APIRouter()
 

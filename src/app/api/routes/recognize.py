@@ -54,7 +54,7 @@ async def recognize_artifact(
 
                 # Look up sub-entity metadata for composite entities
                 if composite_raw:
-                    from src.models import Pharaoh
+                    from src.db_models import Pharaoh
                     sub_names = [s.strip() for s in composite_raw.split(",") if s.strip()]
                     entity_data["composite_entities_data"] = [
                         {

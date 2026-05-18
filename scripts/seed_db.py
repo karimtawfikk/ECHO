@@ -7,14 +7,14 @@ import json
 import chromadb
 from sqlalchemy.orm import Session
 from src.db import engine, Base
-from src.models.landmarks import Landmark
-from src.models.landmarks_images import LandmarkImage
-from src.models.landmarks_text import LandmarkText
-from src.models.landmarks_scripts import LandmarkScript 
-from src.models.pharaohs import Pharaoh
-from src.models.pharaohs_images import PharaohImage
-from src.models.pharaohs_text import PharaohText
-from src.models.pharaohs_scripts import PharaohScript
+from src.db_models.landmarks import Landmark
+from src.db_models.landmarks_images import LandmarkImage
+from src.db_models.landmarks_text import LandmarkText
+from src.db_models.landmarks_scripts import LandmarkScript 
+from src.db_models.pharaohs import Pharaoh
+from src.db_models.pharaohs_images import PharaohImage
+from src.db_models.pharaohs_text import PharaohText
+from src.db_models.pharaohs_scripts import PharaohScript
 
 Base.metadata.create_all(bind=engine)
 

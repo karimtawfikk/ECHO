@@ -1,6 +1,6 @@
 from sqlalchemy import select
 from sqlalchemy.orm import Session
-from src.models import Pharaoh, Landmark
+from src.db_models import Pharaoh, Landmark
 
 
 def load_entity(category: str, predicted_name: str, db: Session):

@@ -14,14 +14,14 @@ DATABASE_URL = os.getenv("DATABASE_URL")
 
 # Import Base and all models
 from src.db.session import Base
-from src.models.landmarks import Landmark
-from src.models.landmarks_images import LandmarkImage
-from src.models.pharaohs import Pharaoh
-from src.models.pharaohs_images import PharaohImage
-from src.models.pharaohs_text import PharaohText
-from src.models.landmarks_text import LandmarkText
-from src.models.landmarks_scripts import LandmarkScript
-from src.models.pharaohs_scripts import PharaohScript
+from src.db_models.landmarks import Landmark
+from src.db_models.landmarks_images import LandmarkImage
+from src.db_models.pharaohs import Pharaoh
+from src.db_models.pharaohs_images import PharaohImage
+from src.db_models.pharaohs_text import PharaohText
+from src.db_models.landmarks_text import LandmarkText
+from src.db_models.landmarks_scripts import LandmarkScript
+from src.db_models.pharaohs_scripts import PharaohScript
 
 # Alembic config
 config = context.config

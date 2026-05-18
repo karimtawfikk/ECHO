@@ -18,7 +18,7 @@ from pathlib import Path
 import numpy as np
 from sqlalchemy.orm import Session
 from src.db import engine
-from src.models import Pharaoh, PharaohText, Landmark, LandmarkText
+from src.db_models import Pharaoh, PharaohText, Landmark, LandmarkText
 from sqlalchemy import text
 import yaml
 warnings.filterwarnings("ignore")
