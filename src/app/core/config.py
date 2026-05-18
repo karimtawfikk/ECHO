@@ -15,6 +15,6 @@ class Settings:
         "http://127.0.0.1:3000"
     ]
     # Path to models (absolute)
-    MODEL_PATH: str = os.path.join(BASE_DIR, "recognition_models")
+    MODEL_PATH: str = os.path.join(BASE_DIR, "ml_models", "recognition_models")
     
 settings = Settings()

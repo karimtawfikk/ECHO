@@ -58,7 +58,7 @@ class RecognitionInference:
         self.model_path = settings.MODEL_PATH
 
         if not os.path.isdir(self.model_path):
-            fallback = os.path.join(settings.BASE_DIR, "recognition_models")
+            fallback = os.path.join(settings.BASE_DIR, "ml_models", "recognition_models")
             if os.path.isdir(fallback):
                 self.model_path = fallback
 
