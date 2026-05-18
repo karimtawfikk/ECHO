@@ -174,7 +174,7 @@ export default function HomePage() {
             asChild
             className="h-14 w-64 rounded-full bg-transparent border border-[#E6B23C]/20 text-[#F5E6D0] hover:bg-[#E6B23C]/5 font-bold text-sm uppercase tracking-widest transition-all hover:scale-105"
           >
-            <Link href="#how-it-works">
+            <Link href="/about">
               {t("home.hero.cta.how_it_works")}
             </Link>
           </Button>
@@ -186,66 +186,14 @@ export default function HomePage() {
           initial={{ scaleX: 0 }}
           animate={{ scaleX: 1 }}
           transition={{ delay: 1, duration: 0.8, ease: "easeOut" }}
-          className="mt-20 w-48 h-[1px]"
+          className="mt-10 w-48 h-[1px]"
           style={{ background: "linear-gradient(90deg, transparent, #E6B23C, transparent)" }}
         />
       </motion.section>
 
 
-
-      {/* =========== HOW IT WORKS =========== */}
-      <section id="how-it-works" className="mt-10 max-w-6xl mx-auto px-4 sm:px-6 lg:px-8 pt-20">
-        <div className="text-center mb-16">
-          <span className="text-xs font-bold tracking-[0.25em] text-[#E6B23C] uppercase">{t("home.process.badge")}</span>
-          <h2 className="font-heading text-3xl md:text-4xl lg:text-5xl font-bold mt-4 text-[#F5E6D0]">
-            {t("home.process.title")}
-          </h2>
-        </div>
-        <div className="relative max-w-4xl mx-auto py-12">
-          {/* Vertical Connecting Line */}
-          <div className="absolute left-10 md:left-1/2 top-0 bottom-0 w-[2px] -translate-x-1/2 bg-gradient-to-b from-transparent via-[#E6B23C]/30 to-transparent z-0" />
-
-          <div className="space-y-24 relative z-10">
-            {[
-              { icon: Camera, title: t("home.process.step1.title"), text: t("home.process.step1.desc"), isText: false },
-              { icon: Video, title: t("home.process.step2.title"), text: t("home.process.step2.desc"), isText: false },
-              { icon: MessageSquare, title: t("home.process.step3.title"), text: t("home.process.step3.desc"), isText: false },
-              { icon: Bird, title: t("home.process.step4.title"), text: t("home.process.step4.desc"), isText: false }
-            ].map((step, i) => (
-              <ScrollReveal key={step.title} direction={i % 2 === 0 ? "right" : "left"} delay={0.1} className="relative flex items-center">
-
-                {/* Timeline Center Node */}
-                <div className="absolute left-10 md:left-1/2 top-1/2 -translate-y-1/2 -translate-x-1/2 w-16 h-16 rounded-full bg-[#0D0A07] border border-[#E6B23C]/50 flex items-center justify-center shadow-[0_0_30px_rgba(230,178,60,0.15)] z-10">
-                  {i === 3 ? (
-                    <span className="text-4xl text-[#E6B23C] leading-none -translate-y-1">𓅓</span>
-                  ) : step.isText ? (
-                    <span className="text-4xl text-[#E6B23C] leading-none -translate-y-[10px]">{step.icon as any}</span>
-                  ) : (
-                    // @ts-ignore
-                    <step.icon size={28} className="text-[#E6B23C]" />
-                  )}
-                </div>
-
-                {/* Content */}
-                <div className={`w-[calc(100%-6rem)] md:w-[42%] ml-auto md:ml-0 ${i % 2 === 0 ? "md:mr-auto" : "md:ml-auto"} text-left`}>
-                  <div className="inline-flex items-center px-5 py-2 rounded-full bg-[#E6B23C]/[0.08] border border-[#E6B23C]/20 mb-4 shadow-[0_0_15px_rgba(230,178,60,0.05)]">
-                    <h3 className="text-xs font-bold tracking-[0.2em] text-[#E6B23C] uppercase">{step.title}</h3>
-                  </div>
-                  <p className="text-[#A08E70] leading-relaxed text-lg">{step.text}</p>
-                </div>
-
-              </ScrollReveal>
-            ))}
-          </div>
-        </div>
-      </section>
-
       {/* =========== EXPLORE GALLERY =========== */}
-      <section className="mt-40 max-w-6xl mx-auto px-4 sm:px-6 lg:px-8">
-        <div className="text-center mb-16">
-          <h2 className="font-heading text-3xl md:text-4xl font-bold text-[#F5E6D0]">{t("home.experience.title")}</h2>
-          <p className="text-[#A08E70] mt-3 max-w-xl mx-auto text-lg">{t("home.experience.subtitle")}</p>
-        </div>
+      <section className="mt-5 max-w-6xl mx-auto px-4 sm:px-6 lg:px-8">
         <TrendingRow
           title={t("home.experience.pharaohs")}
           items={pharaohs}
