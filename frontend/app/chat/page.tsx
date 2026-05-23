@@ -1338,15 +1338,15 @@ function ChatContent() {
                                         className="group cursor-pointer border-b border-[#E6B23C]/5 p-6 -mx-6 rounded-2xl hover:bg-[#E6B23C]/5 hover:border-[#E6B23C]/20 transition-all active:scale-[0.98]"
                                       >
                                         <div className="flex items-start justify-between mb-1">
-                                          <h4 className="text-lg font-bold text-[#E6B23C] group-hover:text-[#FFD369] transition-colors line-clamp-1">
+                                          <h4 className="text-lg font-medium text-[#A08E70] transition-colors line-clamp-1">
                                             {chat.title || "New Chat"}
                                           </h4>
                                           <span className="text-[10px] text-[#A08E70] font-mono group-hover:text-[#E6B23C]/60 transition-colors">
                                             {new Date(chat.created_at).toLocaleDateString()}
                                           </span>
                                         </div>
-                                        <div className="text-sm font-normal text-[#A08E70] group-hover:text-[#D4C4A8] transition-colors line-clamp-2">
-                                          {chat.entity_name} &bull; {new Date(chat.created_at).toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' })}
+                                        <div className="text-[10px] font-bold uppercase tracking-[0.15em] text-[#E6B23C] group-hover:text-[#FFD369] transition-colors">
+                                          {new Date(chat.created_at).toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' })}
                                         </div>
                                       </div>
                                     ))}
