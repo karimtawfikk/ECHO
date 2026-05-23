@@ -2,8 +2,10 @@ import os
 import io
 import time
 import ctypes
+from pathlib import Path
 import numpy as np
 from PIL import Image
+import warnings
 
 # Force load the correct cuDNN library from the venv to fix the 9.1 vs 9.3 mismatch
 try:
@@ -16,8 +18,8 @@ except Exception as e:
         print(f"[ML] Warning: Could not force-load cuDNN 9: {e}")
 
 os.environ["TF_CPP_MIN_LOG_LEVEL"] = "3"  # Silence TensorFlow logs
-import warnings
 warnings.filterwarnings('ignore', category=UserWarning, module='keras') # Silence Keras structure warnings
+
 try:
     import tensorflow as tf
     gpus = tf.config.list_physical_devices('GPU')
@@ -29,17 +31,13 @@ except Exception as e:
     tf = None
 
 import joblib
-from src.app.core.config import settings
-
 
 IMG_SIZE = 256
-
 PREPROCESS_MODES = {
     "binary":   "raw_255",
     "pharaoh":  "convnext",
     "landmark": "scale_01",
 }
-
 MODEL_FILES = {
     "binary":   "Binary.keras",
     "pharaoh":  "Pharohs.keras",
@@ -51,16 +49,13 @@ ENCODER_FILES = {
     "landmark": "Landmarks.pkl",
 }
 
-
 class RecognitionInference:
-
     def __init__(self):
-        self.model_path = settings.MODEL_PATH
-
-        if not os.path.isdir(self.model_path):
-            fallback = os.path.join(settings.BASE_DIR, "ml_models", "recognition_models")
-            if os.path.isdir(fallback):
-                self.model_path = fallback
+        self.repo_root = Path(__file__).resolve().parents[2]
+        self.model_path = os.environ.get(
+            "MODEL_PATH", 
+            str(self.repo_root / "src" / "ml_models" / "recognition_models")
+        )
 
         # Load encoders
         self.binary_encoder = self._load_encoder("binary")
@@ -107,7 +102,7 @@ class RecognitionInference:
 
         return np.expand_dims(arr, axis=0)
 
-    async def run_hierarchical_inference(self, image_data: bytes, debug: bool = False) -> dict:
+    async def run_hierarchical_inference(self, image_data: bytes) -> dict:
         start_time = time.perf_counter()
         if not self.binary_model:
             raise RuntimeError("Binary model not loaded.")
@@ -118,7 +113,6 @@ class RecognitionInference:
         bin_tensor = tf.convert_to_tensor(self.preprocess(image, PREPROCESS_MODES["binary"]))
         bin_pred = self.binary_model(bin_tensor, training=False).numpy()[0]
 
-        # Sigmoid gives 1 value; expand to [class_0_prob, class_1_prob] so we can argmax
         p = float(bin_pred[0])
         probs = np.array([1.0 - p, p])
         bin_idx = int(np.argmax(probs))
@@ -130,7 +124,7 @@ class RecognitionInference:
         else:
             predicted_type = "landmark"
 
-        # Stage 2: Specialized — which pharaoh / which landmark?
+        # Stage 2: Specialized
         model = self.pharaoh_model if predicted_type == "pharaoh" else self.landmark_model
         encoder = self.pharaoh_encoder if predicted_type == "pharaoh" else self.landmark_encoder
 
@@ -155,24 +149,20 @@ class RecognitionInference:
         }
 
     def warmup(self):
-        """Perform a dummy inference to warm up GPU kernels."""
         if not self.binary_model:
             return
         try:
             print("[ML] Warming up GPU kernels...")
             dummy_img = Image.new('RGB', (IMG_SIZE, IMG_SIZE))
-            # Binary warmup
             bin_tensor = tf.convert_to_tensor(self.preprocess(dummy_img, PREPROCESS_MODES["binary"]))
             _ = self.binary_model(bin_tensor, training=False)
             
-            # Specialized warmup (using pharaoh model as proxy)
             if self.pharaoh_model:
                 spec_tensor = tf.convert_to_tensor(self.preprocess(dummy_img, PREPROCESS_MODES["pharaoh"]))
                 _ = self.pharaoh_model(spec_tensor, training=False)
             print("[ML] GPU Warmup complete.")
         except Exception as e:
             print(f"[ML] Warmup failed: {e}")
-
 
 recognition_inference = RecognitionInference()
 recognition_inference.warmup()

@@ -14,4 +14,7 @@
 # 4. Hieroglyph Detection API (Port 8003)
 /workspace/venv/bin/uvicorn src.hieroglyph_api.main:app --host 0.0.0.0 --port 8003 &
 
-echo "E.C.H.O Services are starting up on ports 8010, 8000, 8005, and 8003!"
+# 5. Recognition API (Port 8002)
+/workspace/venv/bin/uvicorn src.recognition_api.main:app --host 0.0.0.0 --port 8002 &
+
+echo "E.C.H.O Services are starting up on ports 8010, 8000, 8005, 8003, and 8002!"

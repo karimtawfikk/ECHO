@@ -1,0 +1,21 @@
+FROM python:3.11-slim
+
+ENV PYTHONDONTWRITEBYTECODE=1
+ENV PYTHONUNBUFFERED=1
+
+WORKDIR /app
+
+# System dependencies for OpenCV or general image utilities if needed
+RUN apt-get update \
+    && apt-get install -y --no-install-recommends libgl1 libglib2.0-0 \
+    && rm -rf /var/lib/apt/lists/*
+
+COPY requirements/recognition.txt .
+RUN pip install --no-cache-dir --upgrade pip && pip install --no-cache-dir -r recognition.txt
+
+COPY src/recognition_api src/recognition_api
+COPY src/ml_models/recognition_models src/ml_models/recognition_models
+
+EXPOSE 8002
+
+CMD ["uvicorn", "src.recognition_api.main:app", "--host", "0.0.0.0", "--port", "8002"]

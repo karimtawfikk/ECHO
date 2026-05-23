@@ -11,7 +11,6 @@ from fastapi.staticfiles import StaticFiles
 from fastapi.responses import RedirectResponse
 from src.app.core.config import settings
 from src.app.api.routes import recognize, health, trending_entities, chat, video, assets, hieroglyphs
-from src.app.services.recognition_inference import recognition_inference
 
 app = FastAPI(
     title="E.C.H.O — Every Capture Has Origins",

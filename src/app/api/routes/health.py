@@ -3,7 +3,6 @@ from fastapi import APIRouter
 from sqlalchemy.orm import Session
 from fastapi import Depends
 from src.db import get_db
-from src.app.services.recognition_inference import recognition_inference
 from sqlalchemy import text
 
 router = APIRouter()
@@ -22,8 +21,13 @@ def health_unified(db: Session = Depends(get_db)):
         db_err = str(e)
 
     # Models
-    svc = recognition_inference
-    models_ok = all([svc.binary_model, svc.pharaoh_model, svc.landmark_model])
+    import httpx
+    RECOGNITION_API_URL = os.environ.get("RECOGNITION_API_URL", "http://localhost:8002")
+    try:
+        r = httpx.get(f"{RECOGNITION_API_URL}/health", timeout=2.0)
+        models_ok = r.json().get("status") == "ok"
+    except Exception:
+        models_ok = False
 
     overall = db_ok and models_ok
 
@@ -48,18 +52,25 @@ def health_app():
 
 @router.get("/models")
 def health_models():
-    svc = recognition_inference
+    import httpx
+    RECOGNITION_API_URL = os.environ.get("RECOGNITION_API_URL", "http://localhost:8002")
+    try:
+        r = httpx.get(f"{RECOGNITION_API_URL}/health", timeout=2.0)
+        rec_data = r.json()
+        rec_ok = rec_data.get("status") == "ok"
+    except Exception:
+        rec_ok = False
     
     return {
-        "status": "active",
+        "status": "active" if rec_ok else "degraded",
         "models": {
-            "binary": svc.binary_model is not None,
-            "pharaoh": svc.pharaoh_model is not None,
-            "landmark": svc.landmark_model is not None,
+            "binary": rec_ok,
+            "pharaoh": rec_ok,
+            "landmark": rec_ok,
         },
         "encoders": {
-            "binary": svc.binary_encoder is not None,
-            "pharaoh": svc.pharaoh_encoder is not None,
-            "landmark": svc.landmark_encoder is not None,
+            "binary": rec_ok,
+            "pharaoh": rec_ok,
+            "landmark": rec_ok,
         }
     }

@@ -180,13 +180,13 @@ export default function LoginPage() {
               <div className="bg-[#0D0A07]/80 backdrop-blur-3xl rounded-[30px] p-8 md:p-10 border border-white/5">
                 <div className="text-center mb-6">
                   <h2 className="text-3xl font-bold text-white mb-2">
-                    {isForgotPassword ? "Reset Password" : (isSignUp ? "Create Your Identity" : "Welcome Back")}
+                    {isForgotPassword ? "Reset Password" : (isSignUp ? "Get Started" : "Welcome!")}
                   </h2>
-                  <p className="text-[#A08E70] text-sm">
-                    {isForgotPassword
-                      ? "Enter your email to receive a reset link"
-                      : (isSignUp ? "Join the explorers of the Nile" : "Continue your journey through time")}
-                  </p>
+                  {isForgotPassword && (
+                    <p className="text-[#A08E70] text-sm">
+                      Enter your email to receive a reset link
+                    </p>
+                  )}
                 </div>
 
                 <div className="space-y-6">

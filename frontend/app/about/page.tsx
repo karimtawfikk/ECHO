@@ -27,7 +27,7 @@ export default function AboutPage() {
             transition={{ duration: 0.8 }}
           >
             <h1 className="font-heading text-3xl md:text-4xl lg:text-5xl font-bold text-[#F5E6D0] mb-8 drop-shadow-[0_0_15px_rgba(230,178,60,0.3)]">
-              What is <span className="text-[#E6B23C]">E.C.H.O?</span>
+              About <span className="text-[#E6B23C]">E.C.H.O</span>
             </h1>
           </motion.div>
 

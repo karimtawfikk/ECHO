@@ -1,0 +1,4 @@
+numpy
+tensorflow[and-cuda]
+joblib
+scikit-learn

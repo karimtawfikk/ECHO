@@ -21,9 +21,20 @@ async def recognize_artifact(
         
         image_data = await file.read()
 
-        # Run inference
-        from src.app.services.recognition_inference import recognition_inference
-        inference_result = await recognition_inference.run_hierarchical_inference(image_data)
+        # Run inference using standalone recognition microservice
+        import os
+        import httpx
+        RECOGNITION_API_URL = os.environ.get("RECOGNITION_API_URL", "http://localhost:8002")
+        
+        async with httpx.AsyncClient(timeout=60.0) as client:
+            files = {"image": (file.filename, image_data, file.content_type)}
+            response = await client.post(f"{RECOGNITION_API_URL}/recognize/upload", files=files)
+            if response.status_code != 200:
+                raise HTTPException(
+                    status_code=status.HTTP_500_INTERNAL_SERVER_ERROR,
+                    detail=f"Recognition microservice error: {response.text}"
+                )
+            inference_result = response.json()
         
         predicted_type = inference_result["type"]
         predicted_name = inference_result["name"]

@@ -41,11 +41,10 @@ edge-tts
 torch
 torchvision
 torchaudio
-tensorflow[and-cuda]
+
 
 # NLP and evaluation tooling (used in notebooks)
 numpy
-scikit-learn
 spacy
 textstat
 langdetect
