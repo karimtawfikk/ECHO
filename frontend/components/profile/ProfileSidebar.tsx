@@ -42,6 +42,9 @@ export default function ProfileSidebar({ isOpen, onClose }: ProfileSidebarProps)
     const [isUploading, setIsUploading] = useState(false);
     const [showSuccess, setShowSuccess] = useState(false);
     const [showNoChanges, setShowNoChanges] = useState(false);
+    const [selectedAvatarFile, setSelectedAvatarFile] = useState<File | null>(null);
+    const [avatarPreviewUrl, setAvatarPreviewUrl] = useState<string | null>(null);
+    const [settingsError, setSettingsError] = useState<string | null>(null);
     const fileInputRef = useRef<HTMLInputElement>(null);
 
     // Password States
@@ -219,71 +222,39 @@ export default function ProfileSidebar({ isOpen, onClose }: ProfileSidebarProps)
         router.refresh();
     };
 
-    const handleAvatarUpload = async (e: React.ChangeEvent<HTMLInputElement>) => {
+    const handleAvatarUpload = (e: React.ChangeEvent<HTMLInputElement>) => {
         const file = e.target.files?.[0];
         if (!file || !user) return;
+
+        setSettingsError(null);
 
         // 1. Validations
         const MAX_SIZE = 2 * 1024 * 1024; // 2MB
         if (file.size > MAX_SIZE) {
-            alert("File is too large. Maximum size is 2MB.");
+            setSettingsError("File is too large. Maximum size is 2MB.");
             return;
         }
 
         if (!file.type.startsWith('image/')) {
-            alert("Please upload an image file.");
+            setSettingsError("Please upload an image file.");
             return;
         }
 
-        setIsUploading(true);
-        try {
-            const fileExt = file.name.split('.').pop();
-            const fileName = `${user.id}-${Math.random()}.${fileExt}`;
-            const filePath = `${fileName}`;
-
-            // 1. Upload to Supabase Storage (Assumes 'avatars' bucket exists)
-            const { error: uploadError } = await supabase.storage
-                .from('avatars')
-                .upload(filePath, file);
-
-            if (uploadError) throw uploadError;
-
-            // 2. Get Public URL
-            const { data: { publicUrl } } = supabase.storage
-                .from('avatars')
-                .getPublicUrl(filePath);
-
-            // 3. Update Profile Table
-            const { error: updateError } = await supabase
-                .from('profiles')
-                .update({ avatar_url: publicUrl })
-                .eq('id', user.id);
-
-            if (updateError) throw updateError;
-
-            // 4. Update Auth Metadata
-            await supabase.auth.updateUser({
-                data: { avatar_url: publicUrl }
-            });
-
-            // 5. Update Local State
-            setProfileData({ ...profileData, avatar_url: publicUrl });
-            setUser({ ...user, user_metadata: { ...user.user_metadata, avatar_url: publicUrl } });
-
-        } catch (err: any) {
-            console.error("Error uploading avatar:", err);
-            alert(`Upload failed: ${err.message || "Unknown error"}`);
-        } finally {
-            setIsUploading(false);
-        }
+        // Generate local preview URL
+        const previewUrl = URL.createObjectURL(file);
+        setAvatarPreviewUrl(previewUrl);
+        setSelectedAvatarFile(file);
     };
 
     const handleSaveSettings = async () => {
+        setSettingsError(null);
         const currentFullName = `${firstName} ${lastName}`.trim();
         const initialFullName = profileData?.full_name || "";
         const initialUsername = profileData?.username || "";
 
-        const hasChanges = currentFullName !== initialFullName || username !== initialUsername;
+        const hasChanges = currentFullName !== initialFullName || 
+                            username !== initialUsername || 
+                            selectedAvatarFile !== null;
 
         if (!hasChanges) {
             setShowNoChanges(true);
@@ -294,8 +265,62 @@ export default function ProfileSidebar({ isOpen, onClose }: ProfileSidebarProps)
         setIsSaving(true);
         try {
             if (!user) {
-                alert("You must be logged in to save changes.");
+                setSettingsError("You must be logged in to save changes.");
                 return;
+            }
+
+            let newAvatarUrl = profileData?.avatar_url || user.user_metadata?.avatar_url || null;
+
+            // Upload selected avatar file if changed
+            if (selectedAvatarFile) {
+                setIsUploading(true);
+                const filePath = `${user.id}`;
+
+                // 1. Clean up any existing files for this user (handles old extensions and avoids UPDATE permission issues)
+                try {
+                    const { data: existingFiles } = await supabase.storage.from('avatars').list('', { search: user.id });
+                    if (existingFiles && existingFiles.length > 0) {
+                        const filesToRemove = existingFiles
+                            .filter(f => f.name.startsWith(user.id))
+                            .map(f => f.name);
+                        
+                        if (filesToRemove.length > 0) {
+                            const { error: removeError } = await supabase.storage.from('avatars').remove(filesToRemove);
+                            if (removeError) {
+                                console.warn("Failed to delete old images:", removeError.message);
+                            }
+                        }
+                    }
+                } catch (e) {
+                    console.warn("Could not list/remove existing files. Proceeding with upload.", e);
+                }
+
+                // 2. Upload new file (using upsert: true)
+                const { error: uploadError } = await supabase.storage
+                    .from('avatars')
+                    .upload(filePath, selectedAvatarFile, {
+                        upsert: true,
+                        cacheControl: '0'
+                    });
+
+                if (uploadError) {
+                    // Fallback to update if upload fails (some Supabase setups require this for overwriting)
+                    const { error: updateError } = await supabase.storage
+                        .from('avatars')
+                        .update(filePath, selectedAvatarFile, {
+                            upsert: true,
+                            cacheControl: '0'
+                        });
+                    if (updateError) throw updateError;
+                }
+
+                const { data: { publicUrl } } = supabase.storage
+                    .from('avatars')
+                    .getPublicUrl(filePath);
+
+                // Add cache-buster to force-reload browser cache of the same static URL path
+                newAvatarUrl = `${publicUrl}?t=${Date.now()}`;
+                setIsUploading(false);
             }
 
             const fullName = currentFullName;
@@ -303,7 +328,8 @@ export default function ProfileSidebar({ isOpen, onClose }: ProfileSidebarProps)
             const { error: authError } = await supabase.auth.updateUser({
                 data: {
                     full_name: fullName,
-                    user_name: username
+                    user_name: username,
+                    avatar_url: newAvatarUrl
                 }
             });
             if (authError) throw authError;
@@ -312,22 +338,34 @@ export default function ProfileSidebar({ isOpen, onClose }: ProfileSidebarProps)
                 .from('profiles')
                 .update({
                     full_name: fullName,
-                    username: username
+                    username: username,
+                    avatar_url: newAvatarUrl
                 })
                 .eq('id', user.id);
 
             if (dbError) throw dbError;
 
             // Update local state
-            setProfileData({ ...profileData, full_name: fullName, username: username });
+            setProfileData({ 
+                ...profileData, 
+                full_name: fullName, 
+                username: username,
+                avatar_url: newAvatarUrl
+            });
+            
             setUser({
                 ...user,
                 user_metadata: {
                     ...user.user_metadata,
                     full_name: fullName,
-                    user_name: username
+                    user_name: username,
+                    avatar_url: newAvatarUrl
                 }
             });
+
+            // Clear temp states
+            setSelectedAvatarFile(null);
+            setAvatarPreviewUrl(null);
 
             setShowSuccess(true);
             setTimeout(() => {
@@ -336,7 +374,8 @@ export default function ProfileSidebar({ isOpen, onClose }: ProfileSidebarProps)
             }, 2000);
         } catch (err: any) {
             console.error("Error updating user:", err);
-            alert(`Update failed: ${err.message || "Unknown error"}`);
+            setSettingsError(`Update failed: ${err.message || "Unknown error"}`);
+            setIsUploading(false);
         } finally {
             setIsSaving(false);
         }
@@ -519,8 +558,8 @@ export default function ProfileSidebar({ isOpen, onClose }: ProfileSidebarProps)
                                     <div className="pt-14 px-8 pb-6 flex justify-between items-start">
                                         <div className="flex items-center gap-6">
                                             <div className="h-20 w-20 rounded-full border-2 border-[#E6B23C]/20 bg-[#1A1208] overflow-hidden shadow-2xl">
-                                                {userData.avatar ? (
-                                                    <img src={userData.avatar} alt="Profile" className="w-full h-full object-cover" />
+                                                {(avatarPreviewUrl || userData.avatar) ? (
+                                                    <img src={avatarPreviewUrl || userData.avatar} alt="Profile" className="w-full h-full object-cover" />
                                                 ) : (
                                                     <div className="w-full h-full flex items-center justify-center bg-gradient-to-br from-[#1A1208] to-[#0D0A07]">
                                                         <User size={28} className="text-[#E6B23C]/40" />
@@ -823,7 +862,7 @@ export default function ProfileSidebar({ isOpen, onClose }: ProfileSidebarProps)
                                     <div className="flex-1 overflow-y-auto p-8 space-y-10 trending-scrollbar-hide">
                                         {/* Profile Picture*/}
                                         <section>
-                                            <div className="flex items-center justify-center">
+                                            <div className="flex flex-col items-center justify-center gap-3">
                                                 <div className="relative group">
                                                     <div className="h-32 w-32 rounded-full border-2 border-[#E6B23C]/20 p-1 group-hover:border-[#E6B23C]/50 transition-all shadow-2xl">
                                                         <div className="h-full w-full rounded-full bg-[#1A1208] flex items-center justify-center overflow-hidden relative">
@@ -832,8 +871,8 @@ export default function ProfileSidebar({ isOpen, onClose }: ProfileSidebarProps)
                                                                     <div className="h-6 w-6 border-2 border-[#E6B23C]/20 border-t-[#E6B23C] rounded-full animate-spin" />
                                                                 </div>
                                                             )}
-                                                            {userData.avatar ? (
-                                                                <img src={userData.avatar} alt="Avatar" className="w-full h-full object-cover" />
+                                                             {(avatarPreviewUrl || userData.avatar) ? (
+                                                                 <img src={avatarPreviewUrl || userData.avatar} alt="Avatar" className="w-full h-full object-cover" />
                                                             ) : (
                                                                 <User size={40} className="text-[#E6B23C]/30" />
                                                             )}
@@ -854,6 +893,18 @@ export default function ProfileSidebar({ isOpen, onClose }: ProfileSidebarProps)
                                                         <Camera size={16} />
                                                     </button>
                                                 </div>
+                                                <AnimatePresence mode="wait">
+                                                    {settingsError && (
+                                                        <motion.div
+                                                            initial={{ opacity: 0, y: -5 }}
+                                                            animate={{ opacity: 1, y: 0 }}
+                                                            exit={{ opacity: 0, y: -5 }}
+                                                            className="text-xs text-red-500 font-bold text-center mt-2"
+                                                        >
+                                                            {settingsError}
+                                                        </motion.div>
+                                                    )}
+                                                </AnimatePresence>
                                             </div>
                                         </section>
 
@@ -957,19 +1008,19 @@ export default function ProfileSidebar({ isOpen, onClose }: ProfileSidebarProps)
                                                                className="text-[10px] font-bold text-[#A08E70] uppercase tracking-[0.2em]"
                                                            >
                                                                Changes saved
-                                                           </motion.div>
-                                                       ) : showNoChanges ? (
-                                                           <motion.div
-                                                               key="no-changes"
-                                                               initial={{ opacity: 0, y: -5 }}
-                                                               animate={{ opacity: 1, y: 0 }}
-                                                               exit={{ opacity: 0, y: -5 }}
-                                                               className="text-[10px] font-bold text-[#A08E70] uppercase tracking-[0.2em]"
-                                                           >
-                                                               No changes detected
-                                                           </motion.div>
-                                                       ) : null}
-                                                   </AnimatePresence>
+                                                            </motion.div>
+                                                        ) : showNoChanges ? (
+                                                            <motion.div
+                                                                key="no-changes"
+                                                                initial={{ opacity: 0, y: -5 }}
+                                                                animate={{ opacity: 1, y: 0 }}
+                                                                exit={{ opacity: 0, y: -5 }}
+                                                                className="text-[10px] font-bold text-[#A08E70] uppercase tracking-[0.2em]"
+                                                            >
+                                                                No changes detected
+                                                            </motion.div>
+                                                        ) : null}
+                                                    </AnimatePresence>
                                                </div>
                                                 {isEmailUser && (
                                                     <div className="pt-6 mt-6 border-t border-[#E6B23C]/10 space-y-4">
@@ -983,6 +1034,7 @@ export default function ProfileSidebar({ isOpen, onClose }: ProfileSidebarProps)
                                                                     type={showCurrentPassword ? "text" : "password"}
                                                                     value={currentPassword}
                                                                     onChange={(e) => setCurrentPassword(e.target.value)}
+                                                                    autoComplete="new-password"
                                                                     className="w-full bg-[#E6B23C]/5 border border-[#E6B23C]/30 rounded-xl py-3.5 pl-12 pr-12 text-sm text-[#F5E6D0] focus:border-[#E6B23C]/60 focus:shadow-[0_0_25px_rgba(230,178,60,0.15)] outline-none transition-all shadow-[0_0_15px_rgba(230,178,60,0.05)]"
                                                                     placeholder="Enter password"
                                                                 />
@@ -1004,6 +1056,7 @@ export default function ProfileSidebar({ isOpen, onClose }: ProfileSidebarProps)
                                                                     type={showNewPassword ? "text" : "password"}
                                                                     value={newPassword}
                                                                     onChange={(e) => setNewPassword(e.target.value)}
+                                                                    autoComplete="new-password"
                                                                     className="w-full bg-[#E6B23C]/5 border border-[#E6B23C]/30 rounded-xl py-3.5 pl-12 pr-12 text-sm text-[#F5E6D0] focus:border-[#E6B23C]/60 focus:shadow-[0_0_25px_rgba(230,178,60,0.15)] outline-none transition-all shadow-[0_0_15px_rgba(230,178,60,0.05)]"
                                                                     placeholder="Enter password"
                                                                 />

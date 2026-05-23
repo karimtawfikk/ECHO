@@ -162,7 +162,7 @@ export default function LoginPage() {
             animate={{ opacity: 1, x: 0 }}
             className="flex-1 text-center md:text-left space-y-8"
           >
-            <h1 className="text-6xl md:text-8xl font-heading font-bold text-white leading-[1.1]">
+            <h1 className="text-6xl md:text-8xl font-heading font-bold text-[#F5E6D0] leading-[1.1]">
               Unveil the <span className="text-transparent bg-clip-text bg-gradient-to-r from-[#E6B23C] to-[#B48B2D]">Past.</span>
             </h1>
             <p className="text-[#A08E70] text-xl md:text-2xl max-w-xl leading-relaxed">
@@ -179,7 +179,7 @@ export default function LoginPage() {
             <div className="relative p-1 rounded-[32px] bg-gradient-to-b from-[#E6B23C]/20 to-transparent backdrop-blur-xl shadow-2xl">
               <div className="bg-[#0D0A07]/80 backdrop-blur-3xl rounded-[30px] p-8 md:p-10 border border-white/5">
                 <div className="text-center mb-6">
-                  <h2 className="text-3xl font-bold text-white mb-2">
+                  <h2 className="text-3xl font-bold text-[#F5E6D0] mb-2">
                     {isForgotPassword ? "Reset Password" : (isSignUp ? "Get Started" : "Welcome!")}
                   </h2>
                   {isForgotPassword && (
