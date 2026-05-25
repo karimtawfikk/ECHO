@@ -6,3 +6,9 @@ from .landmarks_images import LandmarkImage
 from .pharaohs_images import PharaohImage
 from .pharaohs_scripts import PharaohScript
 from .landmarks_scripts import LandmarkScript
+from .profiles import Profile
+from .conversations import Conversation
+from .chat_messages import ChatMessage
+from .chat_messages_rewriter import ChatMessageRewriter
+from .recognition_history import RecognitionHistory
+from .translation_history import TranslationHistory

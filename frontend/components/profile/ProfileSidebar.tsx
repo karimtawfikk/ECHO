@@ -619,7 +619,7 @@ export default function ProfileSidebar({ isOpen, onClose }: ProfileSidebarProps)
                                                     {tab === "saved" ? <Bookmark size={18} /> : tab === "chats" ? <MessageSquare size={18} /> : <HistoryIcon size={18} />}
                                                 </span>
                                                 <span className="text-[9px] font-bold uppercase tracking-[0.2em]">
-                                                    {tab === "saved" ? "SAVED" : tab === "chats" ? "CHATS" : "HISTORY"}
+                                                    {tab === "saved" ? "FAVORITES" : tab === "chats" ? "CHATS" : "HISTORY"}
                                                 </span>
                                                 {activeTab === tab && (
                                                     <motion.div
@@ -670,7 +670,7 @@ export default function ProfileSidebar({ isOpen, onClose }: ProfileSidebarProps)
                                                         ) : (
                                                             <div className="p-20 text-center">
                                                                 <Bookmark size={32} className="mx-auto mb-4 text-[#A08E70]/20" />
-                                                                <p className="text-xs text-[#A08E70]">No saved treasures yet.</p>
+                                                                <p className="text-xs text-[#A08E70]">Your favorites will appear here.</p>
                                                             </div>
                                                         )
                                                     )}
@@ -736,7 +736,7 @@ export default function ProfileSidebar({ isOpen, onClose }: ProfileSidebarProps)
                                                         ) : (
                                                             <div className="p-20 text-center">
                                                                 <MessageSquare size={32} className="mx-auto mb-4 text-[#A08E70]/20" />
-                                                                <p className="text-xs text-[#A08E70]">No echoes from the past.</p>
+                                                                <p className="text-xs text-[#A08E70]">Start a conversation to see your chats here.</p>
                                                             </div>
                                                         )
                                                     )}
