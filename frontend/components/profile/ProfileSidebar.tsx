@@ -138,83 +138,105 @@ export default function ProfileSidebar({ isOpen, onClose }: ProfileSidebarProps)
         }
     };
 
-    useEffect(() => {
-        if (!isOpen) return;
-
-        const fetchProfile = async () => {
+    const fetchProfile = async (showSpinner = true) => {
+        if (showSpinner) setIsLoading(true);
+        try {
+            // Fetch dynamic dbEntities from DB
             try {
-                // Fetch dynamic dbEntities from DB
-                try {
-                    const dbRes = await fetch(`${baseUrl}/api/v1/entities/all`);
-                    if (dbRes.ok) {
-                        const dbData = await dbRes.json();
-                        setDbEntities(dbData);
-                    }
-                } catch (dbErr) {
-                    console.error("Error loading dbEntities:", dbErr);
+                const dbRes = await fetch(`${baseUrl}/api/v1/entities/all`);
+                if (dbRes.ok) {
+                    const dbData = await dbRes.json();
+                    setDbEntities(dbData);
                 }
-
-                const { data: { user } } = await supabase.auth.getUser();
-                if (user) {
-                    const { data, error } = await supabase
-                        .from('profiles')
-                        .select('*')
-                        .eq('id', user.id)
-                        .single();
-
-                    if (data) {
-                        setProfileData(data);
-                        const fullName = data.full_name || user.user_metadata?.full_name || "";
-                        const nameParts = fullName.split(' ');
-                        setFirstName(nameParts[0] || "");
-                        setLastName(nameParts.slice(1).join(' ') || "");
-                        setUsername(data.username || user.user_metadata?.user_name || user.email?.split('@')[0] || "");
-                        setEmail(user.email || "");
-                    }
-
-                    // Fetch real conversations
-                    const { data: convs } = await supabase
-                        .from('conversations')
-                        .select('*')
-                        .eq('user_id', user.id)
-                        .order('created_at', { ascending: false });
-
-                    if (convs) setChatHistory(convs);
-
-                    // Fetch history records from dynamic tables
-                    const { data: recData } = await supabase
-                        .from('recognition_history')
-                        .select('*')
-                        .eq('user_id', user.id);
-
-                    const { data: transData } = await supabase
-                        .from('translation_history')
-                        .select('*')
-                        .eq('user_id', user.id);
-
-                    const merged = [
-                        ...(recData || []).map((item: any) => ({
-                            ...item,
-                            history_type: "recognition"
-                        })),
-                        ...(transData || []).map((item: any) => ({
-                            ...item,
-                            history_type: "translation"
-                        }))
-                    ].sort((a: any, b: any) => new Date(b.created_at).getTime() - new Date(a.created_at).getTime());
-
-                    setHistoryList(merged);
-
-                    setUser(user);
-                }
-            } catch (err) {
-                console.error("Error fetching profile:", err);
-            } finally {
-                setIsLoading(false);
+            } catch (dbErr) {
+                console.error("Error loading dbEntities:", dbErr);
             }
+
+            const { data: { user } } = await supabase.auth.getUser();
+            if (user) {
+                const { data, error } = await supabase
+                    .from('profiles')
+                    .select('*')
+                    .eq('id', user.id)
+                    .single();
+
+                if (data) {
+                    setProfileData(data);
+                    const fullName = data.full_name || user.user_metadata?.full_name || "";
+                    const nameParts = fullName.split(' ');
+                    setFirstName(nameParts[0] || "");
+                    setLastName(nameParts.slice(1).join(' ') || "");
+                    setUsername(data.username || user.user_metadata?.user_name || user.email?.split('@')[0] || "");
+                    setEmail(user.email || "");
+                }
+
+                // Fetch real conversations
+                const { data: convs } = await supabase
+                    .from('conversations')
+                    .select('*')
+                    .eq('user_id', user.id)
+                    .order('created_at', { ascending: false });
+
+                if (convs) setChatHistory(convs);
+
+                // Fetch history records from dynamic tables
+                const { data: recData } = await supabase
+                    .from('recognition_history')
+                    .select('*')
+                    .eq('user_id', user.id);
+
+                const { data: transData } = await supabase
+                    .from('translation_history')
+                    .select('*')
+                    .eq('user_id', user.id);
+
+                const merged = [
+                    ...(recData || []).map((item: any) => ({
+                        ...item,
+                        history_type: "recognition"
+                    })),
+                    ...(transData || []).map((item: any) => ({
+                        ...item,
+                        history_type: "translation"
+                    }))
+                ].sort((a: any, b: any) => new Date(b.created_at).getTime() - new Date(a.created_at).getTime());
+
+                setHistoryList(merged);
+                setUser(user);
+            }
+        } catch (err) {
+            console.error("Error fetching profile:", err);
+        } finally {
+            setIsLoading(false);
+        }
+    };
+
+    // 1. Initial mount fetch + auth state change listener
+    useEffect(() => {
+        fetchProfile(true);
+
+        const { data: { subscription } } = supabase.auth.onAuthStateChange((event, session) => {
+            if (session?.user) {
+                fetchProfile(false); // silent refresh on login event
+            } else {
+                setUser(null);
+                setProfileData(null);
+                setChatHistory([]);
+                setHistoryList([]);
+            }
+        });
+
+        return () => {
+            subscription.unsubscribe();
         };
-        fetchProfile();
-    }, [supabase, isOpen]);
+    }, []);
+
+    // 2. Silent refresh when sidebar is opened
+    useEffect(() => {
+        if (isOpen) {
+            fetchProfile(false); // load silently in the background
+        }
+    }, [isOpen]);
 
     const handleSignOut = async () => {
         await supabase.auth.signOut();
@@ -592,7 +614,6 @@ export default function ProfileSidebar({ isOpen, onClose }: ProfileSidebarProps)
                                             onClick={() => setView("settings")}
                                             className="flex-1 py-2.5 rounded-xl border border-[#E6B23C]/20 bg-[#E6B23C]/5 text-[#F5E6D0] hover:bg-[#E6B23C]/15 font-bold text-[10px] uppercase tracking-widest transition-all flex items-center justify-center gap-2"
                                         >
-                                            <Settings size={14} />
                                             Profile Settings
                                         </button>
                                         <button
@@ -687,7 +708,7 @@ export default function ProfileSidebar({ isOpen, onClose }: ProfileSidebarProps)
                                                                                 className="w-full text-left group/header py-4"
                                                                             >
                                                                                 <h3 className="text-[11px] font-bold uppercase tracking-[0.4em] text-[#E6B23C]/50 flex items-center gap-4 group-hover/header:text-[#E6B23C] transition-all">
-                                                                                    <span className="min-w-fit">{entity}</span>
+                                                                                    <span className="min-w-fit">{entity.includes("(") ? entity.split("(")[0].trim() : entity}</span>
                                                                                     <div className="flex-1 h-[1px] bg-[#E6B23C]/10 group-hover/header:bg-[#E6B23C]/30" />
                                                                                     <span className="text-[9px] font-mono opacity-40 group-hover/header:opacity-100">
                                                                                         {chats.length} {chats.length === 1 ? 'RECORD' : 'RECORDS'}

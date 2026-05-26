@@ -66,11 +66,18 @@ export default function UploadPage() {
       const result = await recognizeImage(selectedFile);
       if (currentReq !== reqIdRef.current) return;
 
-      // Save to recognition_history if user is logged in
+      // Save to recognition_history if user is logged in and recognition was successful
       try {
         const supabase = createClient();
         const { data: { user } } = await supabase.auth.getUser();
-        if (user) {
+        
+        const isSuccess = result.source !== "error" && 
+                          result.type !== "error" && 
+                          result.name !== "recognition_failed" && 
+                          result.name.toLowerCase() !== "unknown" &&
+                          !result.name.toLowerCase().includes("failed");
+
+        if (user && isSuccess) {
           const API_BASE = process.env.NEXT_PUBLIC_API_URL?.replace(/\/api\/v1\/?$/, "") ?? "http://localhost:8010";
           const uploadData = new FormData();
           uploadData.append("file", selectedFile);

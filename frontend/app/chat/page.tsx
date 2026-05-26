@@ -12,6 +12,7 @@ import { createPortal } from "react-dom";
 import { useLanguage } from "../../context/LanguageContext";
 import { loadResultFromSession } from "../../lib/services/recognition";
 import { createClient } from "../../lib/supabase/client";
+import { ALL_PHARAOHS, ALL_LANDMARKS } from "../../lib/mock/mock-all-entities";
 
 const generateId = () => {
   if (typeof crypto !== "undefined" && crypto.randomUUID) {
@@ -57,6 +58,7 @@ function ChatContent() {
   const router = useRouter();
   const sp = useSearchParams();
   const entityName = sp.get("entity") ?? "Ancient Spirit";
+  const cleanDisplayName = entityName.includes("(") ? entityName.split("(")[0].trim() : entityName;
   const entityType = sp.get("type") || "pharaoh";
   const convIdFromUrl = sp.get("conv");
 
@@ -77,15 +79,56 @@ function ChatContent() {
     return null;
   };
 
+  const getEntityImage = (name: string, type: string) => {
+    const isPharaoh = type.toLowerCase().includes("pharaoh") || type.toLowerCase().includes("king");
+    const source = isPharaoh ? ALL_PHARAOHS : ALL_LANDMARKS;
+
+    // Helper to clean parentheses and trim
+    const cleanName = (n: string) => n.includes("(") ? n.split("(")[0].trim() : n;
+    const targetClean = cleanName(name).toLowerCase();
+
+    // 1. Search for exact match (case-insensitive)
+    let found = source.find(e => e.name.toLowerCase() === name.toLowerCase());
+
+    // 2. Search by comparing clean names (removing parentheses)
+    if (!found) {
+      found = source.find(e => cleanName(e.name).toLowerCase() === targetClean);
+    }
+
+    // 3. Search by substring matching
+    if (!found) {
+      found = source.find(e => 
+        e.name.toLowerCase().includes(targetClean) || 
+        targetClean.includes(cleanName(e.name).toLowerCase())
+      );
+    }
+
+    if (!found || !found.image) {
+      return isPharaoh 
+        ? "/assets/trending/pharaohs/tutankhamun.jpg" 
+        : "/assets/trending/landmarks/giza.jpg";
+    }
+
+    if (found.image.startsWith('/') || found.image.startsWith('http')) {
+      return found.image;
+    }
+
+    if (found.image.startsWith("data/")) {
+      return `${API_BASE}/api/v1/assets/r2/${encodeURI(found.image)}`;
+    }
+
+    return `${API_BASE}/${encodeURI(found.image)}`;
+  };
+
   const isPharaoh = entityType === "pharaoh" || entityType === "king";
   const staticUrl = getAssumedImageUrl(entityName, isPharaoh);
 
   // Fallback: if no static image, try the user's uploaded image from sessionStorage
-  // Load entity metadata (period/location) from session
+  // Load entity metadata (period/location) from session or dynamic lookup
   const [statusText, setStatusText] = useState("");
   useEffect(() => {
     const payload = loadResultFromSession();
-    if (payload?.result?.entity) {
+    if (payload?.result?.entity && payload?.result?.entity?.name === entityName) {
       const e = payload.result.entity;
       if (entityType === "landmark") {
         setStatusText(e.location || "Ancient Landmark");
@@ -93,9 +136,28 @@ function ChatContent() {
         setStatusText(e.period || e.dynasty || "Ancient Pharaoh");
       }
     } else {
-      setStatusText(entityType === "landmark" ? "Ancient Landmark" : "Ancient Pharaoh");
+      // Dynamic lookup from mocks
+      const isPharaoh = entityType === "pharaoh" || entityType === "king";
+      const source = isPharaoh ? ALL_PHARAOHS : ALL_LANDMARKS;
+      const cleanName = (n: string) => n.includes("(") ? n.split("(")[0].trim() : n;
+      const targetClean = cleanName(entityName).toLowerCase();
+      
+      const found = source.find(e => 
+        e.name.toLowerCase() === entityName.toLowerCase() || 
+        cleanName(e.name).toLowerCase() === targetClean
+      );
+
+      if (found) {
+        if (entityType === "landmark") {
+          setStatusText((found as any).location || "Ancient Landmark");
+        } else {
+          setStatusText((found as any).period || (found as any).dynasty || "Ancient Pharaoh");
+        }
+      } else {
+        setStatusText(entityType === "landmark" ? "Ancient Landmark" : "Ancient Pharaoh");
+      }
     }
-  }, [entityType]);
+  }, [entityType, entityName]);
 
   const [avatarUrl, setAvatarUrl] = useState<string | null>(null);
 
@@ -107,8 +169,11 @@ function ChatContent() {
     } else if (staticUrl) {
       // Fallback to professional archive image
       setAvatarUrl(staticUrl);
+    } else {
+      // Look up image dynamically from mocks / R2 assets
+      setAvatarUrl(getEntityImage(entityName, entityType));
     }
-  }, [staticUrl, entityName]);
+  }, [staticUrl, entityName, entityType]);
   const [messages, setMessages] = useState<Message[]>([]);
   const [rewriterMessages, setRewriterMessages] = useState<Message[]>([]);
 
@@ -243,7 +308,7 @@ function ChatContent() {
             ]);
 
             if (msgsRes.data && msgsRes.data.length > 0) {
-              const welcomePattern = t("chat.welcome", { name: entityName }).split("{name}")[0];
+              const welcomePattern = t("chat.welcome", { name: cleanDisplayName }).split("{name}")[0];
               const filtered = msgsRes.data
                 .filter((m: any, idx: number) => {
                   // Skip if it's the very first message and looks like a greeting
@@ -819,14 +884,14 @@ function ChatContent() {
           >
             <div className="h-full w-full rounded-full bg-[#0D0A07] overflow-hidden flex items-center justify-center">
               {avatarUrl ? (
-                <img src={avatarUrl} alt={entityName} className="w-full h-full object-cover object-center scale-110" onError={(e) => { (e.target as HTMLImageElement).style.display = "none"; }} />
+                <img src={avatarUrl} alt={cleanDisplayName} className="w-full h-full object-cover object-center scale-110" onError={(e) => { (e.target as HTMLImageElement).style.display = "none"; }} />
               ) : (
                 <span className="text-[#E6B23C] text-4xl leading-none">☥</span>
               )}
             </div>
           </motion.div>
           <div className="space-y-0.5">
-            <h1 className="font-heading text-2xl md:text-3xl font-bold text-[#F5E6D0] tracking-wide">{entityName}</h1>
+            <h1 className="font-heading text-2xl md:text-3xl font-bold text-[#F5E6D0] tracking-wide">{cleanDisplayName}</h1>
             <div className="text-[9px] md:text-[10px] font-bold tracking-[0.4em] text-[#E6B23C] uppercase opacity-70">{statusText}</div>
           </div>
         </div>
@@ -919,7 +984,7 @@ function ChatContent() {
                 initial={{ opacity: 0 }}
                 animate={{ opacity: 1 }}
                 exit={{ opacity: 0 }}
-                className="flex-1 flex flex-col px-4 pb-4 overflow-visible"
+                className="flex-1 flex flex-col px-4 pb-4 overflow-hidden"
               >
                 {/* All Chats Shortcut */}
                 {chatHistory.length > 0 && (
@@ -971,7 +1036,7 @@ function ChatContent() {
                         >
                           <div className="flex-1 overflow-hidden pr-6">
                             <div className="text-[11px] text-[#E6B23C] font-bold uppercase tracking-[0.15em] mb-1 flex items-center justify-between">
-                              <span>{chat.entity_name}</span>
+                              <span>{chat.entity_name && chat.entity_name.includes("(") ? chat.entity_name.split("(")[0].trim() : chat.entity_name}</span>
                               {chat.is_pinned && (
                                 <Pin size={12} className="text-[#E6B23C] shrink-0" />
                               )}
@@ -1311,7 +1376,7 @@ function ChatContent() {
                             className="w-full text-left group/header py-4"
                           >
                             <h3 className="text-[13px] font-bold uppercase tracking-[0.4em] text-[#E6B23C]/50 flex items-center gap-4 group-hover/header:text-[#E6B23C] transition-all">
-                              <span className="min-w-fit">{entity}</span>
+                              <span className="min-w-fit">{entity.includes("(") ? entity.split("(")[0].trim() : entity}</span>
                               <div className="flex-1 h-[1px] bg-[#E6B23C]/10 group-hover/header:bg-[#E6B23C]/30" />
                               <span className="text-[11px] font-mono opacity-40 group-hover/header:opacity-100">{chats.length} {chats.length === 1 ? 'RECORD' : 'RECORDS'}</span>
                             </h3>
@@ -1393,12 +1458,12 @@ function ChatContent() {
                           className="text-[#D4C4A8] text-sm md:text-base leading-relaxed font-normal tracking-wide"
                           style={{ direction: isRTL ? 'rtl' : 'ltr', textAlign: isRTL ? 'right' : 'left' }}
                         >
-                          {renderMessageText(t("chat.welcome", { name: entityName }))}
+                          {renderMessageText(t("chat.welcome", { name: cleanDisplayName }))}
                         </div>
 
                         <div className={`flex items-center gap-6 mt-1 opacity-40 hover:opacity-100 transition-opacity ${isRTL ? 'flex-row-reverse' : ''}`}>
                           <button
-                            onClick={() => handleCopy(t("chat.welcome", { name: entityName }), "welcome-msg")}
+                            onClick={() => handleCopy(t("chat.welcome", { name: cleanDisplayName }), "welcome-msg")}
                             className="flex items-center gap-2 text-[#A08E70] hover:text-[#E6B23C] transition-colors"
                           >
                             {copiedId === "welcome-msg" ? (
@@ -1638,7 +1703,7 @@ function ChatContent() {
                           }
                         }}
                         disabled={recordingState !== "idle"}
-                        placeholder={t("chat.placeholder", { name: entityName })}
+                        placeholder={t("chat.placeholder", { name: cleanDisplayName })}
                         rows={1}
                         className="flex-1 min-h-[56px] max-h-48 py-4 px-8 rounded-[28px] bg-[#1A1208]/50 backdrop-blur-xl border border-[#E6B23C]/10 text-base placeholder:text-[#A08E70]/40 focus:outline-none focus:border-[#E6B23C]/30 focus:bg-[#1A1208]/80 focus:shadow-[0_0_30px_rgba(230,178,60,0.05)] transition-all disabled:opacity-50 resize-none overflow-y-auto trending-scrollbar-hide"
                         style={{ color: "#E6B23C", caretColor: "#E6B23C", direction: isRTL ? 'rtl' : 'ltr' }}

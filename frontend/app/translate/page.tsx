@@ -110,11 +110,17 @@ export default function TranslatePage() {
               // Ensure we reached the final step
               setCurrentStep(4);
 
-              // Save to translation_history if user is logged in
+              // Save to translation_history if user is logged in and translation was successful
               try {
                 const supabase = createClient();
                 const { data: { user } } = await supabase.auth.getUser();
-                if (user && file) {
+                
+                const isSuccess = data.translation_text && 
+                                  data.translation_text.trim() !== "" && 
+                                  !data.translation_text.toLowerCase().includes("failed") &&
+                                  !data.translation_text.toLowerCase().includes("no hieroglyphs");
+
+                if (user && file && isSuccess) {
                   const API_BASE = process.env.NEXT_PUBLIC_API_URL?.replace(/\/api\/v1\/?$/, "") ?? "http://localhost:8010";
                   const uploadData = new FormData();
                   uploadData.append("file", file);

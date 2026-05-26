@@ -65,6 +65,7 @@ class VideoGenerationRuntime:
         self.clip_model = None
         self.clip_tokenizer = None
         self.clip_device = "cuda" if cuda.is_available() else "cpu"
+        self._r2_client = None
 
     def get_clip_model(self):
         if self.clip_model is None or self.clip_tokenizer is None:
@@ -87,6 +88,12 @@ class VideoGenerationRuntime:
 
     def ensure_models_loaded(self) -> None:
         self.get_clip_model()
+        try:
+            print("[video] Pre-warming Cloudflare R2 connection pool...", flush=True)
+            self.build_r2_client()
+            print("[video] Cloudflare R2 connection pool is pre-warmed and warm.", flush=True)
+        except Exception as e:
+            print(f"[video] Failed to pre-warm Cloudflare R2 connection: {e}", flush=True)
 
     def get_script_by_name(self, name: str, is_landmark: bool = False) -> str | None:
         with Session(engine) as session:
@@ -376,6 +383,9 @@ class VideoGenerationRuntime:
         return fetched_image_ids, fetched_image_paths, average_score, average_trials
 
     def build_r2_client(self):
+        if self._r2_client is not None:
+            return self._r2_client
+
         load_dotenv()
         account_id = os.getenv("R2_ACCOUNT_ID")
         access_key = os.getenv("R2_ACCESS_KEY")
@@ -385,13 +395,14 @@ class VideoGenerationRuntime:
             raise ValueError("Missing one or more Cloudflare R2 environment variables.")
 
         session = Boto3Session()
-        return session.client(
+        self._r2_client = session.client(
             "s3",
             region_name="auto",
             endpoint_url=f"https://{account_id}.r2.cloudflarestorage.com",
             aws_access_key_id=access_key,
             aws_secret_access_key=secret_key,
         )
+        return self._r2_client
 
     def download_images_from_r2(self, remote_paths: Sequence[str], local_frames_dir: str) -> list[str]:
         load_dotenv()

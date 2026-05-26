@@ -8,8 +8,15 @@ from src.app.core.config import settings
 
 router = APIRouter()
 
+# Cached global client instance
+_r2_client = None
+
 # Initialize R2 client using existing env vars
 def get_r2_client():
+    global _r2_client
+    if _r2_client is not None:
+        return _r2_client
+        
     account_id = os.getenv("R2_ACCOUNT_ID")
     access_key = os.getenv("R2_ACCESS_KEY")
     secret_key = os.getenv("R2_SECRET_KEY")
@@ -17,16 +24,18 @@ def get_r2_client():
     if not all([account_id, access_key, secret_key]):
         return None
         
-    return boto3.client(
+    _r2_client = boto3.client(
         "s3",
         region_name="auto",
         endpoint_url=f"https://{account_id}.r2.cloudflarestorage.com",
         aws_access_key_id=access_key,
         aws_secret_access_key=secret_key,
     )
+    return _r2_client
+
 
 @router.get("/r2/{key:path}")
-async def proxy_r2_asset(key: str):
+def proxy_r2_asset(key: str):
     """
     Proxies an asset from Cloudflare R2.
     Usage: GET /api/v1/assets/r2/data/video_generation/...
@@ -56,8 +65,9 @@ async def proxy_r2_asset(key: str):
             raise HTTPException(status_code=404, detail=f"Asset not found in R2: {key}")
         raise HTTPException(status_code=500, detail=str(e))
 
+
 @router.get("/r2-history/{key:path}")
-async def proxy_history_asset(key: str):
+def proxy_history_asset(key: str):
     """
     Proxies an asset from the user-history-data Cloudflare R2 bucket.
     Usage: GET /api/v1/assets/r2-history/recognition/...
@@ -128,3 +138,11 @@ async def upload_history_image(
         
     except Exception as e:
         raise HTTPException(status_code=500, detail=f"Failed to upload to R2: {str(e)}")
+
+
+# Pre-warm the R2 client connection pool on backend startup
+try:
+    get_r2_client()
+except Exception as e:
+    pass
+

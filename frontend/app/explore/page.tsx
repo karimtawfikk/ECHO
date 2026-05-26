@@ -112,7 +112,7 @@ function DynastyGroup({ dynasty, entities, type, onNavigate }: {
       >
         <div className="flex items-center gap-3">
           <Scroll size={15} className="text-[#B8860B] shrink-0" />
-          <span className="text-sm font-bold text-[#F5E6D0] tracking-wide">{dynasty}</span>
+          <span className="text-sm font-bold text-[#EADBB8] tracking-wide">{dynasty}</span>
           <span className={`text-[10px] text-[#A08E70]/50 font-bold tracking-widest uppercase ${isRTL ? 'mr-1' : 'ml-1'}`}>
             {entities.length} {entities.length === 1 ? t("common.entity") : t("common.entities")}
           </span>
