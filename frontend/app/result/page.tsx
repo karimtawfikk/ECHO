@@ -165,10 +165,7 @@ function ResultContent() {
     finalImageUrl = assumedUrl;
   } else if (sessionResult?.entity?.images && sessionResult.entity.images.length > 0 && sessionResult.entity.images[0].url) {
     // Database API images
-    const imgUrl = sessionResult.entity.images[0].url;
-    finalImageUrl = imgUrl.startsWith("/static")
-      ? `${baseUrl}${imgUrl}`
-      : imgUrl;
+    finalImageUrl = sessionResult.entity.images[0].url;
   } else if ((sessionResult?.entity as any)?.image) {
     // Support the singular 'image' field from mock-all-entities.ts
     const imgPath = (sessionResult?.entity as any)?.image;

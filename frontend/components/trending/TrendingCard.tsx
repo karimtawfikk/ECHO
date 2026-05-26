@@ -56,9 +56,7 @@ export default function TrendingCard({ variant, entity, index }: TrendingCardPro
     if (assumedUrl) {
         finalImageUrl = assumedUrl;
     } else if (entity.images && entity.images.length > 0 && entity.images[0].url) {
-        finalImageUrl = entity.images[0].url.startsWith("/static")
-            ? `${process.env.NEXT_PUBLIC_API_URL?.replace(/\/api\/v1\/?$/, "") ?? "http://localhost:8010"}${entity.images[0].url}`
-            : entity.images[0].url;
+        finalImageUrl = entity.images[0].url;
     } else if ((entity as any).image) {
         // Support the singular 'image' field from mock-all-entities.ts
         const imgPath = (entity as any).image;
