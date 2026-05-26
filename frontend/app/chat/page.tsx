@@ -97,15 +97,15 @@ function ChatContent() {
 
     // 3. Search by substring matching
     if (!found) {
-      found = source.find(e => 
-        e.name.toLowerCase().includes(targetClean) || 
+      found = source.find(e =>
+        e.name.toLowerCase().includes(targetClean) ||
         targetClean.includes(cleanName(e.name).toLowerCase())
       );
     }
 
     if (!found || !found.image) {
-      return isPharaoh 
-        ? "/assets/trending/pharaohs/tutankhamun.jpg" 
+      return isPharaoh
+        ? "/assets/trending/pharaohs/tutankhamun.jpg"
         : "/assets/trending/landmarks/giza.jpg";
     }
 
@@ -141,9 +141,9 @@ function ChatContent() {
       const source = isPharaoh ? ALL_PHARAOHS : ALL_LANDMARKS;
       const cleanName = (n: string) => n.includes("(") ? n.split("(")[0].trim() : n;
       const targetClean = cleanName(entityName).toLowerCase();
-      
-      const found = source.find(e => 
-        e.name.toLowerCase() === entityName.toLowerCase() || 
+
+      const found = source.find(e =>
+        e.name.toLowerCase() === entityName.toLowerCase() ||
         cleanName(e.name).toLowerCase() === targetClean
       );
 

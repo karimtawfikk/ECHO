@@ -33,6 +33,27 @@ export default function ProfilePage() {
     const baseUrl = process.env.NEXT_PUBLIC_API_URL?.replace(/\/api\/v1\/?$/, "") ?? "http://localhost:8010";
 
     const getEntityImage = (name: string, type: string = "") => {
+        const cleanNameStr = name.includes("(") ? name.split("(")[0].trim() : name;
+        const normalized = cleanNameStr.toLowerCase().trim();
+
+        // Static local folder fallback for the 10 trending entities
+        const trendingImages: Record<string, string> = {
+            "akhenaton": "/images/pharaohs/Akhenaton.JPG",
+            "cleopatra vii philopator": "/images/pharaohs/Cleopatra%20VII%20Philopator.jpg",
+            "hatshepsut": "/images/pharaohs/Hatshepsut.JPG",
+            "ramesses ii": "/images/pharaohs/Ramesses%20II.jpg",
+            "tutankhamun": "/images/pharaohs/Tutankhamun.jpg",
+            "pyramids of giza": "/images/landmarks/Pyramids%20of%20Giza.webp",
+            "sphinx": "/images/landmarks/Sphinx.jpg",
+            "temple of karnak": "/images/landmarks/Temple%20of%20Karnak.jpg",
+            "temple of luxor": "/images/landmarks/Temple%20of%20Luxor.jpg",
+            "the great temple of ramesses ii at abu simbel": "/images/landmarks/The%20Great%20Temple%20of%20Ramesses%20II%20at%20Abu%20Simbel.webp"
+        };
+
+        if (trendingImages[normalized]) {
+            return trendingImages[normalized];
+        }
+
         const safeType = (type || "").toLowerCase();
         const entityType = safeType.includes("pharaoh") ? "pharaoh" : "landmark";
         
