@@ -7,7 +7,7 @@ import { createClient } from "../../lib/supabase/client";
 import { useLanguage } from "../../context/LanguageContext";
 import { useRouter } from "next/navigation";
 import Link from "next/link";
-import { ALL_PHARAOHS, ALL_LANDMARKS } from "../../lib/mock/mock-all-entities";
+
 import { saveResultToSession } from "../../lib/services/recognition";
 import type { RecognitionEntity, RecognitionResult } from "../../lib/types";
 import { Button } from "../ui/button";
@@ -57,6 +57,7 @@ export default function ProfileSidebar({ isOpen, onClose }: ProfileSidebarProps)
     const [passwordError, setPasswordError] = useState<string | null>(null);
     const [dbEntities, setDbEntities] = useState<{ pharaohs: any[]; landmarks: any[] } | null>(null);
     const [historyFilter, setHistoryFilter] = useState<"all" | "recognition" | "translation">("all");
+    const [showDeleteConfirm, setShowDeleteConfirm] = useState(false);
 
     const baseUrl = process.env.NEXT_PUBLIC_API_URL?.replace(/\/api\/v1\/?$/, "") ?? "http://localhost:8010";
 
@@ -96,22 +97,7 @@ export default function ProfileSidebar({ isOpen, onClose }: ProfileSidebarProps)
             }
         }
 
-        const source = entityType === "pharaoh" ? ALL_PHARAOHS : ALL_LANDMARKS;
-        const entity = source.find(e => e.name.toLowerCase() === name.toLowerCase());
-
-        if (!entity || !entity.image) {
-            return entityType === "pharaoh" ? "/assets/trending/pharaohs/tutankhamun.jpg" : "/assets/trending/landmarks/giza.jpg";
-        }
-
-        if (entity.image.startsWith('/') || entity.image.startsWith('http')) {
-            return entity.image;
-        }
-
-        if (entity.image.startsWith("data/")) {
-            return `${baseUrl}/api/v1/assets/r2/${encodeURI(entity.image)}`;
-        }
-
-        return `${baseUrl}/${encodeURI(entity.image)}`;
+        return entityType === "pharaoh" ? "/images/pharaohs/Tutankhamun.jpg" : "/images/landmarks/Pyramids of Giza.webp";
     };
 
     const getEntityDescription = (name: string, type: string = "") => {
@@ -127,36 +113,28 @@ export default function ProfileSidebar({ isOpen, onClose }: ProfileSidebarProps)
             }
         }
 
-        const source = entityType === "pharaoh" ? ALL_PHARAOHS : ALL_LANDMARKS;
-        const entity = source.find(e => e.name.toLowerCase() === name.toLowerCase());
-        return entity?.description || "Explore the legacy of this ancient entity...";
+        return "Explore the legacy of this ancient entity...";
     };
 
-    const cleanName = (name: string) => name.includes("(") ? name.split("(")[0].trim() : name;
+    const toTitleCase = (str: string) => {
+        const minorWords = new Set(['and', 'a', 'an', 'the', 'of', 'in', 'on', 'at', 'to', 'for', 'with', '&', 'his', 'her']);
+        return str.toLowerCase().split(' ').map((word, index) => {
+            if (index === 0 || !minorWords.has(word)) {
+                return word.charAt(0).toUpperCase() + word.slice(1);
+            }
+            return word;
+        }).join(' ');
+    };
+
+    const cleanName = (name: string) => {
+        const baseName = name.includes("(") ? name.split("(")[0].trim() : name;
+        return toTitleCase(baseName);
+    };
 
     const handleEntityClick = (name: string, type: string, imageUrl: string | null = null) => {
         const entityType = type.toLowerCase().includes("pharaoh") ? "pharaoh" : "landmark";
-        const source = entityType === "pharaoh" ? ALL_PHARAOHS : ALL_LANDMARKS;
-        const entity = source.find(e => e.name.toLowerCase() === name.toLowerCase()) as unknown as RecognitionEntity;
-
-        if (entity) {
-            const result: RecognitionResult = {
-                source: "explore",
-                type: entityType as "pharaoh" | "landmark",
-                name: entity.name,
-                category: entityType,
-                confidence: 1.0,
-                binary_confidence: 1.0,
-                entity: entity,
-                debug_info: null,
-            };
-            saveResultToSession({ result, imageDataUrl: imageUrl });
-            router.push(`/result?t=${Date.now()}`);
-            onClose();
-        } else {
-            router.push(`/result?name=${encodeURIComponent(name)}&type=${entityType}${imageUrl ? `&imageUrl=${encodeURIComponent(imageUrl)}` : ""}&t=${Date.now()}`);
-            onClose();
-        }
+        router.push(`/result?name=${encodeURIComponent(name)}&type=${entityType}${imageUrl ? `&imageUrl=${encodeURIComponent(imageUrl)}` : ""}&t=${Date.now()}`);
+        onClose();
     };
 
     const fetchProfile = async (showSpinner = true) => {
@@ -295,9 +273,9 @@ export default function ProfileSidebar({ isOpen, onClose }: ProfileSidebarProps)
         const initialFullName = profileData?.full_name || "";
         const initialUsername = profileData?.username || "";
 
-        const hasChanges = currentFullName !== initialFullName || 
-                            username !== initialUsername || 
-                            selectedAvatarFile !== null;
+        const hasChanges = currentFullName !== initialFullName ||
+            username !== initialUsername ||
+            selectedAvatarFile !== null;
 
         if (!hasChanges) {
             setShowNoChanges(true);
@@ -326,7 +304,7 @@ export default function ProfileSidebar({ isOpen, onClose }: ProfileSidebarProps)
                         const filesToRemove = existingFiles
                             .filter(f => f.name.startsWith(user.id))
                             .map(f => f.name);
-                        
+
                         if (filesToRemove.length > 0) {
                             const { error: removeError } = await supabase.storage.from('avatars').remove(filesToRemove);
                             if (removeError) {
@@ -389,13 +367,13 @@ export default function ProfileSidebar({ isOpen, onClose }: ProfileSidebarProps)
             if (dbError) throw dbError;
 
             // Update local state
-            setProfileData({ 
-                ...profileData, 
-                full_name: fullName, 
+            setProfileData({
+                ...profileData,
+                full_name: fullName,
                 username: username,
                 avatar_url: newAvatarUrl
             });
-            
+
             setUser({
                 ...user,
                 user_metadata: {
@@ -474,6 +452,48 @@ export default function ProfileSidebar({ isOpen, onClose }: ProfileSidebarProps)
         }
     };
 
+    const handleDeleteAccount = () => {
+        if (!user) return;
+        setShowDeleteConfirm(true);
+    };
+
+    const confirmDeleteAccount = async () => {
+        if (!user) return;
+
+        setShowDeleteConfirm(false);
+        setIsSaving(true);
+        try {
+            // 1. Delete Supabase avatars
+            try {
+                const { data: existingFiles } = await supabase.storage.from('avatars').list('', { search: user.id });
+                if (existingFiles && existingFiles.length > 0) {
+                    const filesToRemove = existingFiles.map((x) => x.name);
+                    await supabase.storage.from('avatars').remove(filesToRemove);
+                }
+            } catch (err) {
+                console.error("Error deleting avatars:", err);
+            }
+
+            // 2. Call backend to delete R2 data AND DB rows (including profiles and auth.users)
+            const res = await fetch(`${baseUrl}/api/v1/assets/delete-account/${user.id}`, {
+                method: 'DELETE',
+            });
+
+            if (!res.ok) {
+                const errData = await res.json().catch(() => null);
+                throw new Error(errData?.detail || "Failed to delete account from backend.");
+            }
+
+            // Redirect to login page
+            await supabase.auth.signOut();
+            window.location.href = "/login";
+        } catch (err: any) {
+            console.error("Error deleting account:", err);
+            alert(`Failed to delete account: ${err.message || "Unknown error"}`);
+            setIsSaving(false);
+        }
+    };
+
     const formatJoinedDate = (dateString: string) => {
         if (!dateString) return "Joined May 2024";
         try {
@@ -519,11 +539,11 @@ export default function ProfileSidebar({ isOpen, onClose }: ProfileSidebarProps)
                 day: "numeric",
                 year: "numeric"
             });
-            
+
             const imageUrl = entry.image_path?.startsWith("http")
                 ? entry.image_path
                 : `${baseUrl}/api/v1/assets/r2-history/${entry.image_path}`;
-            
+
             if (entry.history_type === "recognition") {
                 return {
                     id: entry.id,
@@ -702,7 +722,7 @@ export default function ProfileSidebar({ isOpen, onClose }: ProfileSidebarProps)
                                                                     </div>
                                                                     <div className="flex-1 py-0.5">
                                                                         <span className="text-[9px] font-bold tracking-widest text-[#E6B23C] uppercase block mb-0.5">{item.type}</span>
-                                                                        <h3 className="text-[#F5E6D0] font-bold text-sm mb-0.5 group-hover:text-[#E6B23C] transition-colors">
+                                                                        <h3 className="text-[#F5E6D0] font-bold text-sm mb-0.5 transition-colors">
                                                                             {cleanName(item.name)}
                                                                         </h3>
                                                                         <p className="text-[11px] text-[#A08E70] line-clamp-1">{item.description}</p>
@@ -795,11 +815,10 @@ export default function ProfileSidebar({ isOpen, onClose }: ProfileSidebarProps)
                                                                     <button
                                                                         key={filter.id}
                                                                         onClick={() => setHistoryFilter(filter.id)}
-                                                                        className={`px-4 py-1.5 rounded-full text-[10px] font-bold uppercase tracking-wider transition-all duration-300 ${
-                                                                            historyFilter === filter.id
+                                                                        className={`px-4 py-1.5 rounded-full text-[10px] font-bold uppercase tracking-wider transition-all duration-300 ${historyFilter === filter.id
                                                                                 ? "bg-[#E6B23C] text-[#0D0A07] shadow-[0_2px_10px_rgba(230,178,60,0.3)]"
                                                                                 : "bg-[#E6B23C]/5 border border-[#E6B23C]/10 text-[#A08E70] hover:text-[#F5E6D0] hover:border-[#E6B23C]/20"
-                                                                        }`}
+                                                                            }`}
                                                                     >
                                                                         {filter.label}
                                                                     </button>
@@ -808,51 +827,51 @@ export default function ProfileSidebar({ isOpen, onClose }: ProfileSidebarProps)
 
                                                             {filteredHistory.length > 0 ? (
                                                                 filteredHistory.map((entry, i) => (
-                                                                     <div
-                                                                         key={i}
-                                                                         onClick={() => {
-                                                                             if (entry.history_type === "recognition") {
-                                                                                 handleEntityClick(entry.name, entry.type, entry.image);
-                                                                             } else {
-                                                                                 sessionStorage.setItem("echo_translation_history_result", JSON.stringify({
-                                                                                     translation: entry.translation,
-                                                                                     imageUrl: entry.image
-                                                                                 }));
-                                                                                 router.push("/translate");
-                                                                                 onClose();
-                                                                             }
-                                                                         }}
-                                                                         className="p-4 flex gap-4 hover:bg-[#E6B23C]/[0.05] transition-colors group cursor-pointer"
-                                                                     >
-                                                                         <div className="h-14 w-14 rounded-lg overflow-hidden border border-[#E6B23C]/10 shrink-0 relative">
-                                                                             <img src={entry.image} alt={entry.name} className="h-full w-full object-cover" />
-                                                                             <div className="absolute inset-0 bg-[#0D0A07]/40 flex items-center justify-center opacity-0 group-hover:opacity-100 transition-opacity">
-                                                                                 <Search size={16} className="text-[#E6B23C]" />
-                                                                             </div>
-                                                                         </div>
-                                                                         <div className="flex-1 py-0.5">
-                                                                             <div className="flex items-center justify-between mb-0.5">
-                                                                                 <span className="text-[9px] font-bold tracking-widest text-[#E6B23C] uppercase">
-                                                                                     {entry.history_type === "recognition" ? entry.type : (language === "AR" ? "ترجمة" : language === "FR" ? "Traduction" : "Translation")}
-                                                                                 </span>
-                                                                                 <span className="text-[9px] text-[#A08E70]">{entry.date}</span>
-                                                                             </div>
-                                                                             <h3 className="text-[#F5E6D0] font-bold text-sm mb-0.5 group-hover:text-[#E6B23C] transition-colors">
-                                                                                 {entry.history_type === "recognition" ? cleanName(entry.name) : (language === "AR" ? "ترجمة هيروغليفية" : language === "FR" ? "Traduction Hiéroglyphique" : "Hieroglyphic Translation")}
-                                                                             </h3>
-                                                                             
-                                                                             {entry.history_type === "recognition" ? (
-                                                                                 <p className="text-[11px] text-[#A08E70] line-clamp-1">
-                                                                                     {entry.description}
-                                                                                 </p>
-                                                                             ) : (
-                                                                                 <p className="text-[11px] text-[#A08E70] line-clamp-1 italic">
-                                                                                     "{entry.translation}"
-                                                                                 </p>
-                                                                             )}
-                                                                         </div>
-                                                                     </div>
-                                                                 ))
+                                                                    <div
+                                                                        key={i}
+                                                                        onClick={() => {
+                                                                            if (entry.history_type === "recognition") {
+                                                                                handleEntityClick(entry.name, entry.type, entry.image);
+                                                                            } else {
+                                                                                sessionStorage.setItem("echo_translation_history_result", JSON.stringify({
+                                                                                    translation: entry.translation,
+                                                                                    imageUrl: entry.image
+                                                                                }));
+                                                                                router.push("/translate");
+                                                                                onClose();
+                                                                            }
+                                                                        }}
+                                                                        className="p-4 flex gap-4 hover:bg-[#E6B23C]/[0.05] transition-colors group cursor-pointer"
+                                                                    >
+                                                                        <div className="h-14 w-14 rounded-lg overflow-hidden border border-[#E6B23C]/10 shrink-0 relative">
+                                                                            <img src={entry.image} alt={entry.name} className="h-full w-full object-cover" />
+                                                                            <div className="absolute inset-0 bg-[#0D0A07]/40 flex items-center justify-center opacity-0 group-hover:opacity-100 transition-opacity">
+                                                                                <Search size={16} className="text-[#E6B23C]" />
+                                                                            </div>
+                                                                        </div>
+                                                                        <div className="flex-1 py-0.5">
+                                                                            <div className="flex items-center justify-between mb-0.5">
+                                                                                <span className="text-[9px] font-bold tracking-widest text-[#E6B23C] uppercase">
+                                                                                    {entry.history_type === "recognition" ? entry.type : (language === "AR" ? "ترجمة" : language === "FR" ? "Traduction" : "Translation")}
+                                                                                </span>
+                                                                                <span className="text-[9px] text-[#A08E70]">{entry.date}</span>
+                                                                            </div>
+                                                                            <h3 className="text-[#F5E6D0] font-bold text-sm mb-0.5">
+                                                                                {entry.history_type === "recognition" ? cleanName(entry.name) : (language === "AR" ? "ترجمة هيروغليفية" : language === "FR" ? "Traduction Hiéroglyphique" : "Hieroglyphic Translation")}
+                                                                            </h3>
+
+                                                                            {entry.history_type === "recognition" ? (
+                                                                                <p className="text-[11px] text-[#A08E70] line-clamp-1">
+                                                                                    {entry.description}
+                                                                                </p>
+                                                                            ) : (
+                                                                                <p className="text-[11px] text-[#A08E70] line-clamp-1 italic">
+                                                                                    "{entry.translation}"
+                                                                                </p>
+                                                                            )}
+                                                                        </div>
+                                                                    </div>
+                                                                ))
                                                             ) : (
                                                                 <div className="p-20 text-center">
                                                                     <HistoryIcon size={32} className="mx-auto mb-4 text-[#A08E70]/20" />
@@ -913,8 +932,8 @@ export default function ProfileSidebar({ isOpen, onClose }: ProfileSidebarProps)
                                                                     <div className="h-6 w-6 border-2 border-[#E6B23C]/20 border-t-[#E6B23C] rounded-full animate-spin" />
                                                                 </div>
                                                             )}
-                                                             {(avatarPreviewUrl || userData.avatar) ? (
-                                                                 <img src={avatarPreviewUrl || userData.avatar} alt="Avatar" className="w-full h-full object-cover" />
+                                                            {(avatarPreviewUrl || userData.avatar) ? (
+                                                                <img src={avatarPreviewUrl || userData.avatar} alt="Avatar" className="w-full h-full object-cover" />
                                                             ) : (
                                                                 <User size={40} className="text-[#E6B23C]/30" />
                                                             )}
@@ -1032,24 +1051,24 @@ export default function ProfileSidebar({ isOpen, onClose }: ProfileSidebarProps)
                                                     </div>
                                                 </div>
 
-                                               <div className="mt-4 flex flex-col items-center gap-3">
-                                                   <Button
-                                                       onClick={handleSaveSettings}
-                                                       disabled={isSaving}
-                                                       className="w-full bg-[#E6B23C] text-[#0D0A07] hover:scale-[1.02] active:scale-[0.98] font-bold py-6 rounded-xl transition-all shadow-[0_0_30px_rgba(230,178,60,0.15)] hover:shadow-[0_0_40px_rgba(230,178,60,0.3)] uppercase tracking-widest text-[12px]"
-                                                   >
-                                                       {isSaving ? "SAVING..." : "SAVE CHANGES"}
-                                                   </Button>
-                                                   <AnimatePresence mode="wait">
-                                                       {showSuccess ? (
-                                                           <motion.div
-                                                               key="success"
-                                                               initial={{ opacity: 0, y: -5 }}
-                                                               animate={{ opacity: 1, y: 0 }}
-                                                               exit={{ opacity: 0, y: -5 }}
-                                                               className="text-[10px] font-bold text-[#A08E70] uppercase tracking-[0.2em]"
-                                                           >
-                                                               Changes saved
+                                                <div className="mt-4 flex flex-col items-center gap-3">
+                                                    <Button
+                                                        onClick={handleSaveSettings}
+                                                        disabled={isSaving}
+                                                        className="w-full bg-[#E6B23C] text-[#0D0A07] hover:scale-[1.02] active:scale-[0.98] font-bold py-6 rounded-xl transition-all shadow-[0_0_30px_rgba(230,178,60,0.15)] hover:shadow-[0_0_40px_rgba(230,178,60,0.3)] uppercase tracking-widest text-[12px]"
+                                                    >
+                                                        {isSaving ? "SAVING..." : "SAVE CHANGES"}
+                                                    </Button>
+                                                    <AnimatePresence mode="wait">
+                                                        {showSuccess ? (
+                                                            <motion.div
+                                                                key="success"
+                                                                initial={{ opacity: 0, y: -5 }}
+                                                                animate={{ opacity: 1, y: 0 }}
+                                                                exit={{ opacity: 0, y: -5 }}
+                                                                className="text-[10px] font-bold text-[#A08E70] uppercase tracking-[0.2em]"
+                                                            >
+                                                                Changes saved
                                                             </motion.div>
                                                         ) : showNoChanges ? (
                                                             <motion.div
@@ -1063,7 +1082,7 @@ export default function ProfileSidebar({ isOpen, onClose }: ProfileSidebarProps)
                                                             </motion.div>
                                                         ) : null}
                                                     </AnimatePresence>
-                                               </div>
+                                                </div>
                                                 {isEmailUser && (
                                                     <div className="pt-6 mt-6 border-t border-[#E6B23C]/10 space-y-4">
                                                         <h3 className="text-[10px] font-bold tracking-[0.2em] text-[#E6B23C] uppercase mb-4 opacity-60">Change Password</h3>
@@ -1150,11 +1169,14 @@ export default function ProfileSidebar({ isOpen, onClose }: ProfileSidebarProps)
 
                                         </section>
 
-                                        {/* Danger Zone */}
                                         <section className="pt-8 border-t border-[#E6B23C]/10">
-                                            <button className="w-full flex items-center justify-center gap-3 p-4 rounded-xl border border-red-500/10 bg-red-500/5 text-red-500 hover:bg-red-500/10 transition-all font-bold text-[10px] uppercase tracking-widest">
+                                            <button
+                                                onClick={handleDeleteAccount}
+                                                disabled={isSaving}
+                                                className="w-full flex items-center justify-center gap-3 p-4 rounded-xl border border-red-500/10 bg-red-500/5 text-red-500 hover:bg-red-500/10 transition-all font-bold text-[10px] uppercase tracking-widest disabled:opacity-50"
+                                            >
                                                 <Trash2 size={16} />
-                                                Delete account
+                                                {isSaving ? "Deleting..." : "Delete account"}
                                             </button>
                                         </section>
                                     </div>
@@ -1162,6 +1184,50 @@ export default function ProfileSidebar({ isOpen, onClose }: ProfileSidebarProps)
                             )}
                         </AnimatePresence>
                     </motion.div>
+
+                    {/* Delete Confirmation Modal */}
+                    <AnimatePresence>
+                        {showDeleteConfirm && (
+                            <motion.div
+                                initial={{ opacity: 0 }}
+                                animate={{ opacity: 1 }}
+                                exit={{ opacity: 0 }}
+                                className="fixed inset-0 z-[120] flex items-center justify-center p-4 bg-black/80 backdrop-blur-sm"
+                            >
+                                <motion.div
+                                    initial={{ scale: 0.95, opacity: 0 }}
+                                    animate={{ scale: 1, opacity: 1 }}
+                                    exit={{ scale: 0.95, opacity: 0 }}
+                                    className="bg-[#1A1208] border border-red-500/20 rounded-2xl p-6 w-full max-w-sm shadow-[0_0_50px_rgba(239,68,68,0.15)] relative overflow-hidden"
+                                >
+                                    <div className="absolute top-0 left-0 w-full h-1 bg-gradient-to-r from-red-500/0 via-red-500 to-red-500/0 opacity-50" />
+                                    <div className="flex items-center gap-3 mb-4 text-red-500">
+                                        <Trash2 size={24} />
+                                        <h3 className="font-bold text-lg">Delete Account</h3>
+                                    </div>
+                                    <p className="text-sm text-[#A08E70] mb-8 leading-relaxed">
+                                        Are you sure you want to delete your account? This action cannot be undone and will permanently delete all your data.
+                                    </p>
+                                    <div className="flex gap-3">
+                                        <button
+                                            onClick={() => setShowDeleteConfirm(false)}
+                                            disabled={isSaving}
+                                            className="flex-1 py-3.5 rounded-xl border border-[#E6B23C]/20 text-[#F5E6D0] hover:bg-[#E6B23C]/10 transition-all font-bold text-[10px] uppercase tracking-[0.2em] disabled:opacity-50"
+                                        >
+                                            Cancel
+                                        </button>
+                                        <button
+                                            onClick={confirmDeleteAccount}
+                                            disabled={isSaving}
+                                            className="flex-1 py-3.5 rounded-xl bg-red-500/10 border border-red-500/20 text-red-500 hover:bg-red-500/20 transition-all font-bold text-[10px] uppercase tracking-[0.2em] disabled:opacity-50"
+                                        >
+                                            {isSaving ? "Deleting..." : "Delete"}
+                                        </button>
+                                    </div>
+                                </motion.div>
+                            </motion.div>
+                        )}
+                    </AnimatePresence>
                 </>
             )}
         </AnimatePresence>

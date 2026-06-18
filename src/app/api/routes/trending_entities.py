@@ -4,6 +4,8 @@ from sqlalchemy import select
 from src.db import get_db
 from src.db_models import Pharaoh, Landmark
 
+from src.app.services.r2_image_resolver import R2ImageResolver
+
 router = APIRouter()
 
 def _serialize_pharaoh(p: Pharaoh) -> dict:
@@ -15,6 +17,7 @@ def _serialize_pharaoh(p: Pharaoh) -> dict:
         "dynasty": p.dynasty,
         "period": p.period,
         "location": None,
+        "image": R2ImageResolver.get_pharaoh_image(p.name),
     }
 
 
@@ -26,6 +29,7 @@ def _serialize_landmark(l: Landmark) -> dict:
         "dynasty": None,
         "period": None,
         "location": l.location,
+        "image": R2ImageResolver.get_landmark_image(l.name),
     }
 
 
@@ -130,9 +134,10 @@ def get_entity_details(name: str, type: str, db: Session = Depends(get_db)):
             entity_data["type"] = getattr(entity, "type", None)
             entity_data["dynasty"] = getattr(entity, "dynasty", None)
             entity_data["period"] = getattr(entity, "period", None)
+            entity_data["image"] = R2ImageResolver.get_pharaoh_image(entity.name)
             composite_raw = getattr(entity, "composite_entity", None)
             entity_data["composite_entity"] = composite_raw
-
+            
             # Load full metadata for nested composite sub-entities
             if composite_raw:
                 sub_names = [s.strip() for s in composite_raw.split(",") if s.strip()]
@@ -142,12 +147,14 @@ def get_entity_details(name: str, type: str, db: Session = Depends(get_db)):
                         "type": getattr(row, "type", None) if row else None,
                         "dynasty": getattr(row, "dynasty", None) if row else None,
                         "period": getattr(row, "period", None) if row else None,
+                        "image": R2ImageResolver.get_pharaoh_image(sn) if row else None,
                     }
                     for sn in sub_names
                     for row in [db.query(Pharaoh).filter(Pharaoh.name.ilike(sn)).first()]
                 ]
         else:
             entity_data["location"] = getattr(entity, "location", None)
+            entity_data["image"] = R2ImageResolver.get_landmark_image(entity.name)
 
         return {
             "source": "explore",

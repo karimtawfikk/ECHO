@@ -4,7 +4,7 @@ import { useEffect, useRef, useState, useCallback } from "react";
 import Link from "next/link";
 import PageShell from "../../components/layout/PageShell";
 import { Button } from "../../components/ui/button";
-import { Send, Scroll, Mic, MicOff, Check, Copy, PanelLeft, SquarePen, Search, MessageSquare, ArrowLeft, MoreHorizontal, Pin, Pencil, Trash2, SlidersHorizontal, Plus, X, ChevronDown } from "lucide-react";
+import { Send, Scroll, Mic, MicOff, Check, Copy, PanelLeft, SquarePen, Search, MessageSquare, ArrowLeft, MoreHorizontal, Pin, Pencil, Trash2, SlidersHorizontal, Plus, X, ChevronDown, Volume2, VolumeX } from "lucide-react";
 import { useRouter, useSearchParams } from "next/navigation";
 import { motion, AnimatePresence } from "framer-motion";
 import { Suspense } from "react";
@@ -12,7 +12,7 @@ import { createPortal } from "react-dom";
 import { useLanguage } from "../../context/LanguageContext";
 import { loadResultFromSession } from "../../lib/services/recognition";
 import { createClient } from "../../lib/supabase/client";
-import { ALL_PHARAOHS, ALL_LANDMARKS } from "../../lib/mock/mock-all-entities";
+
 
 const generateId = () => {
   if (typeof crypto !== "undefined" && crypto.randomUUID) {
@@ -79,45 +79,52 @@ function ChatContent() {
     return null;
   };
 
+  const [dbEntities, setDbEntities] = useState<{ pharaohs: any[]; landmarks: any[] } | null>(null);
+
+  useEffect(() => {
+    async function loadEntities() {
+      try {
+        const dbRes = await fetch(`${API_BASE}/api/v1/entities/all`);
+        if (dbRes.ok) {
+          const dbData = await dbRes.json();
+          setDbEntities(dbData);
+        }
+      } catch (dbErr) {
+        console.error("Error loading dbEntities in chat:", dbErr);
+      }
+    }
+    loadEntities();
+  }, []);
+
   const getEntityImage = (name: string, type: string) => {
     const isPharaoh = type.toLowerCase().includes("pharaoh") || type.toLowerCase().includes("king");
-    const source = isPharaoh ? ALL_PHARAOHS : ALL_LANDMARKS;
-
-    // Helper to clean parentheses and trim
     const cleanName = (n: string) => n.includes("(") ? n.split("(")[0].trim() : n;
     const targetClean = cleanName(name).toLowerCase();
 
-    // 1. Search for exact match (case-insensitive)
-    let found = source.find(e => e.name.toLowerCase() === name.toLowerCase());
-
-    // 2. Search by comparing clean names (removing parentheses)
-    if (!found) {
-      found = source.find(e => cleanName(e.name).toLowerCase() === targetClean);
+    // Try dynamic entities first to find image from DB
+    if (dbEntities) {
+      const list = isPharaoh ? dbEntities.pharaohs : dbEntities.landmarks;
+      let found = list.find((e: any) => e.name.toLowerCase() === name.toLowerCase());
+      if (!found) {
+        found = list.find((e: any) => cleanName(e.name).toLowerCase() === targetClean);
+      }
+      if (!found) {
+        found = list.find((e: any) =>
+          e.name.toLowerCase().includes(targetClean) ||
+          targetClean.includes(cleanName(e.name).toLowerCase())
+        );
+      }
+      if (found && found.image) {
+        if (found.image.startsWith('/') || found.image.startsWith('http')) return found.image;
+        if (found.image.startsWith("data/")) return `${API_BASE}/api/v1/assets/r2/${encodeURI(found.image)}`;
+        return isPharaoh
+          ? "/images/pharaohs/Tutankhamun.jpg"
+          : "/images/landmarks/Pyramids of Giza.webp";
+      }
     }
-
-    // 3. Search by substring matching
-    if (!found) {
-      found = source.find(e =>
-        e.name.toLowerCase().includes(targetClean) ||
-        targetClean.includes(cleanName(e.name).toLowerCase())
-      );
-    }
-
-    if (!found || !found.image) {
-      return isPharaoh
-        ? "/assets/trending/pharaohs/tutankhamun.jpg"
-        : "/assets/trending/landmarks/giza.jpg";
-    }
-
-    if (found.image.startsWith('/') || found.image.startsWith('http')) {
-      return found.image;
-    }
-
-    if (found.image.startsWith("data/")) {
-      return `${API_BASE}/api/v1/assets/r2/${encodeURI(found.image)}`;
-    }
-
-    return `${API_BASE}/${encodeURI(found.image)}`;
+    return isPharaoh
+      ? "/images/pharaohs/Tutankhamun.jpg"
+      : "/images/landmarks/Pyramids of Giza.webp";
   };
 
   const isPharaoh = entityType === "pharaoh" || entityType === "king";
@@ -136,16 +143,20 @@ function ChatContent() {
         setStatusText(e.period || e.dynasty || "Ancient Pharaoh");
       }
     } else {
-      // Dynamic lookup from mocks
+      // Dynamic lookup from DB or mocks
       const isPharaoh = entityType === "pharaoh" || entityType === "king";
-      const source = isPharaoh ? ALL_PHARAOHS : ALL_LANDMARKS;
-      const cleanName = (n: string) => n.includes("(") ? n.split("(")[0].trim() : n;
-      const targetClean = cleanName(entityName).toLowerCase();
+      let found: any = null;
 
-      const found = source.find(e =>
-        e.name.toLowerCase() === entityName.toLowerCase() ||
-        cleanName(e.name).toLowerCase() === targetClean
-      );
+      if (dbEntities) {
+        const list = isPharaoh ? dbEntities.pharaohs : dbEntities.landmarks;
+        const cleanName = (n: string) => n.includes("(") ? n.split("(")[0].trim() : n;
+        const targetClean = cleanName(entityName).toLowerCase();
+        found = list.find((e: any) =>
+          e.name.toLowerCase() === entityName.toLowerCase() ||
+          cleanName(e.name).toLowerCase() === targetClean
+        );
+      }
+
 
       if (found) {
         if (entityType === "landmark") {
@@ -157,7 +168,7 @@ function ChatContent() {
         setStatusText(entityType === "landmark" ? "Ancient Landmark" : "Ancient Pharaoh");
       }
     }
-  }, [entityType, entityName]);
+  }, [entityType, entityName, dbEntities]);
 
   const [avatarUrl, setAvatarUrl] = useState<string | null>(null);
 
@@ -173,9 +184,12 @@ function ChatContent() {
       // Look up image dynamically from mocks / R2 assets
       setAvatarUrl(getEntityImage(entityName, entityType));
     }
-  }, [staticUrl, entityName, entityType]);
+  }, [staticUrl, entityName, entityType, dbEntities]);
+
   const [messages, setMessages] = useState<Message[]>([]);
   const [rewriterMessages, setRewriterMessages] = useState<Message[]>([]);
+  const [isAudioMuted, setIsAudioMuted] = useState(false);
+  const [playingMsgId, setPlayingMsgId] = useState<string | null>(null);
 
   // Welcome message logic is now handled in the render phase
 
@@ -710,6 +724,7 @@ function ChatContent() {
                 setMessages((m) => m.map(msg => msg.id === assistantMsgId ? { ...msg, audioUrl: url } : msg));
                 if (useVoice && audioRef.current) {
                   audioRef.current.src = url;
+                  setPlayingMsgId(assistantMsgId);
                   audioRef.current.play().catch(() => { });
                 }
               }
@@ -884,7 +899,7 @@ function ChatContent() {
           >
             <div className="h-full w-full rounded-full bg-[#0D0A07] overflow-hidden flex items-center justify-center">
               {avatarUrl ? (
-                <img src={avatarUrl} alt={cleanDisplayName} className="w-full h-full object-cover object-center scale-110" onError={(e) => { (e.target as HTMLImageElement).style.display = "none"; }} />
+                <img key={avatarUrl} src={avatarUrl} alt={cleanDisplayName} className="w-full h-full object-cover object-center scale-110" onError={(e) => { (e.target as HTMLImageElement).style.display = "none"; }} />
               ) : (
                 <span className="text-[#E6B23C] text-4xl leading-none">☥</span>
               )}
@@ -901,7 +916,12 @@ function ChatContent() {
 
   return (
     <PageShell fullScreen headerExtension={showAllChats ? null : chatHeader}>
-      <audio ref={audioRef} />
+      <audio 
+        ref={audioRef} 
+        muted={isAudioMuted}
+        onEnded={() => setPlayingMsgId(null)}
+        onPause={() => setPlayingMsgId(null)}
+      />
       <div className="flex h-full w-full bg-transparent overflow-hidden" dir="ltr">
         {/* Sidebar - Collapsible */}
         <motion.aside
@@ -1511,7 +1531,7 @@ function ChatContent() {
                               {renderMessageText(msg.text)}
                             </div>
 
-                            <div className={`flex items-center gap-6 mt-1 opacity-40 hover:opacity-100 transition-opacity ${isRTL ? 'flex-row-reverse' : ''}`}>
+                            <div className={`flex items-center gap-6 mt-1 transition-opacity ${isRTL ? 'flex-row-reverse' : ''} ${playingMsgId === msg.id ? 'opacity-100' : 'opacity-40 hover:opacity-100'}`}>
                               <span className="text-[10px] font-medium tracking-tighter text-[#A08E70]">
                                 {new Date(msg.ts).toLocaleTimeString([], { hour: "2-digit", minute: "2-digit" })}
                               </span>
@@ -1531,6 +1551,18 @@ function ChatContent() {
                                   </>
                                 )}
                               </button>
+                              {playingMsgId === msg.id && (
+                                <button
+                                  onClick={() => setIsAudioMuted(!isAudioMuted)}
+                                  className={`flex items-center gap-2 transition-colors ${isAudioMuted ? 'text-red-500' : 'text-[#E6B23C]'}`}
+                                  title={isAudioMuted ? "Unmute" : "Mute"}
+                                >
+                                  {isAudioMuted ? <VolumeX size={14} /> : <Volume2 size={14} />}
+                                  <span className={`text-[9px] font-bold uppercase tracking-widest ${isAudioMuted ? 'text-red-500' : 'text-[#E6B23C]'}`}>
+                                    {isAudioMuted ? "Unmute" : "Mute"}
+                                  </span>
+                                </button>
+                              )}
                             </div>
                           </div>
                         </motion.div>

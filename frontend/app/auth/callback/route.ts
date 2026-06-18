@@ -22,9 +22,13 @@ export async function GET(request: Request) {
       } else {
         return NextResponse.redirect(`${origin}${next}`)
       }
+    } else {
+      console.error('Auth error in callback:', error)
+      return NextResponse.redirect(`${origin}/auth/auth-code-error?error=${encodeURIComponent(error.message)}`)
     }
   }
 
   // return the user to an error page with instructions
-  return NextResponse.redirect(`${origin}/auth/auth-code-error`)
+  const authError = searchParams.get('error_description') || searchParams.get('error') || 'no_code'
+  return NextResponse.redirect(`${origin}/auth/auth-code-error?error=${encodeURIComponent(authError)}`)
 }

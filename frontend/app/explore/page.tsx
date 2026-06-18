@@ -5,7 +5,7 @@ import { useRouter, useSearchParams } from "next/navigation";
 import PageShell from "../../components/layout/PageShell";
 import { motion, AnimatePresence, useScroll, useTransform, useSpring } from "framer-motion";
 import { Search, Crown, MapPin, ChevronDown, ChevronRight, MessageSquare, Video, Scroll, Sparkles, X, History } from "lucide-react";
-import { ALL_PHARAOHS, ALL_LANDMARKS } from "../../lib/mock/mock-all-entities";
+
 import { saveResultToSession } from "../../lib/services/recognition";
 import { useLanguage } from "../../context/LanguageContext";
 import type { RecognitionEntity, RecognitionResult } from "../../lib/types";
@@ -252,6 +252,10 @@ function EgyptMap({
 
 
 
+// ── Cache variables to persist dynamic data across route transitions ───────
+let cachedPharaohs: RecognitionEntity[] | null = null;
+let cachedLandmarks: RecognitionEntity[] | null = null;
+
 // ── Main Explore Content ──────────────────────────────────────────────────
 function ExploreContent() {
   const { t, isRTL } = useLanguage();
@@ -259,9 +263,48 @@ function ExploreContent() {
   const searchParams = useSearchParams();
   const [activeTab, setActiveTab] = useState<"pharaohs" | "landmarks">("pharaohs");
   const [search, setSearch] = useState("");
-  const [pharaohs] = useState<RecognitionEntity[]>(ALL_PHARAOHS as unknown as RecognitionEntity[]);
-  const [landmarks] = useState<RecognitionEntity[]>(ALL_LANDMARKS as unknown as RecognitionEntity[]);
-  const isLoading = false;
+  const [pharaohs, setPharaohs] = useState<RecognitionEntity[]>(() => {
+    return cachedPharaohs || [];
+  });
+  const [landmarks, setLandmarks] = useState<RecognitionEntity[]>(() => {
+    return cachedLandmarks || [];
+  });
+  const [isLoading, setIsLoading] = useState(() => !cachedPharaohs);
+
+  useEffect(() => {
+    if (cachedPharaohs && cachedLandmarks) {
+      return; // Already cached once, skip fetching
+    }
+    let active = true;
+    async function loadData() {
+      try {
+        setIsLoading(true);
+        const { fetchAllEntities } = await import("../../lib/services/entities");
+        const data = await fetchAllEntities("");
+        if (active) {
+          if (data.pharaohs && data.pharaohs.length > 0) {
+            setPharaohs(data.pharaohs);
+            cachedPharaohs = data.pharaohs;
+          }
+          if (data.landmarks && data.landmarks.length > 0) {
+            setLandmarks(data.landmarks);
+            cachedLandmarks = data.landmarks;
+          }
+        }
+      } catch (err) {
+        console.error("Failed to fetch entities from DB:", err);
+      } finally {
+        if (active) {
+          setIsLoading(false);
+        }
+      }
+    }
+    loadData();
+    return () => {
+      active = false;
+    };
+  }, []);
+
   const [selectedCity, setSelectedCity] = useState<string | null>(null);
   const landmarksListRef = useRef<HTMLDivElement>(null);
 

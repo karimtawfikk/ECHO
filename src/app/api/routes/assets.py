@@ -5,6 +5,8 @@ from fastapi import APIRouter, HTTPException, UploadFile, File, Form
 from fastapi.responses import StreamingResponse
 from botocore.exceptions import ClientError
 from src.app.core.config import settings
+from sqlalchemy import text
+from src.db.session import SessionLocal
 
 router = APIRouter()
 
@@ -138,6 +140,48 @@ async def upload_history_image(
         
     except Exception as e:
         raise HTTPException(status_code=500, detail=f"Failed to upload to R2: {str(e)}")
+
+@router.delete("/delete-account/{user_id}")
+async def delete_account_all(user_id: str):
+    """
+    Deletes all images from Cloudflare R2 user-history-data for a specific user,
+    and deletes all database records including auth.users.
+    """
+    client = get_r2_client()
+    if client:
+        bucket_name = "user-history-data"
+        try:
+            prefixes = [f"recognition/{user_id}", f"hieroglyphics/{user_id}"]
+            for prefix in prefixes:
+                response = client.list_objects_v2(Bucket=bucket_name, Prefix=prefix)
+                if 'Contents' in response:
+                    objects_to_delete = [{'Key': obj['Key']} for obj in response['Contents']]
+                    if objects_to_delete:
+                        client.delete_objects(
+                            Bucket=bucket_name,
+                            Delete={'Objects': objects_to_delete, 'Quiet': True}
+                        )
+        except Exception as e:
+            print(f"Error deleting R2 files: {e}")
+            
+    # Now delete from DB using admin privilege connection
+    db = SessionLocal()
+    try:
+        db.execute(text("DELETE FROM chat_messages_rewriter WHERE conversation_id IN (SELECT id FROM conversations WHERE user_id = :uid)"), {"uid": user_id})
+        db.execute(text("DELETE FROM chat_messages WHERE conversation_id IN (SELECT id FROM conversations WHERE user_id = :uid)"), {"uid": user_id})
+        db.execute(text("DELETE FROM conversations WHERE user_id = :uid"), {"uid": user_id})
+        db.execute(text("DELETE FROM translation_history WHERE user_id = :uid"), {"uid": user_id})
+        db.execute(text("DELETE FROM recognition_history WHERE user_id = :uid"), {"uid": user_id})
+        db.execute(text("DELETE FROM profiles WHERE id = :uid"), {"uid": user_id})
+        db.execute(text("DELETE FROM auth.users WHERE id = :uid"), {"uid": user_id})
+        db.commit()
+    except Exception as e:
+        db.rollback()
+        raise HTTPException(status_code=500, detail=f"Database deletion failed: {e}")
+    finally:
+        db.close()
+        
+    return {"status": "success", "message": f"Deleted all data and account for user {user_id}"}
 
 
 # Pre-warm the R2 client connection pool on backend startup

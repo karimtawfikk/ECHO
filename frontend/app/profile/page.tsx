@@ -5,7 +5,7 @@ import { motion, AnimatePresence } from "framer-motion";
 import {
     LogOut, Settings, Camera, MessageSquare, History as HistoryIcon, Bookmark, Search, ChevronRight, User, History, Calendar
 } from "lucide-react";
-import { ALL_PHARAOHS, ALL_LANDMARKS } from "../../lib/mock/mock-all-entities";
+
 import { saveResultToSession } from "../../lib/services/recognition";
 import type { RecognitionEntity, RecognitionResult } from "../../lib/types";
 import { useRouter } from "next/navigation";
@@ -56,7 +56,7 @@ export default function ProfilePage() {
 
         const safeType = (type || "").toLowerCase();
         const entityType = safeType.includes("pharaoh") ? "pharaoh" : "landmark";
-        
+
         // Try dynamic entities first to find image from DB
         if (dbEntities) {
             const list = entityType === "pharaoh" ? dbEntities.pharaohs : dbEntities.landmarks;
@@ -68,30 +68,13 @@ export default function ProfilePage() {
             }
         }
 
-        const source = entityType === "pharaoh" ? ALL_PHARAOHS : ALL_LANDMARKS;
-        const entity = source.find(e => e.name.toLowerCase() === name.toLowerCase());
-
-        if (!entity || !entity.image) {
-            return entityType === "pharaoh" ? "/assets/trending/pharaohs/tutankhamun.jpg" : "/assets/trending/landmarks/giza.jpg";
-        }
-
-        if (entity.image.startsWith('/') || entity.image.startsWith('http')) {
-            return entity.image;
-        }
-
-        // If it's a data/ path, it needs the R2 proxy
-        if (entity.image.startsWith("data/")) {
-            return `${baseUrl}/api/v1/assets/r2/${encodeURI(entity.image)}`;
-        }
-
-        // Encode URI to handle spaces and special characters in the path
-        return `${baseUrl}/${encodeURI(entity.image)}`;
+        return entityType === "pharaoh" ? "/assets/trending/pharaohs/tutankhamun.jpg" : "/assets/trending/landmarks/giza.jpg";
     };
 
     const getEntityDescription = (name: string, type: string = "") => {
         const safeType = (type || "").toLowerCase();
         const entityType = safeType.includes("pharaoh") ? "pharaoh" : "landmark";
-        
+
         // Try searching in the dynamically fetched dbEntities first!
         if (dbEntities) {
             const list = entityType === "pharaoh" ? dbEntities.pharaohs : dbEntities.landmarks;
@@ -101,17 +84,21 @@ export default function ProfilePage() {
             }
         }
 
-        const source = entityType === "pharaoh" ? ALL_PHARAOHS : ALL_LANDMARKS;
-        const entity = source.find(e => e.name.toLowerCase() === name.toLowerCase());
-        return entity?.description || "Explore the legacy of this ancient entity...";
+        return "Explore the legacy of this ancient entity...";
     };
 
     const cleanName = (name: string) => name.includes("(") ? name.split("(")[0].trim() : name;
 
     const handleEntityClick = (name: string, type: string, imageUrl: string | null = null) => {
         const entityType = type.toLowerCase().includes("pharaoh") ? "pharaoh" : "landmark";
-        const source = entityType === "pharaoh" ? ALL_PHARAOHS : ALL_LANDMARKS;
-        const entity = source.find(e => e.name.toLowerCase() === name.toLowerCase()) as unknown as RecognitionEntity;
+
+        let entity = null;
+        if (dbEntities) {
+            const list = entityType === "pharaoh" ? dbEntities.pharaohs : dbEntities.landmarks;
+            entity = list.find((e: any) => e.name.toLowerCase() === name.toLowerCase());
+        }
+
+
 
         if (entity) {
             const result: RecognitionResult = {
@@ -223,11 +210,11 @@ export default function ProfilePage() {
                 day: "numeric",
                 year: "numeric"
             });
-            
+
             const imageUrl = entry.image_path?.startsWith("http")
                 ? entry.image_path
                 : `${baseUrl}/api/v1/assets/r2-history/${entry.image_path}`;
-            
+
             if (entry.history_type === "recognition") {
                 return {
                     id: entry.id,
@@ -392,11 +379,10 @@ export default function ProfilePage() {
                                                 <button
                                                     key={filter.id}
                                                     onClick={() => setHistoryFilter(filter.id)}
-                                                    className={`px-4 py-1.5 rounded-full text-[10px] font-bold uppercase tracking-wider transition-all duration-300 ${
-                                                        historyFilter === filter.id
+                                                    className={`px-4 py-1.5 rounded-full text-[10px] font-bold uppercase tracking-wider transition-all duration-300 ${historyFilter === filter.id
                                                             ? "bg-[#E6B23C] text-[#0D0A07] shadow-[0_2px_10px_rgba(230,178,60,0.3)]"
                                                             : "bg-[#E6B23C]/5 border border-[#E6B23C]/10 text-[#A08E70] hover:text-[#F5E6D0] hover:border-[#E6B23C]/20"
-                                                    }`}
+                                                        }`}
                                                 >
                                                     {filter.label}
                                                 </button>
@@ -437,7 +423,7 @@ export default function ProfilePage() {
                                                         <h3 className="text-[#F5E6D0] font-bold text-lg mb-1 group-hover:text-[#E6B23C] transition-colors">
                                                             {entry.history_type === "recognition" ? cleanName(entry.name) : (language === "AR" ? "ترجمة هيروغليفية" : language === "FR" ? "Traduction Hiéroglyphique" : "Hieroglyphic Translation")}
                                                         </h3>
-                                                        
+
                                                         {entry.history_type === "recognition" ? (
                                                             <p className="text-xs text-[#A08E70] line-clamp-1">
                                                                 {entry.description}
@@ -490,13 +476,13 @@ export default function ProfilePage() {
                                     <div className="text-[#E6B23C] text-2xl font-display tracking-[0.4em] mb-4 select-none">
                                         𓂀 𓅃 𓆣
                                     </div>
-                                    
+
                                     <h3 className="font-display text-2xl font-bold text-[#F5E6D0] tracking-[0.05em] uppercase text-center mb-2" style={{ fontFamily: 'var(--font-cormorant), serif' }}>
                                         {language === "AR" ? "الترجمة الهيروغليفية" : language === "FR" ? "Traduction Hiéroglyphique" : "Hieroglyphic Translation"}
                                     </h3>
-                                    
+
                                     <div className="w-20 h-[1px] bg-gradient-to-r from-transparent via-[#E6B23C]/30 to-transparent mb-8" />
-                                    
+
                                     <div className="w-full bg-[#1A1208]/30 rounded-2xl p-6 border border-[#E6B23C]/10 mb-8 max-h-[250px] overflow-y-auto">
                                         <p className="text-[#F5E6D0] text-lg leading-relaxed text-center font-medium italic">
                                             "{selectedTranslation}"
