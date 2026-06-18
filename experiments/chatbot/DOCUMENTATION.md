@@ -168,9 +168,9 @@ Added voice output using Inworld AI's TTS API.
 - **Embedding:** Still Cloudflare Workers AI
 - **Note:** This phase was later superseded by Phase 6 which switched to Edge TTS for better multilingual support and lower latency
 
-### Phase 6 — Final Production System (`phase6.py` → `src/chatbot_api/runtime.py`)
+### Phase 6 — Final Production System (Agentic RAG) (`phase6.py` → `src/chatbot_api/runtime.py`)
 
-The fully-featured final system incorporating all improvements and switching critical infrastructure.
+The fully-featured final Agentic RAG system incorporating all improvements and switching critical infrastructure.
 
 - **Graph:** `rewriter → retriever → reranker → generator ⇄ tools → tts_router → tts → END`
 
