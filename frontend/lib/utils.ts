@@ -24,5 +24,7 @@ export const getAssumedImageUrl = (name: string, isPharaoh: boolean) => {
 
 export function cleanEntityName(name: string | null | undefined): string {
   if (!name) return "";
-  return name.replace(/\s*\([^)]*\)\s*/g, " ").replace(/\s+/g, " ").trim();
+  let cleaned = name.replace(/\s*\([^)]*\)\s*/g, " ");
+  cleaned = cleaned.replace(/\s+\b(god|goddess)\b\s*$/gi, "");
+  return cleaned.replace(/\s+/g, " ").trim();
 }

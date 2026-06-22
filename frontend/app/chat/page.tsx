@@ -115,6 +115,22 @@ function ChatContent() {
           targetClean.includes(cleanName(e.name).toLowerCase())
         );
       }
+      // Scan for composite sub-entities if not found at root level
+      if (!found) {
+        for (const parent of list) {
+          if (parent.composite_entities_data) {
+            const subMatch = parent.composite_entities_data.find(
+              (sub: any) =>
+                sub.name.toLowerCase() === name.toLowerCase() ||
+                cleanName(sub.name).toLowerCase() === targetClean
+            );
+            if (subMatch) {
+              found = subMatch;
+              break;
+            }
+          }
+        }
+      }
       if (found && found.image) {
         if (found.image.startsWith('/') || found.image.startsWith('http')) return found.image;
         if (found.image.startsWith("data/")) return `${API_BASE}/api/v1/assets/r2/${encodeURI(found.image)}`;
@@ -136,12 +152,44 @@ function ChatContent() {
   const [statusText, setStatusText] = useState("");
   useEffect(() => {
     const payload = loadResultFromSession();
-    if (payload?.result?.entity && payload?.result?.entity?.name === entityName) {
+    const cleanName = (n: string) => cleanEntityName(n);
+
+    const isDeity = (e: any) => {
+      if (!e) return false;
+      const type = (e.type || "").toLowerCase();
+      const dynasty = (e.dynasty || "").toLowerCase();
+      return (
+        type.includes("god") ||
+        type.includes("goddess")
+      );
+    };
+
+    // Check direct match in session
+    const directMatch = payload?.result?.entity && payload?.result?.entity?.name === entityName;
+    // Check composite match in session
+    const compositeSubMatch = !directMatch && payload?.result?.entity?.composite_entities_data?.find(
+      (sub: any) => sub.name === entityName || cleanName(sub.name) === cleanName(entityName)
+    );
+
+    if (directMatch && payload?.result?.entity) {
       const e = payload.result.entity;
-      if (entityType === "landmark") {
+      if (isDeity(e)) {
+        setStatusText("Gods & Deities");
+      } else if (entityType === "landmark") {
         setStatusText(e.location || "Ancient Landmark");
       } else {
         setStatusText(e.period || e.dynasty || "Ancient Pharaoh");
+      }
+    } else if (compositeSubMatch) {
+      const sub = compositeSubMatch as any;
+      const parent = payload?.result?.entity;
+      if (isDeity(sub)) {
+        setStatusText("Gods & Deities");
+      } else if (entityType === "landmark") {
+        setStatusText(sub.location || parent?.location || "Ancient Landmark");
+      } else {
+        // Inherit parent's period or dynasty if the sub-entity doesn't have its own
+        setStatusText(sub.period || parent?.period || sub.dynasty || parent?.dynasty || "Ancient Pharaoh");
       }
     } else {
       // Dynamic lookup from DB or mocks
@@ -150,17 +198,42 @@ function ChatContent() {
 
       if (dbEntities) {
         const list = isPharaoh ? dbEntities.pharaohs : dbEntities.landmarks;
-        const cleanName = (n: string) => cleanEntityName(n);
         const targetClean = cleanName(entityName).toLowerCase();
+
+        // 1. Direct search
         found = list.find((e: any) =>
           e.name.toLowerCase() === entityName.toLowerCase() ||
           cleanName(e.name).toLowerCase() === targetClean
         );
+
+        // 2. Composite sub-entity search
+        if (!found) {
+          for (const parent of list) {
+            if (parent.composite_entities_data) {
+              const subMatch = parent.composite_entities_data.find(
+                (sub: any) =>
+                  sub.name.toLowerCase() === entityName.toLowerCase() ||
+                  cleanName(sub.name).toLowerCase() === targetClean
+              );
+              if (subMatch) {
+                found = {
+                  ...subMatch,
+                  // Inherit parent's period, dynasty, and location if the sub-entity doesn't have its own
+                  period: subMatch.period || parent.period,
+                  dynasty: subMatch.dynasty || parent.dynasty,
+                  location: subMatch.location || parent.location
+                };
+                break;
+              }
+            }
+          }
+        }
       }
 
-
       if (found) {
-        if (entityType === "landmark") {
+        if (isDeity(found)) {
+          setStatusText("Gods & Deities");
+        } else if (entityType === "landmark") {
           setStatusText((found as any).location || "Ancient Landmark");
         } else {
           setStatusText((found as any).period || (found as any).dynasty || "Ancient Pharaoh");
@@ -900,7 +973,13 @@ function ChatContent() {
           >
             <div className="h-full w-full rounded-full bg-[#0D0A07] overflow-hidden flex items-center justify-center">
               {avatarUrl ? (
-                <img key={avatarUrl} src={avatarUrl} alt={cleanDisplayName} className="w-full h-full object-cover object-center scale-110" onError={(e) => { (e.target as HTMLImageElement).style.display = "none"; }} />
+                <img
+                  key={avatarUrl}
+                  src={avatarUrl}
+                  alt={cleanDisplayName}
+                  className={`w-full h-full object-cover ${isPharaoh ? "object-top" : "object-center"}`}
+                  onError={(e) => { (e.target as HTMLImageElement).style.display = "none"; }}
+                />
               ) : (
                 <span className="text-[#E6B23C] text-4xl leading-none">☥</span>
               )}
@@ -917,8 +996,8 @@ function ChatContent() {
 
   return (
     <PageShell fullScreen headerExtension={showAllChats ? null : chatHeader}>
-      <audio 
-        ref={audioRef} 
+      <audio
+        ref={audioRef}
         muted={isAudioMuted}
         onEnded={() => setPlayingMsgId(null)}
         onPause={() => setPlayingMsgId(null)}
@@ -927,75 +1006,52 @@ function ChatContent() {
         {/* Sidebar - Collapsible */}
         <motion.aside
           initial={false}
-          animate={{ width: sidebarOpen ? 300 : 72 }}
-          className="h-full border-r border-[#E6B23C]/10 bg-[#0D0A07]/95 flex flex-col z-[60] relative"
+          animate={{ width: sidebarOpen ? 300 : 56 }}
+          className="h-full border-r border-[#E6B23C]/10 bg-[#0D0A07]/95 flex flex-row z-[60] relative"
         >
-          {/* Top Icons */}
-          <div className={`p-3 flex ${sidebarOpen ? 'flex-row items-start justify-between' : 'flex-col items-center'} gap-4`}>
-            {sidebarOpen ? (
-              <>
-                <div className="flex flex-col items-start gap-1">
-                  {/* Return Button (Expanded) */}
-                  <button
-                    onClick={() => router.back()}
-                    className="flex items-center gap-2 px-2 py-1.5 rounded-lg hover:bg-[#E6B23C]/10 text-[#A08E70] hover:text-[#E6B23C] transition-all group w-full border-none outline-none"
-                  >
-                    <ArrowLeft size={16} />
-                    <span className="text-[11px] font-bold tracking-wider capitalize">Return</span>
-                  </button>
+          {/* Narrow Left Column - Always visible */}
+          <div className="w-[56px] h-full flex flex-col items-center py-4 gap-4 shrink-0 border-r border-[#E6B23C]/5">
+            {/* Return Button */}
+            <div className="relative group">
+              <button
+                onClick={() => router.back()}
+                className="h-8 w-8 flex items-center justify-center rounded-lg hover:bg-[#E6B23C]/10 text-[#A08E70] hover:text-[#E6B23C] transition-all border-none outline-none"
+              >
+                <ArrowLeft size={16} />
+              </button>
+              <span className={`absolute ${isRTL ? 'right-full mr-4' : 'left-full ml-4'} top-1/2 -translate-y-1/2 px-2 py-1 bg-[#1A1208] border border-[#E6B23C]/20 text-[#E6B23C] text-[10px] capitalize font-bold tracking-widest rounded opacity-0 group-hover:opacity-100 transition-opacity whitespace-nowrap z-50 pointer-events-none`}>
+                Return
+              </span>
+            </div>
 
-                  {/* New Chat Button (Expanded) */}
-                  <button
-                    onClick={() => window.location.href = '/chat?entity=' + entityName + '&type=' + entityType}
-                    className="flex items-center gap-2 px-2 py-1.5 rounded-lg hover:bg-[#E6B23C]/10 text-[#A08E70] hover:text-[#E6B23C] transition-all group w-full border-none outline-none"
-                  >
-                    <SquarePen size={16} />
-                    <span className="text-[11px] font-bold tracking-wider capitalize">New Chat</span>
-                  </button>
-                </div>
+            {/* Menu Toggle Button */}
+            <div className="relative group">
+              <button
+                onClick={() => setSidebarOpen(!sidebarOpen)}
+                className="h-8 w-8 flex items-center justify-center rounded-lg hover:bg-[#E6B23C]/10 text-[#A08E70] hover:text-[#E6B23C] transition-all border-none outline-none"
+              >
+                <PanelLeft size={16} />
+              </button>
+              <span className={`absolute ${isRTL ? 'right-full mr-4' : 'left-full ml-4'} top-1/2 -translate-y-1/2 px-2 py-1 bg-[#1A1208] border border-[#E6B23C]/20 text-[#E6B23C] text-[10px] capitalize font-bold tracking-widest rounded opacity-0 group-hover:opacity-100 transition-opacity whitespace-nowrap z-50 pointer-events-none`}>
+                {sidebarOpen 
+                  ? (t("chat.sidebar.collapse").charAt(0).toUpperCase() + t("chat.sidebar.collapse").slice(1).toLowerCase())
+                  : (t("chat.sidebar.expand").charAt(0).toUpperCase() + t("chat.sidebar.expand").slice(1).toLowerCase())
+                }
+              </span>
+            </div>
 
-                {/* Menu Button (Collapse) */}
-                <div className="relative group">
-                  <button
-                    onClick={() => setSidebarOpen(false)}
-                    className="h-8 w-8 flex items-center justify-center rounded-lg hover:bg-[#E6B23C]/10 text-[#A08E70] hover:text-[#E6B23C] transition-all border-none outline-none"
-                  >
-                    <PanelLeft size={16} />
-                  </button>
-                  <span className={`absolute ${isRTL ? 'right-full mr-4' : 'left-full ml-4'} top-1/2 -translate-y-1/2 px-2 py-1 bg-[#1A1208] border border-[#E6B23C]/20 text-[#E6B23C] text-[10px] capitalize font-bold tracking-widest rounded opacity-0 group-hover:opacity-100 transition-opacity whitespace-nowrap z-50 pointer-events-none`}>
-                    {t("chat.sidebar.collapse").charAt(0).toUpperCase() + t("chat.sidebar.collapse").slice(1).toLowerCase()}
-                  </span>
-                </div>
-              </>
-            ) : (
-              <>
-                {/* Menu Button (Expand) */}
-                <div className="relative group">
-                  <button
-                    onClick={() => setSidebarOpen(true)}
-                    className="h-8 w-8 flex items-center justify-center rounded-lg hover:bg-[#E6B23C]/10 text-[#A08E70] hover:text-[#E6B23C] transition-all border-none outline-none"
-                  >
-                    <PanelLeft size={16} />
-                  </button>
-                  <span className={`absolute ${isRTL ? 'right-full mr-4' : 'left-full ml-4'} top-1/2 -translate-y-1/2 px-2 py-1 bg-[#1A1208] border border-[#E6B23C]/20 text-[#E6B23C] text-[10px] capitalize font-bold tracking-widest rounded opacity-0 group-hover:opacity-100 transition-opacity whitespace-nowrap z-50 pointer-events-none`}>
-                    {t("chat.sidebar.expand").charAt(0).toUpperCase() + t("chat.sidebar.expand").slice(1).toLowerCase()}
-                  </span>
-                </div>
-
-                {/* New Chat Button (Collapsed) */}
-                <div className="relative group">
-                  <button
-                    onClick={() => window.location.href = '/chat?entity=' + entityName + '&type=' + entityType}
-                    className="h-8 w-8 flex items-center justify-center rounded-lg hover:bg-[#E6B23C]/10 text-[#A08E70] hover:text-[#E6B23C] transition-all border-none outline-none"
-                  >
-                    <SquarePen size={16} />
-                  </button>
-                  <span className={`absolute ${isRTL ? 'right-full mr-4' : 'left-full ml-4'} top-1/2 -translate-y-1/2 px-2 py-1 bg-[#1A1208] border border-[#E6B23C]/20 text-[#E6B23C] text-[10px] capitalize font-bold tracking-widest rounded opacity-0 group-hover:opacity-100 transition-opacity whitespace-nowrap z-50 pointer-events-none`}>
-                    {t("chat.sidebar.new").charAt(0).toUpperCase() + t("chat.sidebar.new").slice(1).toLowerCase()}
-                  </span>
-                </div>
-              </>
-            )}
+            {/* New Chat Button */}
+            <div className="relative group">
+              <button
+                onClick={() => window.location.href = '/chat?entity=' + entityName + '&type=' + entityType}
+                className="h-8 w-8 flex items-center justify-center rounded-lg hover:bg-[#E6B23C]/10 text-[#A08E70] hover:text-[#E6B23C] transition-all border-none outline-none"
+              >
+                <SquarePen size={16} />
+              </button>
+              <span className={`absolute ${isRTL ? 'right-full mr-4' : 'left-full ml-4'} top-1/2 -translate-y-1/2 px-2 py-1 bg-[#1A1208] border border-[#E6B23C]/20 text-[#E6B23C] text-[10px] capitalize font-bold tracking-widest rounded opacity-0 group-hover:opacity-100 transition-opacity whitespace-nowrap z-50 pointer-events-none`}>
+                {t("chat.sidebar.new").charAt(0).toUpperCase() + t("chat.sidebar.new").slice(1).toLowerCase()}
+              </span>
+            </div>
           </div>
 
           {/* Expanded Content */}
@@ -1005,7 +1061,7 @@ function ChatContent() {
                 initial={{ opacity: 0 }}
                 animate={{ opacity: 1 }}
                 exit={{ opacity: 0 }}
-                className="flex-1 flex flex-col px-4 pb-4 overflow-hidden"
+                className="w-[244px] h-full flex flex-col px-3 pb-4 overflow-hidden shrink-0"
               >
                 {/* All Chats Shortcut */}
                 {chatHistory.length > 0 && (
