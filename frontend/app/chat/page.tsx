@@ -1033,7 +1033,7 @@ function ChatContent() {
                 <PanelLeft size={16} />
               </button>
               <span className={`absolute ${isRTL ? 'right-full mr-4' : 'left-full ml-4'} top-1/2 -translate-y-1/2 px-2 py-1 bg-[#1A1208] border border-[#E6B23C]/20 text-[#E6B23C] text-[10px] capitalize font-bold tracking-widest rounded opacity-0 group-hover:opacity-100 transition-opacity whitespace-nowrap z-50 pointer-events-none`}>
-                {sidebarOpen 
+                {sidebarOpen
                   ? (t("chat.sidebar.collapse").charAt(0).toUpperCase() + t("chat.sidebar.collapse").slice(1).toLowerCase())
                   : (t("chat.sidebar.expand").charAt(0).toUpperCase() + t("chat.sidebar.expand").slice(1).toLowerCase())
                 }
