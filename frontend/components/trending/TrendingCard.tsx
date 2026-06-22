@@ -148,7 +148,7 @@ export default function TrendingCard({ variant, entity, index }: TrendingCardPro
                         <motion.img
                             src={finalImageUrl}
                             alt={entity.name}
-                            className="absolute inset-0 w-full h-full object-cover transition-transform duration-700 group-hover:scale-110"
+                            className={`absolute inset-0 w-full h-full object-cover ${isPharaoh ? 'object-top' : 'object-center'} transition-transform duration-700 group-hover:scale-110`}
                             fetchPriority={index < 2 ? "high" : "auto"}
                             loading={index < 2 ? "eager" : "lazy"}
                             onError={(e) => {

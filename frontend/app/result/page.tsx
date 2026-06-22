@@ -44,7 +44,7 @@ function ResultContent() {
 
   useEffect(() => {
     setMounted(true);
-    
+
     const entityTypeParam = searchParams.get("type");
     const entityNameParam = searchParams.get("entity") || searchParams.get("name");
     const imageUrlParam = searchParams.get("imageUrl");
@@ -294,7 +294,7 @@ function ResultContent() {
                   <img
                     src={finalImageUrl}
                     alt={cleanDisplayName}
-                    className="absolute inset-0 w-full h-full object-cover transition-transform duration-700 group-hover:scale-110"
+                    className={`absolute inset-0 w-full h-full object-cover ${displayType === "pharaoh" ? "object-top" : "object-center"} transition-transform duration-700 group-hover:scale-110`}
                     onError={(e) => {
                       (e.target as HTMLImageElement).style.opacity = '0';
                     }}
