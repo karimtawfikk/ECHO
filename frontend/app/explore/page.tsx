@@ -591,7 +591,7 @@ function ExploreContent() {
           )}
         </AnimatePresence>
       </div>
-      <div ref={containerRef} className={`transition-all duration-700 ${search ? 'blur-3xl pointer-events-none' : ''}`}>
+      <div ref={containerRef} className={`relative transition-all duration-700 ${search ? 'blur-3xl pointer-events-none' : ''}`}>
         {/* Loading */}
         {isLoading && (
           <div className="flex justify-center py-20">
@@ -748,7 +748,7 @@ function ExploreContent() {
                     </div>
 
                     {/* Landmarks List */}
-                    <div 
+                    <div
                       ref={landmarksListRef}
                       className="flex-1 overflow-y-auto p-6 space-y-4 custom-scrollbar"
                     >
