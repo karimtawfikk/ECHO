@@ -14,6 +14,7 @@ import { useLanguage } from "../../context/LanguageContext";
 import Link from "next/link";
 import { useState, useEffect } from "react";
 import { createClient } from "../../lib/supabase/client";
+import { cleanEntityName } from "../../lib/utils";
 
 type TabType = "saved" | "chats" | "history";
 
@@ -33,7 +34,7 @@ export default function ProfilePage() {
     const baseUrl = process.env.NEXT_PUBLIC_API_URL?.replace(/\/api\/v1\/?$/, "") ?? "http://localhost:8010";
 
     const getEntityImage = (name: string, type: string = "") => {
-        const cleanNameStr = name.includes("(") ? name.split("(")[0].trim() : name;
+        const cleanNameStr = cleanEntityName(name);
         const normalized = cleanNameStr.toLowerCase().trim();
 
         // Static local folder fallback for the 10 trending entities
@@ -87,7 +88,7 @@ export default function ProfilePage() {
         return "Explore the legacy of this ancient entity...";
     };
 
-    const cleanName = (name: string) => name.includes("(") ? name.split("(")[0].trim() : name;
+    const cleanName = (name: string) => cleanEntityName(name);
 
     const handleEntityClick = (name: string, type: string, imageUrl: string | null = null) => {
         const entityType = type.toLowerCase().includes("pharaoh") ? "pharaoh" : "landmark";

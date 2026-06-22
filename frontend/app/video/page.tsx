@@ -189,7 +189,7 @@ function VideoPageContent() {
                     <div className="flex items-center gap-3 text-base text-[#F5E6D0]/70">
                       <Crown size={16} className={`${isRTL ? 'ml-0' : 'mr-0'} text-[#E6B23C] shrink-0`} />
                       <span className={`font-semibold uppercase tracking-wide text-xs text-[#A08E70] ${isRTL ? 'w-24' : 'w-20'}`}>{t("result.meta.type")}</span>
-                      <span className="font-small capitalize">{dbType}</span>
+                      <span className="font-small capitalize whitespace-nowrap">{dbType}</span>
                     </div>
                   )}
                   {dynasty && (

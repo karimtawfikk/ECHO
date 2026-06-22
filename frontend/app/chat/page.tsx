@@ -12,6 +12,7 @@ import { createPortal } from "react-dom";
 import { useLanguage } from "../../context/LanguageContext";
 import { loadResultFromSession } from "../../lib/services/recognition";
 import { createClient } from "../../lib/supabase/client";
+import { cleanEntityName } from "../../lib/utils";
 
 
 const generateId = () => {
@@ -58,7 +59,7 @@ function ChatContent() {
   const router = useRouter();
   const sp = useSearchParams();
   const entityName = sp.get("entity") ?? "Ancient Spirit";
-  const cleanDisplayName = entityName.includes("(") ? entityName.split("(")[0].trim() : entityName;
+  const cleanDisplayName = cleanEntityName(entityName);
   const entityType = sp.get("type") || "pharaoh";
   const convIdFromUrl = sp.get("conv");
 
@@ -98,7 +99,7 @@ function ChatContent() {
 
   const getEntityImage = (name: string, type: string) => {
     const isPharaoh = type.toLowerCase().includes("pharaoh") || type.toLowerCase().includes("king");
-    const cleanName = (n: string) => n.includes("(") ? n.split("(")[0].trim() : n;
+    const cleanName = (n: string) => cleanEntityName(n);
     const targetClean = cleanName(name).toLowerCase();
 
     // Try dynamic entities first to find image from DB
@@ -149,7 +150,7 @@ function ChatContent() {
 
       if (dbEntities) {
         const list = isPharaoh ? dbEntities.pharaohs : dbEntities.landmarks;
-        const cleanName = (n: string) => n.includes("(") ? n.split("(")[0].trim() : n;
+        const cleanName = (n: string) => cleanEntityName(n);
         const targetClean = cleanName(entityName).toLowerCase();
         found = list.find((e: any) =>
           e.name.toLowerCase() === entityName.toLowerCase() ||
@@ -1056,7 +1057,7 @@ function ChatContent() {
                         >
                           <div className="flex-1 overflow-hidden pr-6">
                             <div className="text-[11px] text-[#E6B23C] font-bold uppercase tracking-[0.15em] mb-1 flex items-center justify-between">
-                              <span>{chat.entity_name && chat.entity_name.includes("(") ? chat.entity_name.split("(")[0].trim() : chat.entity_name}</span>
+                              <span>{chat.entity_name && cleanEntityName(chat.entity_name)}</span>
                               {chat.is_pinned && (
                                 <Pin size={12} className="text-[#E6B23C] shrink-0" />
                               )}
@@ -1396,7 +1397,7 @@ function ChatContent() {
                             className="w-full text-left group/header py-4"
                           >
                             <h3 className="text-[13px] font-bold uppercase tracking-[0.4em] text-[#E6B23C]/50 flex items-center gap-4 group-hover/header:text-[#E6B23C] transition-all">
-                              <span className="min-w-fit">{entity.includes("(") ? entity.split("(")[0].trim() : entity}</span>
+                              <span className="min-w-fit">{cleanEntityName(entity)}</span>
                               <div className="flex-1 h-[1px] bg-[#E6B23C]/10 group-hover/header:bg-[#E6B23C]/30" />
                               <span className="text-[11px] font-mono opacity-40 group-hover/header:opacity-100">{chats.length} {chats.length === 1 ? 'RECORD' : 'RECORDS'}</span>
                             </h3>
