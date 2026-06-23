@@ -11,6 +11,7 @@ import Link from "next/link";
 import { saveResultToSession } from "../../lib/services/recognition";
 import type { RecognitionEntity, RecognitionResult } from "../../lib/types";
 import { Button } from "../ui/button";
+import { cleanEntityName } from "../../lib/utils";
 
 type TabType = "saved" | "chats" | "history";
 type ViewType = "profile" | "settings";
@@ -62,7 +63,7 @@ export default function ProfileSidebar({ isOpen, onClose }: ProfileSidebarProps)
     const baseUrl = process.env.NEXT_PUBLIC_API_URL?.replace(/\/api\/v1\/?$/, "") ?? "http://localhost:8010";
 
     const getEntityImage = (name: string, type: string = "") => {
-        const cleanNameStr = name.includes("(") ? name.split("(")[0].trim() : name;
+        const cleanNameStr = cleanEntityName(name);
         const normalized = cleanNameStr.toLowerCase().trim();
 
         // Static local folder fallback for the 10 trending entities
@@ -127,7 +128,7 @@ export default function ProfileSidebar({ isOpen, onClose }: ProfileSidebarProps)
     };
 
     const cleanName = (name: string) => {
-        const baseName = name.includes("(") ? name.split("(")[0].trim() : name;
+        const baseName = cleanEntityName(name);
         return toTitleCase(baseName);
     };
 
@@ -749,7 +750,7 @@ export default function ProfileSidebar({ isOpen, onClose }: ProfileSidebarProps)
                                                                                 className="w-full text-left group/header py-4"
                                                                             >
                                                                                 <h3 className="text-[11px] font-bold uppercase tracking-[0.4em] text-[#E6B23C]/50 flex items-center gap-4 group-hover/header:text-[#E6B23C] transition-all">
-                                                                                    <span className="min-w-fit">{entity.includes("(") ? entity.split("(")[0].trim() : entity}</span>
+                                                                                    <span className="min-w-fit">{cleanEntityName(entity)}</span>
                                                                                     <div className="flex-1 h-[1px] bg-[#E6B23C]/10 group-hover/header:bg-[#E6B23C]/30" />
                                                                                     <span className="text-[9px] font-mono opacity-40 group-hover/header:opacity-100">
                                                                                         {chats.length} {chats.length === 1 ? 'RECORD' : 'RECORDS'}

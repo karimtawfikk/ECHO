@@ -101,10 +101,10 @@ function VideoPageContent() {
 
             {videoUrl ? (
               <div className="relative w-full h-full group/video cursor-pointer">
-                <video 
-                  src={videoUrl} 
-                  controls 
-                  autoPlay 
+                <video
+                  src={videoUrl}
+                  controls
+                  autoPlay
                   onPlay={() => {
                     const overlay = document.getElementById('video-play-overlay');
                     if (overlay) overlay.style.opacity = '0';
@@ -113,17 +113,15 @@ function VideoPageContent() {
                     const overlay = document.getElementById('video-play-overlay');
                     if (overlay) overlay.style.opacity = '1';
                   }}
-                  className="absolute inset-0 w-full h-full object-contain z-20 bg-black" 
+                  className="absolute inset-0 w-full h-full object-contain z-20 bg-black"
                 />
                 {/* Custom Play Overlay - Matches Home Page */}
-                <div 
+                <div
                   id="video-play-overlay"
                   className="absolute inset-0 flex items-center justify-center z-30 pointer-events-none transition-opacity duration-500 opacity-0 group-hover/video:opacity-100"
                 >
-                  <div className="w-24 h-24 rounded-full bg-[#0D0A07]/40 backdrop-blur-md border-2 border-[#E6B23C]/40 flex items-center justify-center shadow-[0_0_50px_rgba(0,0,0,0.5)]">
-                    <div className="w-16 h-16 rounded-full border-2 border-[#E6B23C] flex items-center justify-center">
-                      <Play size={32} fill="#E6B23C" className="text-[#E6B23C] ml-1" />
-                    </div>
+                  <div className="w-16 h-16 rounded-full bg-[#0D0A07]/40 backdrop-blur-md border-2 border-[#E6B23C] flex items-center justify-center shadow-[0_0_50px_rgba(0,0,0,0.5)]">
+                    <Play size={32} fill="#E6B23C" className="text-[#E6B23C] ml-1" />
                   </div>
                 </div>
               </div>
@@ -131,12 +129,12 @@ function VideoPageContent() {
               <div className="flex flex-col items-center z-20 gap-6">
                 <div className="relative w-24 h-24 flex items-center justify-center">
                   {/* Rotating Decoder Rings */}
-                  <motion.div 
+                  <motion.div
                     animate={{ rotate: 360 }}
                     transition={{ repeat: Infinity, duration: 8, ease: "linear" }}
                     className="absolute inset-0 border border-dashed border-[#E6B23C]/30 rounded-full"
                   />
-                  <motion.div 
+                  <motion.div
                     animate={{ rotate: -360 }}
                     transition={{ repeat: Infinity, duration: 12, ease: "linear" }}
                     className="absolute inset-2 border border-dotted border-[#E6B23C]/20 rounded-full"
@@ -154,13 +152,13 @@ function VideoPageContent() {
                 {/* Synthesis Metadata HUD */}
                 <div className="flex flex-col items-center gap-2">
                   <div className="flex items-center gap-3">
-                    <motion.div 
+                    <motion.div
                       animate={{ width: [0, 40, 0] }}
                       transition={{ duration: 2, repeat: Infinity }}
                       className="h-[1px] bg-gradient-to-r from-transparent to-[#E6B23C]"
                     />
                     <div className="text-[#E6B23C] font-bold tracking-[0.3em] uppercase text-[10px]">{t("video.status.loading")}</div>
-                    <motion.div 
+                    <motion.div
                       animate={{ width: [0, 40, 0] }}
                       transition={{ duration: 2, repeat: Infinity }}
                       className="h-[1px] bg-gradient-to-l from-transparent to-[#E6B23C]"
@@ -191,7 +189,7 @@ function VideoPageContent() {
                     <div className="flex items-center gap-3 text-base text-[#F5E6D0]/70">
                       <Crown size={16} className={`${isRTL ? 'ml-0' : 'mr-0'} text-[#E6B23C] shrink-0`} />
                       <span className={`font-semibold uppercase tracking-wide text-xs text-[#A08E70] ${isRTL ? 'w-24' : 'w-20'}`}>{t("result.meta.type")}</span>
-                      <span className="font-small capitalize">{dbType}</span>
+                      <span className="font-small capitalize whitespace-nowrap">{dbType}</span>
                     </div>
                   )}
                   {dynasty && (
@@ -221,7 +219,7 @@ function VideoPageContent() {
 
             <div className="mt-8 pt-6 border-t border-[#E6B23C]/5">
               <Link href={`/chat?entity=${encodeURIComponent(entityName)}&type=${encodeURIComponent(entityType)}`} className="block w-full">
-                <Button className="w-full h-14 rounded-2xl bg-gradient-to-r from-[#C1840A] to-[#A06A00] hover:from-[#D4A030] hover:to-[#C1840A] text-[#1A1005] font-bold text-base transition-all hover:scale-[1.02] shadow-[0_4px_30px_rgba(230,178,60,0.15)] flex items-center justify-center gap-2">
+                <Button className="w-full h-14 rounded-2xl bg-gradient-to-r from-[#E6B23C] to-[#D4A030] hover:from-[#FFD369] hover:to-[#E6B23C] text-[#1A1005] font-bold text-base transition-all hover:scale-[1.02] shadow-[0_4px_30px_rgba(230,178,60,0.15)] flex items-center justify-center gap-2">
                   <MessageSquare size={20} className={isRTL ? "ml-0" : "mr-0"} />
                   {t("video.button.chat")}
                 </Button>

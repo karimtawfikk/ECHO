@@ -21,3 +21,10 @@ export const getAssumedImageUrl = (name: string, isPharaoh: boolean) => {
   }
   return null;
 };
+
+export function cleanEntityName(name: string | null | undefined): string {
+  if (!name) return "";
+  let cleaned = name.replace(/\s*\([^)]*\)\s*/g, " ");
+  cleaned = cleaned.replace(/\s+\b(god|goddess)\b\s*$/gi, "");
+  return cleaned.replace(/\s+/g, " ").trim();
+}

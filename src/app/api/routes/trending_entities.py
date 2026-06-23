@@ -8,8 +8,8 @@ from src.app.services.r2_image_resolver import R2ImageResolver
 
 router = APIRouter()
 
-def _serialize_pharaoh(p: Pharaoh) -> dict:
-    return {
+def _serialize_pharaoh(p: Pharaoh, db: Session = None) -> dict:
+    data = {
         "id": p.id,
         "name": p.name,
         "description": p.description,
@@ -18,7 +18,25 @@ def _serialize_pharaoh(p: Pharaoh) -> dict:
         "period": p.period,
         "location": None,
         "image": R2ImageResolver.get_pharaoh_image(p.name),
+        "composite_entity": getattr(p, "composite_entity", None),
     }
+    
+    composite_raw = getattr(p, "composite_entity", None)
+    if composite_raw and db:
+        sub_names = [s.strip() for s in composite_raw.split(",") if s.strip()]
+        data["composite_entities_data"] = [
+            {
+                "name": sn,
+                "type": getattr(row, "type", None) if row else None,
+                "dynasty": getattr(row, "dynasty", None) if row else None,
+                "period": getattr(row, "period", None) if row else None,
+                "image": R2ImageResolver.get_pharaoh_image(sn) if row else None,
+            }
+            for sn in sub_names
+            for row in [db.query(Pharaoh).filter(Pharaoh.name.ilike(sn)).first()]
+        ]
+    return data
+
 
 
 def _serialize_landmark(l: Landmark) -> dict:
@@ -65,7 +83,7 @@ def get_trending_entities(db: Session = Depends(get_db)):
         ).scalars().all()
 
         pharaoh_map = {p.name: p for p in pharaaoh_rows}
-        pharaohs = [_serialize_pharaoh(pharaoh_map[n]) for n in PHARAOH_NAMES if n in pharaoh_map]
+        pharaohs = [_serialize_pharaoh(pharaoh_map[n], db) for n in PHARAOH_NAMES if n in pharaoh_map]
 
         # Fetch landmarks by name, preserve order
         landmark_rows = db.execute(
@@ -101,7 +119,7 @@ def get_all_entities(db: Session = Depends(get_db), search: str = ""):
         pharaoh_rows = db.execute(pharaoh_query).scalars().all()
         landmark_rows = db.execute(landmark_query).scalars().all()
 
-        pharaohs = [_serialize_pharaoh(p) for p in pharaoh_rows]
+        pharaohs = [_serialize_pharaoh(p, db) for p in pharaoh_rows]
         landmarks = [_serialize_landmark(l) for l in landmark_rows]
 
         return {

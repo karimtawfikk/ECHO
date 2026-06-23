@@ -16,6 +16,7 @@ import {
 } from "lucide-react";
 import type { RecognitionEntity } from "@/lib/types";
 import { saveResultToSession } from "@/lib/services/recognition";
+import { cleanEntityName } from "@/lib/utils";
 import type { RecognitionResult } from "@/lib/types";
 
 /* ── Consistent icon pools (cycled by index) ──────────────────────────── */
@@ -89,16 +90,16 @@ export default function TrendingCard({ variant, entity, index }: TrendingCardPro
 
     const cardVariants: Variants = {
         hidden: { opacity: 0, y: 30, scale: 0.95 },
-        visible: { 
-            opacity: 1, 
-            y: 0, 
+        visible: {
+            opacity: 1,
+            y: 0,
             scale: 1,
-            transition: { 
+            transition: {
                 type: "spring",
                 stiffness: 100,
                 damping: 20,
-                duration: 0.6 
-            } 
+                duration: 0.6
+            }
         }
     };
 
@@ -148,7 +149,7 @@ export default function TrendingCard({ variant, entity, index }: TrendingCardPro
                         <motion.img
                             src={finalImageUrl}
                             alt={entity.name}
-                            className="absolute inset-0 w-full h-full object-cover transition-transform duration-700 group-hover:scale-110"
+                            className={`absolute inset-0 w-full h-full object-cover ${isPharaoh ? 'object-top' : 'object-center'} transition-transform duration-700 group-hover:scale-110`}
                             fetchPriority={index < 2 ? "high" : "auto"}
                             loading={index < 2 ? "eager" : "lazy"}
                             onError={(e) => {
@@ -209,7 +210,7 @@ export default function TrendingCard({ variant, entity, index }: TrendingCardPro
 
                     {/* Entity name (from DB) */}
                     <h3 className="font-heading text-base font-bold text-[#F5E6D0] mb-1 leading-tight tracking-wide hover:text-white transition-colors line-clamp-2">
-                        {entity.name.includes("(") ? entity.name.split("(")[0].trim() : entity.name}
+                        {cleanEntityName(entity.name)}
                     </h3>
 
                     {/* Teaser description */}

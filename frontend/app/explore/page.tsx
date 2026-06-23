@@ -8,6 +8,7 @@ import { Search, Crown, MapPin, ChevronDown, ChevronRight, MessageSquare, Video,
 
 import { saveResultToSession } from "../../lib/services/recognition";
 import { useLanguage } from "../../context/LanguageContext";
+import { cleanEntityName } from "../../lib/utils";
 import type { RecognitionEntity, RecognitionResult } from "../../lib/types";
 import { Suspense } from "react";
 
@@ -61,7 +62,7 @@ function getDynastyNumber(dynasty: string): number {
 // ── Entity Card ───────────────────────────────────────────────────────────
 function EntityCard({ entity, type, onNavigate }: { entity: RecognitionEntity; type: "pharaoh" | "landmark"; onNavigate: () => void }) {
   const { t } = useLanguage();
-  const cleanName = entity.name.includes("(") ? entity.name.split("(")[0].trim() : entity.name;
+  const cleanName = cleanEntityName(entity.name);
 
   return (
     <motion.div
@@ -375,7 +376,7 @@ function ExploreContent() {
       debug_info: null,
     };
     saveResultToSession({ result, imageDataUrl: null });
-    router.push("/result");
+    router.push(`/result?entity=${encodeURIComponent(entity.name)}&type=${type}`);
   }
 
   // ── Pharaohs: group by period → dynasty ──────────────────────────
@@ -383,7 +384,7 @@ function ExploreContent() {
     if (!search) return pharaohs;
     const q = search.toLowerCase();
     return pharaohs.filter((p) => {
-      const cleanName = p.name.includes("(") ? p.name.split("(")[0].trim() : p.name;
+      const cleanName = cleanEntityName(p.name);
       const parts = cleanName.toLowerCase().split(/[\s-]/);
       return parts.some(part => part.startsWith(q)) || cleanName.toLowerCase().startsWith(q);
     });
@@ -433,7 +434,7 @@ function ExploreContent() {
     if (search) {
       const q = search.toLowerCase();
       result = result.filter((l) => {
-        const cleanName = l.name.includes("(") ? l.name.split("(")[0].trim() : l.name;
+        const cleanName = cleanEntityName(l.name);
         const parts = cleanName.toLowerCase().split(/[\s-]/);
         return parts.some(part => part.startsWith(q)) || cleanName.toLowerCase().startsWith(q);
       });
@@ -591,7 +592,7 @@ function ExploreContent() {
           )}
         </AnimatePresence>
       </div>
-      <div ref={containerRef} className={`transition-all duration-700 ${search ? 'blur-3xl pointer-events-none' : ''}`}>
+      <div ref={containerRef} className={`relative transition-all duration-700 ${search ? 'blur-3xl pointer-events-none' : ''}`}>
         {/* Loading */}
         {isLoading && (
           <div className="flex justify-center py-20">
@@ -748,7 +749,7 @@ function ExploreContent() {
                     </div>
 
                     {/* Landmarks List */}
-                    <div 
+                    <div
                       ref={landmarksListRef}
                       className="flex-1 overflow-y-auto p-6 space-y-4 custom-scrollbar"
                     >

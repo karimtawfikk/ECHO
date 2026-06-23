@@ -12,6 +12,7 @@ import { useLanguage } from "@/context/LanguageContext";
 import { loadResultFromSession } from "@/lib/services/recognition";
 import { formatTitle } from "@/lib/services/recognition";
 import { createClient } from "@/lib/supabase/client";
+import { cleanEntityName } from "@/lib/utils";
 import type { RecognitionResult, SubEntity } from "@/lib/types";
 
 /* ── Manual / Quick-link flow (from home/trending cards) ────────────────── */
@@ -44,7 +45,7 @@ function ResultContent() {
 
   useEffect(() => {
     setMounted(true);
-    
+
     const entityTypeParam = searchParams.get("type");
     const entityNameParam = searchParams.get("entity") || searchParams.get("name");
     const imageUrlParam = searchParams.get("imageUrl");
@@ -119,7 +120,7 @@ function ResultContent() {
     ? (sessionResult?.entity?.name ?? formatTitle(sessionResult?.name ?? ""))
     : (mockMatch?.item.name ?? formatTitle(entityNameParam ?? "Unknown"));
 
-  const cleanDisplayName = displayName.includes("(") ? displayName.split("(")[0].trim() : displayName;
+  const cleanDisplayName = cleanEntityName(displayName);
 
   const displayDescription: string = isApiFlow
     ? (sessionResult?.entity?.description ?? "No description available.")
@@ -294,7 +295,7 @@ function ResultContent() {
                   <img
                     src={finalImageUrl}
                     alt={cleanDisplayName}
-                    className="absolute inset-0 w-full h-full object-cover transition-transform duration-700 group-hover:scale-110"
+                    className={`absolute inset-0 w-full h-full object-cover ${displayType === "pharaoh" ? "object-top" : "object-center"} transition-transform duration-700 group-hover:scale-110`}
                     onError={(e) => {
                       (e.target as HTMLImageElement).style.opacity = '0';
                     }}
@@ -368,7 +369,7 @@ function ResultContent() {
                     <div className="flex items-center gap-3 text-base text-[#1A1005]/70">
                       <Crown size={15} className={`${isRTL ? 'ml-0' : 'mr-0'} text-[#B8860B] shrink-0`} />
                       <span className={`font-semibold uppercase tracking-wide text-xs text-[#1A1005]/50 ${isRTL ? 'w-24' : 'w-20'}`}>{t("result.meta.type")}</span>
-                      <span className="font-medium capitalize">{dbType}</span>
+                      <span className="font-medium capitalize whitespace-nowrap">{dbType}</span>
                     </div>
                   )}
                   {dynasty && (
@@ -407,25 +408,28 @@ function ResultContent() {
                   {compositeEntitiesData.length > 0 ? (
                     /* ── Composite: one row per sub-entity ────────── */
                     <div className="flex flex-col gap-4">
-                      {compositeEntitiesData.map((sub) => (
-                        <div key={sub.name} className="grid sm:grid-cols-2 gap-4">
-                          <Button
-                            onClick={() => router.push(`/video?entity=${encodeURIComponent(sub.name)}&type=${displayType}&dynasty=${encodeURIComponent(sub.dynasty || '')}&period=${encodeURIComponent(sub.period || '')}&dbType=${encodeURIComponent(sub.type || '')}&location=${encodeURIComponent(location || '')}`)}
-                            className="h-14 rounded-2xl bg-[#E6B23C]/10 border border-[#E6B23C]/20 hover:bg-[#E6B23C]/20 text-[#E6B23C] font-bold text-base transition-all hover:scale-[1.02] flex items-center justify-center gap-3"
-                          >
-                            <Video size={20} />
-                            {t("result.button.video_named", { name: sub.name })}
-                          </Button>
-                          <Button
-                            onClick={() => router.push(`/chat?entity=${encodeURIComponent(sub.name)}&type=${displayType}`)}
-                            variant="outline"
-                            className="h-14 rounded-2xl border-[#E6B23C]/12 bg-[#E6B23C]/[0.04] hover:bg-[#E6B23C]/[0.08] text-[#F5E6D0] font-semibold text-base transition-all hover:scale-[1.02] flex items-center justify-center gap-3"
-                          >
-                            <MessageSquare size={20} />
-                            {t("result.button.chat_named", { name: sub.name })}
-                          </Button>
-                        </div>
-                      ))}
+                      {compositeEntitiesData.map((sub) => {
+                        const cleanSubName = cleanEntityName(sub.name);
+                        return (
+                          <div key={sub.name} className="grid sm:grid-cols-2 gap-4">
+                            <Button
+                              onClick={() => router.push(`/video?entity=${encodeURIComponent(sub.name)}&type=${displayType}&dynasty=${encodeURIComponent(sub.dynasty || '')}&period=${encodeURIComponent(sub.period || '')}&dbType=${encodeURIComponent(sub.type || '')}&location=${encodeURIComponent(location || '')}`)}
+                              className="h-14 rounded-2xl bg-[#E6B23C]/10 border border-[#E6B23C]/20 hover:bg-[#E6B23C]/20 text-[#E6B23C] font-bold text-base transition-all hover:scale-[1.02] flex items-center justify-center gap-3"
+                            >
+                              <Video size={20} />
+                              {t("result.button.video_named", { name: cleanSubName })}
+                            </Button>
+                            <Button
+                              onClick={() => router.push(`/chat?entity=${encodeURIComponent(sub.name)}&type=${displayType}`)}
+                              variant="outline"
+                              className="h-14 rounded-2xl border-[#E6B23C]/12 bg-[#E6B23C]/[0.04] hover:bg-[#E6B23C]/[0.08] text-[#F5E6D0] font-semibold text-base transition-all hover:scale-[1.02] flex items-center justify-center gap-3"
+                            >
+                              <MessageSquare size={20} />
+                              {t("result.button.chat_named", { name: cleanSubName })}
+                            </Button>
+                          </div>
+                        );
+                      })}
                     </div>
                   ) : (
                     /* ── Normal: single row ───────────────────────── */

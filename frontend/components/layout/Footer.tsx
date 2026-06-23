@@ -81,7 +81,7 @@ export default function Footer() {
                     </div>
 
                     {/* Contact Column */}
-                    <div className="space-y-6">
+                    <div className="lg:col-span-2 space-y-6">
                         <div className="relative inline-block pb-2">
                             <h3 className="text-[#F5E6D0] font-bold tracking-[0.1em] uppercase text-sm">Contact</h3>
                             <div className="absolute bottom-0 left-0 w-1/2 h-[2px] bg-[#E6B23C]" />
@@ -89,7 +89,7 @@ export default function Footer() {
                         <ul className="space-y-4">
                             <li className="flex items-center gap-3 text-[#A08E70] text-sm font-medium group cursor-pointer hover:text-[#E6B23C] transition-colors">
                                 <Mail size={16} className="text-[#E6B23C]" />
-                                <span className="break-all">info@echo-museum.com</span>
+                                <span className="whitespace-nowrap">echo.archive.ai@gmail.com</span>
                             </li>
                             <li className="flex items-center gap-3 text-[#A08E70] text-sm font-medium group cursor-pointer hover:text-[#E6B23C] transition-colors">
                                 <MapPin size={16} className="text-[#E6B23C]" />
@@ -105,14 +105,6 @@ export default function Footer() {
                     <p className="text-[#A08E70]/50 text-[11px] font-bold tracking-[0.1em] uppercase">
                         {t("footer.copyright")}
                     </p>
-                    <div className="flex gap-6">
-                        <Link href="#" className="text-[#A08E70]/40 hover:text-[#E6B23C] text-[10px] font-bold tracking-[0.2em] uppercase transition-colors">
-                            {t("footer.privacy")}
-                        </Link>
-                        <Link href="#" className="text-[#A08E70]/40 hover:text-[#E6B23C] text-[10px] font-bold tracking-[0.2em] uppercase transition-colors">
-                            {t("footer.terms")}
-                        </Link>
-                    </div>
                 </div>
             </div>
         </footer>
