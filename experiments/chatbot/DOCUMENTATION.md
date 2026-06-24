@@ -103,13 +103,19 @@ WITH (m = 16, ef_construction = 64);
 
 ### 3.5 Evaluation Dataset Generation
 
-A synthetic evaluation dataset was generated for benchmarking:
+A synthetic evaluation dataset was generated for benchmarking using the **DeepEval** framework's Synthesizer. DeepEval was utilized to systematically generate context-grounded question-answer pairs for the 132 distinct entities retrieved from our database.
 
-- `synthetic_dataset.csv` — 132 evaluation entries (one per entity)
-- `shrunk_dataset_132.csv` — condensed version used for final evaluation runs
-- The dataset was split into two parts (`eval_part_1.csv`, `eval_part_2.csv`) for parallel evaluation
+**Generation Details:**
+- **Model Used:** Moonshot AI's `Kimi-K2-Instruct-0905`.
+- **Prompt Strategy:** The LLM was prompted to adopt the persona of each historical entity and generate one question (in the second person) and one answer (in the first person) based strictly on the provided text segment. The prompt enforced a mandatory two-part answer structure: a direct factual response followed by an immersive, in-character elaboration.
+- **Dataset Format:** The resulting data is structured as DeepEval `Golden` test cases and exported to CSV. Each record contains the `input` (the generated question), the `expected_output` (the first-person answer), and the `context` (the ground-truth text segment from the database).
 
-The test case creation process is documented in `experiments/chatbot/echo_chatbot/evaluation_scripts/test_cases/create_test_dataset.ipynb`.
+The generated artifacts include:
+- `synthetic_dataset.csv` — 132 evaluation entries (one generated test case per entity)
+- `shrunk_dataset_132.csv` — A condensed version used for the final evaluation runs
+- The dataset was subsequently split into two parts (`eval_part_1.csv`, `eval_part_2.csv`) to allow for parallel execution during the evaluation phase.
+
+The test case creation process is documented in `experiments/chatbot/chat_service/evaluation_scripts/test_cases/create_test_dataset.ipynb`.
 
 ---
 
