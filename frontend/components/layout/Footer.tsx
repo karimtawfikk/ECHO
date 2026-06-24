@@ -15,10 +15,10 @@ export default function Footer() {
             />
 
             <div className="max-w-7xl mx-auto px-6 py-16 lg:py-24">
-                <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-6 gap-12 lg:gap-8">
+                <div className="grid grid-cols-1 md:grid-cols-6 gap-12 lg:gap-8">
 
                     {/* Brand Column */}
-                    <div className="lg:col-span-2 space-y-6">
+                    <div className="md:col-span-2 space-y-6">
                         <span
                             className="text-2xl font-bold tracking-[0.25em] text-[#E6B23C] gold-glow select-none"
                             style={{ fontFamily: 'var(--font-cormorant), serif' }}
@@ -31,57 +31,37 @@ export default function Footer() {
                     </div>
 
                     {/* Services Column */}
-                    <div className="space-y-6">
+                    <div className="md:col-span-2 space-y-6 md:ps-20 lg:ps-32">
                         <div className="relative inline-block pb-2">
-                            <h3 className="text-[#F5E6D0] font-bold tracking-[0.1em] uppercase text-sm">Services</h3>
+                            <h3 className="text-[#F5E6D0] font-bold tracking-[0.1em] uppercase text-sm">Navigation</h3>
                             <div className="absolute bottom-0 left-0 w-1/2 h-[2px] bg-[#E6B23C]" />
                         </div>
-                        <ul className="space-y-4">
+                        <ul className="grid grid-cols-2 gap-x-4 gap-y-4 max-w-[200px]">
                             <li>
                                 <Link href="/explore" className="text-[#A08E70] hover:text-[#E6B23C] transition-colors text-sm font-medium">
-                                    Explore
+                                    {t("nav.explore")}
                                 </Link>
                             </li>
                             <li>
                                 <Link href="/upload" className="text-[#A08E70] hover:text-[#E6B23C] transition-colors text-sm font-medium">
-                                    Recognize
+                                    {t("nav.recognize")}
                                 </Link>
                             </li>
                             <li>
                                 <Link href="/translate" className="text-[#A08E70] hover:text-[#E6B23C] transition-colors text-sm font-medium">
-                                    Translate
+                                    {t("nav.translate")}
                                 </Link>
                             </li>
-                        </ul>
-                    </div>
-
-                    {/* Foundation Column */}
-                    <div className="space-y-6">
-                        <div className="relative inline-block pb-2">
-                            <h3 className="text-[#F5E6D0] font-bold tracking-[0.1em] uppercase text-sm">Foundation</h3>
-                            <div className="absolute bottom-0 left-0 w-1/2 h-[2px] bg-[#E6B23C]" />
-                        </div>
-                        <ul className="space-y-4">
                             <li>
                                 <Link href="/about" className="text-[#A08E70] hover:text-[#E6B23C] transition-colors text-sm font-medium">
                                     {t("footer.about")}
-                                </Link>
-                            </li>
-                            <li>
-                                <Link href="#" className="text-[#A08E70] hover:text-[#E6B23C] transition-colors text-sm font-medium">
-                                    Privacy Policy
-                                </Link>
-                            </li>
-                            <li>
-                                <Link href="#" className="text-[#A08E70] hover:text-[#E6B23C] transition-colors text-sm font-medium">
-                                    Terms of Use
                                 </Link>
                             </li>
                         </ul>
                     </div>
 
                     {/* Contact Column */}
-                    <div className="lg:col-span-2 space-y-6">
+                    <div className="md:col-span-2 space-y-6">
                         <div className="relative inline-block pb-2">
                             <h3 className="text-[#F5E6D0] font-bold tracking-[0.1em] uppercase text-sm">Contact</h3>
                             <div className="absolute bottom-0 left-0 w-1/2 h-[2px] bg-[#E6B23C]" />

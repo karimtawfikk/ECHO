@@ -212,7 +212,10 @@ class HieroglyphDetectionRuntime:
         try:
             from transformers import M2M100Tokenizer, M2M100ForConditionalGeneration
             
-            self._translation_tokenizer = M2M100Tokenizer.from_pretrained(load_path)
+            self._translation_tokenizer = M2M100Tokenizer.from_pretrained(
+                load_path,
+                extra_special_tokens={}
+            )
             
             # Clear cache before loading big model
             if torch.cuda.is_available():

@@ -233,11 +233,12 @@ function EgyptMap({
                 <text
                   x={x}
                   y={y - -5}
-                  fill={isActive ? "#E6B23C" : "#4A3728"}
+                  fill={isActive ? "#C44536" : "#4A3728"}
                   fontSize="8"
                   fontWeight="900"
                   textAnchor="middle"
-                  className="select-none pointer-events-none transition-all duration-300 group-hover:fill-[#D4A017] drop-shadow-[0_1px_2px_rgba(255,255,255,0.2)]"
+                  className={`select-none pointer-events-none transition-all duration-300 group-hover:fill-[#D4A017] ${isActive ? "drop-shadow-[0_1px_3px_rgba(13,10,7,0.7)]" : "drop-shadow-[0_1px_2px_rgba(255,255,255,0.2)]"
+                    }`}
                   style={{ fontFamily: 'var(--font-cormorant), serif' }}
                 >
                   {shortName}

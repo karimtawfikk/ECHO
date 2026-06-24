@@ -125,13 +125,15 @@ export default function UploadPage() {
     }
   }
 
-  const [particles, setParticles] = useState<{ x: string; y: string; duration: number; delay: number }[]>([]);
+  const [particles, setParticles] = useState<{ x: string; y: string; driftX: number; driftY: number; duration: number; delay: number }[]>([]);
 
   useEffect(() => {
     const newParticles = [...Array(20)].map(() => ({
-      x: Math.random() * 100 - 50 + "%",
-      y: Math.random() * 100 - 50 + "%",
-      duration: 10 + Math.random() * 20,
+      x: Math.random() * 100 + "%",
+      y: Math.random() * 100 + "%",
+      driftX: (Math.random() - 0.5) * 60,
+      driftY: (Math.random() - 0.5) * 60,
+      duration: 10 + Math.random() * 15,
       delay: Math.random() * 10
     }));
     setParticles(newParticles);
@@ -146,18 +148,24 @@ export default function UploadPage() {
           {particles.map((p, i) => (
             <motion.div
               key={i}
+              style={{
+                left: p.x,
+                top: p.y,
+              }}
               initial={{ 
                 opacity: 0,
-                x: p.x,
-                y: p.y
+                x: 0,
+                y: 0
               }}
               animate={{ 
                 opacity: [0, 0.4, 0],
-                y: ["-10%", "110%"],
+                x: [0, p.driftX, 0],
+                y: [0, p.driftY, 0],
               }}
               transition={{ 
                 duration: p.duration,
                 repeat: Infinity,
+                ease: "easeInOut",
                 delay: p.delay
               }}
               className="absolute w-1 h-1 bg-[#E6B23C] rounded-full blur-[1px]"

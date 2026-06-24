@@ -23,10 +23,19 @@ export default function LoginPage() {
   const [resetSent, setResetSent] = useState(false);
   const [countdown, setCountdown] = useState(0);
   const [mounted, setMounted] = useState(false);
+  const [loginParticles, setLoginParticles] = useState<{ x: string; y: string; driftY: number; duration: number; delay: number }[]>([]);
   const supabase = createClient();
 
   useEffect(() => {
     setMounted(true);
+    const newParticles = [...Array(15)].map(() => ({
+      x: Math.random() * 100 + "%",
+      y: Math.random() * 100 + "%",
+      driftY: -(Math.random() * 80 + 30),
+      duration: 5 + Math.random() * 10,
+      delay: Math.random() * 5
+    }));
+    setLoginParticles(newParticles);
   }, []);
 
   useEffect(() => {
@@ -132,23 +141,28 @@ export default function LoginPage() {
           <div className="absolute inset-0 bg-[url('/bg-pattern.png')] opacity-10 mix-blend-overlay" />
 
           {/* Floating Particles - Only render on client to avoid hydration mismatch */}
-          {mounted && [...Array(15)].map((_, i) => (
+          {mounted && loginParticles.map((p, i) => (
             <motion.div
               key={i}
               className="absolute w-1 h-1 bg-[#E6B23C]/30 rounded-full"
+              style={{
+                left: p.x,
+                top: p.y,
+              }}
               initial={{
-                x: Math.random() * 100 + "%",
-                y: Math.random() * 100 + "%",
-                opacity: Math.random()
+                opacity: 0,
+                x: 0,
+                y: 0,
               }}
               animate={{
-                y: [null, "-20%"],
+                y: [0, p.driftY],
                 opacity: [0, 1, 0]
               }}
               transition={{
-                duration: 5 + Math.random() * 10,
+                duration: p.duration,
                 repeat: Infinity,
-                delay: Math.random() * 5
+                ease: "easeInOut",
+                delay: p.delay
               }}
             />
           ))}
