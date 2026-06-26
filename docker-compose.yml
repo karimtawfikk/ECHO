@@ -1,4 +1,16 @@
 services:
+  recognition:
+    build:
+      context: .
+      dockerfile: infra/Dockerfile.recognition
+    container_name: "${RECOGNITION_CONTAINER_NAME:-echo-recognition-api}"
+    environment:
+      APP_ENV: "production"
+      DATABASE_URL: "${DATABASE_URL}"
+      NVIDIA_DRIVER_CAPABILITIES: "compute,utility"
+    ports:
+      - "8002:8002"
+    gpus: all
   chatbot:
     build:
       context: .
@@ -80,19 +92,6 @@ services:
       GROQ_API_KEY9: "${GROQ_API_KEY9}"
     ports:
       - "8003:8003"
-    gpus: all
-
-  recognition:
-    build:
-      context: .
-      dockerfile: infra/Dockerfile.recognition
-    container_name: "${RECOGNITION_CONTAINER_NAME:-echo-recognition-api}"
-    environment:
-      APP_ENV: "production"
-      DATABASE_URL: "${DATABASE_URL}"
-      NVIDIA_DRIVER_CAPABILITIES: "compute,utility"
-    ports:
-      - "8002:8002"
     gpus: all
 
 volumes:
