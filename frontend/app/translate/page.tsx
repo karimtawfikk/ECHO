@@ -114,11 +114,11 @@ export default function TranslatePage() {
               try {
                 const supabase = createClient();
                 const { data: { user } } = await supabase.auth.getUser();
-                
-                const isSuccess = data.translation_text && 
-                                  data.translation_text.trim() !== "" && 
-                                  !data.translation_text.toLowerCase().includes("failed") &&
-                                  !data.translation_text.toLowerCase().includes("no hieroglyphs");
+
+                const isSuccess = data.translation_text &&
+                  data.translation_text.trim() !== "" &&
+                  !data.translation_text.toLowerCase().includes("failed") &&
+                  !data.translation_text.toLowerCase().includes("no hieroglyphs");
 
                 if (user && file && isSuccess) {
                   const API_BASE = process.env.NEXT_PUBLIC_API_URL?.replace(/\/api\/v1\/?$/, "") ?? "http://localhost:8010";
@@ -134,7 +134,7 @@ export default function TranslatePage() {
 
                   if (uploadRes.ok) {
                     const { key } = await uploadRes.json();
-                    
+
                     await supabase.from('translation_history').insert({
                       user_id: user.id,
                       image_path: key,
@@ -203,13 +203,15 @@ export default function TranslatePage() {
     if (fileInputRef.current) fileInputRef.current.value = "";
   };
 
-  const [particles, setParticles] = useState<{ x: string; y: string; duration: number; delay: number }[]>([]);
+  const [particles, setParticles] = useState<{ x: string; y: string; driftX: number; driftY: number; duration: number; delay: number }[]>([]);
 
   useEffect(() => {
     const newParticles = [...Array(20)].map(() => ({
-      x: Math.random() * 100 - 50 + "%",
-      y: Math.random() * 100 - 50 + "%",
-      duration: 10 + Math.random() * 20,
+      x: Math.random() * 100 + "%",
+      y: Math.random() * 100 + "%",
+      driftX: (Math.random() - 0.5) * 60,
+      driftY: (Math.random() - 0.5) * 60,
+      duration: 10 + Math.random() * 15,
       delay: Math.random() * 10
     }));
     setParticles(newParticles);
@@ -221,18 +223,24 @@ export default function TranslatePage() {
         {particles.map((p, i) => (
           <motion.div
             key={i}
+            style={{
+              left: p.x,
+              top: p.y,
+            }}
             initial={{
               opacity: 0,
-              x: p.x,
-              y: p.y
+              x: 0,
+              y: 0,
             }}
             animate={{
               opacity: [0, 0.4, 0],
-              y: ["-10%", "110%"],
+              x: [0, p.driftX, 0],
+              y: [0, p.driftY, 0],
             }}
             transition={{
               duration: p.duration,
               repeat: Infinity,
+              ease: "easeInOut",
               delay: p.delay
             }}
             className="absolute w-1 h-1 bg-[#E6B23C] rounded-full blur-[1px]"
@@ -611,7 +619,7 @@ export default function TranslatePage() {
           className="mt-12 flex justify-center w-full"
         >
           <button
-            onClick={() => router.back()}
+            onClick={result ? resetAll : () => router.back()}
             className="flex items-center gap-3 px-6 py-2 rounded-full bg-[#E6B23C]/5 border border-[#E6B23C]/10 text-[10px] font-bold tracking-[0.3em] text-[#A08E70]/60 hover:text-[#E6B23C] hover:border-[#E6B23C]/30 uppercase transition-all group cursor-pointer"
           >
             <motion.span

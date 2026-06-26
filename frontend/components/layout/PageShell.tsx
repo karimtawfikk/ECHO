@@ -91,7 +91,7 @@ export default function PageShell({
           {/* Left Column: Horizontal Navigation */}
           <div className="flex justify-start items-center gap-8">
             {!minimal && navLinks.map((link) => {
-              const isActive = pathname === link.href;
+              const isActive = pathname === link.href || (link.href === "/upload" && pathname.startsWith("/result"));
               return (
                 <Link
                   key={link.name}

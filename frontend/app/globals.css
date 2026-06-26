@@ -442,3 +442,31 @@ a,
   background-size: 200% 100%;
   animation: echo-shimmer 1.8s ease-in-out infinite;
 }
+
+/* ========== CUSTOM SCROLLBAR FOR LANDMARKS LIST ========== */
+.custom-scrollbar::-webkit-scrollbar {
+  width: 6px;
+  height: 6px;
+}
+
+.custom-scrollbar::-webkit-scrollbar-track {
+  background: rgba(230, 178, 60, 0.02);
+  border-radius: 9999px;
+}
+
+.custom-scrollbar::-webkit-scrollbar-thumb {
+  background: rgba(230, 178, 60, 0.15);
+  border-radius: 9999px;
+  border: 1px solid rgba(230, 178, 60, 0.05);
+  transition: background 0.3s ease;
+}
+
+.custom-scrollbar::-webkit-scrollbar-thumb:hover {
+  background: rgba(230, 178, 60, 0.35);
+}
+
+/* Firefox Support */
+.custom-scrollbar {
+  scrollbar-width: thin;
+  scrollbar-color: rgba(230, 178, 60, 0.15) rgba(230, 178, 60, 0.02);
+}
