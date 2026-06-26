@@ -5,9 +5,36 @@ import io
 import json
 import os
 import time
+import warnings
 from dataclasses import dataclass, field
 from pathlib import Path
+import pillow_heif
+pillow_heif.register_heif_opener()
 from typing import Any
+
+import warnings
+warnings.filterwarnings('ignore', category=UserWarning, module='keras')
+
+import ctypes
+# Force load the correct cuDNN library to fix the 9.1 vs 9.3 mismatch
+try:
+    ctypes.CDLL("/workspace/venv/lib/python3.11/site-packages/nvidia/cudnn/lib/libcudnn.so.9", mode=ctypes.RTLD_GLOBAL)
+except Exception:
+    try:
+        ctypes.CDLL("/usr/local/lib/python3.11/dist-packages/nvidia/cudnn/lib/libcudnn.so.9", mode=ctypes.RTLD_GLOBAL)
+    except Exception:
+        pass
+
+# CRITICAL: Import TensorFlow BEFORE PyTorch to prevent PyTorch's cuDNN 8
+# from polluting the global namespace and crashing TensorFlow's cuDNN 9.
+import tensorflow as tf
+gpus = tf.config.list_physical_devices('GPU')
+if gpus:
+    for gpu in gpus:
+        try:
+            tf.config.experimental.set_memory_growth(gpu, True)
+        except RuntimeError:
+            pass
 
 import cv2
 import numpy as np
@@ -131,17 +158,8 @@ class HieroglyphDetectionRuntime:
 
         # Suppress TF logs but keep error info
         os.environ.setdefault("TF_CPP_MIN_LOG_LEVEL", "2")
-        import tensorflow as tf
-
-        # CRITICAL: Allow memory growth so TF doesn't steal all VRAM from Torch
-        gpus = tf.config.list_physical_devices('GPU')
-        if gpus:
-            try:
-                for gpu in gpus:
-                    tf.config.experimental.set_memory_growth(gpu, True)
-                print(f"[hieroglyph] TF Memory Growth enabled for: {gpus}", flush=True)
-            except RuntimeError as e:
-                print(f"[hieroglyph] TF Memory Growth Error: {e}", flush=True)
+        
+        # TensorFlow and memory growth are already handled at the top of the file.
         tf.get_logger().setLevel("ERROR")
         
         device_used = "GPU" if gpus else "CPU"

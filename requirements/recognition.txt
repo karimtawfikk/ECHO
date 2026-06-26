@@ -1,4 +1,6 @@
 numpy
-tensorflow[and-cuda]
+tensorflow[and-cuda]==2.18.0
+keras
+opencv-python
 joblib
 scikit-learn

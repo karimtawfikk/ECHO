@@ -73,7 +73,8 @@ export default function TranslatePage() {
 
     try {
       // Use native fetch to support streaming from the backend
-      const response = await fetch(`${API_BASE_URL}/hieroglyphs/translate/stream`, {
+      const baseUrl = API_BASE_URL.replace(/\/api\/v1\/?$/, "");
+      const response = await fetch(`${baseUrl}/api/v1/hieroglyphs/translate/stream`, {
         method: "POST",
         body: formData,
         signal: abortControllerRef.current.signal,
