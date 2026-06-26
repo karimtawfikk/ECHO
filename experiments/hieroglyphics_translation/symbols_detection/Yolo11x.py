@@ -1,14 +1,3 @@
-# %% [markdown]
-# # 🏺 Hieroglyph Detection — Perfect Training Pipeline
-# **Model**: YOLO11x | **Preprocessing**: CLAHE + Sharpening | **Slicing**: 640×640 @ 50% overlap
-# Run on Kaggle with GPU T4 x2 or P100
-
-# %% [markdown]
-# ## 1. Install & Imports
-
-# %%
-# !pip install ultralytics albumentations --quiet
-
 import os, shutil, yaml, random, cv2, torch
 import matplotlib.pyplot as plt
 import matplotlib.patches as patches
@@ -20,8 +9,7 @@ from PIL import Image
 from tqdm.auto import tqdm
 import albumentations as A
 
-# ── Paths ──────────────────────────────────────────────────────────────────────
-KAGGLE_INPUT   = "/kaggle/input/finaldatadetection1/Final_Dataset"   # ← your dataset
+KAGGLE_INPUT   = "/kaggle/input/finaldatadetection1/Final_Dataset" 
 KAGGLE_WORKING = "/kaggle/working/hiero_pro"
 SLICED_DIR     = f"{KAGGLE_WORKING}/sliced_dataset"
 YAML_PATH      = f"{KAGGLE_WORKING}/hiero.yaml"
@@ -30,25 +18,17 @@ RUN_DIR        = f"{KAGGLE_WORKING}/runs"
 for d in [KAGGLE_WORKING, SLICED_DIR, RUN_DIR]:
     os.makedirs(d, exist_ok=True)
 
-SLICE_SIZE  = 640       # tile crop size
-OVERLAP     = 0.50      # 50% overlap between tiles
+SLICE_SIZE  = 640       
+OVERLAP     = 0.50      
 STEP        = int(SLICE_SIZE * (1 - OVERLAP))   # 320
-MIN_VIS     = 0.30      # keep box only if ≥30% remains in tile
+MIN_VIS     = 0.30     
 SPLITS      = ["train", "val", "test"]
 
 print(f"✅ Workspace: {KAGGLE_WORKING}")
 print(f"   tile={SLICE_SIZE}  step={STEP}  min_visibility={MIN_VIS}")
 print(f"   GPU: {torch.cuda.get_device_name(0) if torch.cuda.is_available() else 'CPU'}")
 
-# %% [markdown]
-# ## 2. Preprocessing — Exact Backend Match
-
-# %%
 def apply_pro_enhancement(image_bgr: np.ndarray) -> np.ndarray:
-    """
-    CLAHE in LAB space (clipLimit=3.0, tileGrid=8×8) + Laplacian sharpening.
-    **Identical** to HieroglyphTranslationRuntime.preprocess_image() in the backend.
-    """
     lab = cv2.cvtColor(image_bgr, cv2.COLOR_BGR2LAB)
     l, a, b = cv2.split(lab)
     clahe = cv2.createCLAHE(clipLimit=3.0, tileGridSize=(8, 8))
@@ -57,7 +37,6 @@ def apply_pro_enhancement(image_bgr: np.ndarray) -> np.ndarray:
     kernel = np.array([[0, -1, 0], [-1, 5, -1], [0, -1, 0]], dtype=np.float32)
     return cv2.filter2D(enhanced, -1, kernel)
 
-# Quick visual test
 _test_files = list(Path(KAGGLE_INPUT).rglob("*.jpg"))[:1]
 if _test_files:
     _img = cv2.imread(str(_test_files[0]))
@@ -67,10 +46,7 @@ if _test_files:
     ax[1].imshow(cv2.cvtColor(_enh, cv2.COLOR_BGR2RGB)); ax[1].set_title("CLAHE + Sharpened")
     plt.tight_layout(); plt.show()
 
-# %% [markdown]
-# ## 3. Dataset Inspection
-
-# %%
+# 
 def count_dataset(root: str):
     stats = {}
     for split in SPLITS:
@@ -86,14 +62,7 @@ def count_dataset(root: str):
 
 count_dataset(KAGGLE_INPUT)
 
-# %% [markdown]
-# ## 4. Slicing Pipeline
-# Slices every image into 640×640 tiles with 50% overlap.
-# YOLO labels are adjusted to tile coordinate space.
-
-# %%
 def yolo_to_pixel(label_line: str, img_w: int, img_h: int):
-    """Parse one YOLO label line → (cls, x1, y1, x2, y2) in pixels."""
     parts = label_line.strip().split()
     cls = int(parts[0])
     xc, yc, bw, bh = float(parts[1]), float(parts[2]), float(parts[3]), float(parts[4])
@@ -128,10 +97,7 @@ def slice_image_and_labels(
     min_visibility: float = MIN_VIS,
     enhance: bool = True,
 ) -> int:
-    """
-    Slice one image into tiles and adjust its YOLO labels accordingly.
-    Returns number of tiles produced.
-    """
+
     img_bgr = cv2.imread(str(img_path))
     if img_bgr is None:
         return 0
@@ -141,7 +107,6 @@ def slice_image_and_labels(
 
     H, W = img_bgr.shape[:2]
 
-    # Read labels (may be absent for images without annotations)
     raw_labels: list[str] = []
     if lbl_path and lbl_path.exists():
         raw_labels = open(lbl_path).readlines()
@@ -156,7 +121,6 @@ def slice_image_and_labels(
         except Exception:
             pass
 
-    # Generate tile offsets
     y_offs = list(range(0, max(1, H - slice_size + 1), step))
     if H > slice_size and y_offs[-1] != H - slice_size:
         y_offs.append(H - slice_size)
@@ -169,14 +133,11 @@ def slice_image_and_labels(
 
     for yi, oy in enumerate(y_offs):
         for xi, ox in enumerate(x_offs):
-            # Crop tile (numpy clips automatically when image < slice_size)
             tile = img_bgr[oy: oy + slice_size, ox: ox + slice_size]
             th, tw = tile.shape[:2]
 
-            # Adjust labels to tile coordinate space
             tile_labels: list[str] = []
             for cls, bx1, by1, bx2, by2 in parsed_boxes:
-                # Intersect box with tile
                 tx1 = max(bx1, ox) - ox
                 ty1 = max(by1, oy) - oy
                 tx2 = min(bx2, ox + tw) - ox
@@ -227,19 +188,13 @@ def process_split(split: str, enhance: bool = True):
     return total_tiles
 
 
-print("⚙️  Slicing dataset (CLAHE + sharpening applied to train/val)...")
+print("  Slicing dataset (CLAHE + sharpening applied to train/val)...")
 for split in SPLITS:
     process_split(split)
 
 print("\n✅ Slicing complete!")
 count_dataset(SLICED_DIR)
 
-# %% [markdown]
-# ## 5. Offline Augmentation (train split only)
-# Extra diversity: brightness/contrast, noise, perspective, flips.
-# Applied AFTER CLAHE so augmentation acts on already-enhanced images.
-
-# %%
 aug_pipeline = A.Compose(
     [
         A.HorizontalFlip(p=0.5),
@@ -263,7 +218,6 @@ aug_pipeline = A.Compose(
 
 
 def augment_split(n_aug_per_image: int = 2):
-    """Generate n_aug_per_image extra augmented copies for every training tile."""
     img_dir = Path(SLICED_DIR) / "train" / "images"
     lbl_dir = Path(SLICED_DIR) / "train" / "labels"
 
@@ -311,16 +265,11 @@ def augment_split(n_aug_per_image: int = 2):
             except Exception as e:
                 pass
 
-    print(f"✅ Augmentation done: +{added} tiles  (total train tiles: {len(list(img_dir.glob('*.jpg')))})")
+    print(f" Augmentation done: +{added} tiles  (total train tiles: {len(list(img_dir.glob('*.jpg')))})")
 
 
 augment_split(n_aug_per_image=2)
 
-# %% [markdown]
-# ## 6. YAML Config
-
-# %%
-# Detect number of classes from training labels
 lbl_files = list((Path(SLICED_DIR) / "train" / "labels").glob("*.txt"))
 all_classes = set()
 for lf in lbl_files:
@@ -330,7 +279,7 @@ for lf in lbl_files:
             all_classes.add(int(parts[0]))
 
 NC = len(all_classes) if all_classes else 1
-print(f"📌 Detected {NC} class(es): {sorted(all_classes)}")
+print(f" Detected {NC} class(es): {sorted(all_classes)}")
 
 dataset_yaml = {
     "path": SLICED_DIR,
@@ -344,30 +293,22 @@ dataset_yaml = {
 with open(YAML_PATH, "w") as f:
     yaml.dump(dataset_yaml, f, default_flow_style=False)
 
-print(f"✅ YAML saved → {YAML_PATH}")
-print(open(YAML_PATH).read())
 
-# %% [markdown]
-# ## 7. Training — YOLO11x
-
-# %%
-model = YOLO("yolo11x.pt")   # pretrained COCO weights
+model = YOLO("yolo11x.pt")  
 
 results = model.train(
     data=YAML_PATH,
     project=RUN_DIR,
     name="hiero_v1",
 
-    # ── Core ────────────────────────────────────────────────────────────
     epochs=200,
-    patience=40,           # early stopping
+    patience=40,          
     imgsz=640,
-    batch=16,              # reduce to 8 if OOM on T4
+    batch=16,           
     workers=4,
     seed=42,
     deterministic=True,
 
-    # ── Optimizer ───────────────────────────────────────────────────────
     optimizer="AdamW",
     lr0=0.001,
     lrf=0.01,
@@ -377,13 +318,11 @@ results = model.train(
     warmup_momentum=0.8,
     warmup_bias_lr=0.1,
 
-    # ── Loss weights ────────────────────────────────────────────────────
     box=7.5,
     cls=0.5,
     dfl=1.5,
 
-    # ── YOLO built-in augmentation ──────────────────────────────────────
-    # (applied on top of our offline augmentation)
+
     mosaic=1.0,
     mixup=0.15,
     copy_paste=0.3,
@@ -400,26 +339,20 @@ results = model.train(
     erasing=0.4,
     auto_augment="randaugment",
 
-    # ── Eval / save ─────────────────────────────────────────────────────
     val=True,
     save=True,
-    save_period=20,        # checkpoint every 20 epochs
+    save_period=20,        
     plots=True,
     verbose=True,
 
-    # ── NMS ─────────────────────────────────────────────────────────────
     iou=0.5,
-    conf=0.001,            # low conf during training eval
+    conf=0.001,            
     max_det=500,
 )
 
 print("\n✅ Training complete!")
 print(f"   Best weights: {RUN_DIR}/hiero_v1/weights/best.pt")
 
-# %% [markdown]
-# ## 8. Evaluation on Test Set
-
-# %%
 best_weights = f"{RUN_DIR}/hiero_v1/weights/best.pt"
 model_eval = YOLO(best_weights)
 
@@ -442,11 +375,6 @@ print(f"   mAP50-95: {metrics.box.map:.4f}")
 print(f"   Precision: {metrics.box.mp:.4f}")
 print(f"   Recall:    {metrics.box.mr:.4f}")
 
-# %% [markdown]
-# ## 9. Visual Inference on Test Samples
-# Shows predictions on raw (non-enhanced) test images — mimics production pipeline
-
-# %%
 def run_inference_visual(model_path: str, img_dir: str, n_samples: int = 6,
                           conf: float = 0.05, iou: float = 0.20):
     """
@@ -495,7 +423,6 @@ def run_inference_visual(model_path: str, img_dir: str, n_samples: int = 6,
     plt.tight_layout()
     plt.savefig(f"{KAGGLE_WORKING}/test_inference.png", dpi=150, bbox_inches="tight")
     plt.show()
-    print(f"✅ Saved → {KAGGLE_WORKING}/test_inference.png")
 
 
 run_inference_visual(
@@ -504,10 +431,6 @@ run_inference_visual(
     n_samples=6,
 )
 
-# %% [markdown]
-# ## 10. Training Curves
-
-# %%
 results_csv = Path(f"{RUN_DIR}/hiero_v1/results.csv")
 if results_csv.exists():
     df = pd.read_csv(results_csv)
@@ -537,28 +460,8 @@ if results_csv.exists():
     plt.savefig(f"{KAGGLE_WORKING}/training_curves.png", dpi=150, bbox_inches="tight")
     plt.show()
 
-# %% [markdown]
-# ## 11. Export Best Weights
-# Copy best.pt to output so Kaggle saves it as a dataset output
 
-# %%
 import shutil
 
 output_dir = Path("/kaggle/working")
 shutil.copy(best_weights, output_dir / "hieroglyph_detection_v2.pt")
-print(f"✅ Model saved → /kaggle/working/hieroglyph_detection_v2.pt")
-print(f"   File size: {(output_dir / 'hieroglyph_detection_v2.pt').stat().st_size / 1e6:.1f} MB")
-
-# %% [markdown]
-# ## Done 🎉
-# 
-# After downloading `hieroglyph_detection_v2.pt`, put it in:
-# ```
-# ECHO/src/hieroglyph_models/hieroglyph_detection.pt
-# ```
-# Then in `runtime.py` set:
-# ```python
-# detection_tile_size: int = 640   # matches training tile size
-# detection_confidence: float = 0.05
-# detection_iou_threshold: float = 0.20
-# ```
