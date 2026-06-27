@@ -357,6 +357,14 @@ function ExploreContent() {
     }
   }, [searchParams]);
 
+  useEffect(() => {
+    if (selectedCity && landmarksListRef.current && window.innerWidth < 768) {
+      setTimeout(() => {
+        landmarksListRef.current?.parentElement?.scrollIntoView({ behavior: "smooth", block: "start" });
+      }, 100);
+    }
+  }, [selectedCity]);
+
   const handleTabChange = (tab: "pharaohs" | "landmarks") => {
     setActiveTab(tab);
     setSearch("");
@@ -526,7 +534,7 @@ function ExploreContent() {
               }`}
           >
             {tab === "pharaohs" ? (
-              <span className="flex items-center gap-2"><Crown size={14} /> {t("explore.tab.pharaohs")}</span>
+              <span className="flex items-center gap-2"><Crown size={18} /> {t("explore.tab.pharaohs")}</span>
             ) : (
               <span className="flex items-center gap-2"><MapPin size={14} /> {t("explore.tab.landmarks")}</span>
             )}
