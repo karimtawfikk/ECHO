@@ -951,7 +951,7 @@ function ChatContent() {
   };
 
   const chatHeader = (
-    <div className="w-full pt-[110px] relative">
+    <div className={`w-full pt-[110px] relative ${sidebarOpen ? 'hidden md:block' : ''}`}>
       <div className="w-full max-w-5xl mx-auto relative flex flex-col items-center pb-4 px-3 md:px-4">
 
         <div className="flex flex-col items-center text-center gap-2 pointer-events-auto">
@@ -1006,11 +1006,11 @@ function ChatContent() {
         {/* Sidebar - Collapsible */}
         <motion.aside
           initial={false}
-          animate={{ width: sidebarOpen ? (typeof window !== 'undefined' && window.innerWidth < 768 ? window.innerWidth : 300) : 56 }}
-          className={`h-full border-r border-[#E6B23C]/10 bg-[#0D0A07]/95 flex flex-row z-[60] ${sidebarOpen ? 'fixed md:relative inset-0 md:inset-auto' : 'relative'}`}
+          animate={{ width: sidebarOpen ? 300 : 56 }}
+          className="h-full border-r border-[#E6B23C]/10 bg-[#0D0A07]/95 flex flex-row z-[60] relative"
         >
           {/* Narrow Left Column - Always visible */}
-          <div className="w-[56px] h-full flex flex-col items-center pt-2 md:pt-4 pb-4 gap-4 shrink-0 border-r border-[#E6B23C]/5">
+          <div className="w-[56px] h-full flex flex-col items-center py-4 gap-4 shrink-0 border-r border-[#E6B23C]/5">
             {/* Return Button */}
             <div className="relative group">
               <button
@@ -1061,7 +1061,7 @@ function ChatContent() {
                 initial={{ opacity: 0 }}
                 animate={{ opacity: 1 }}
                 exit={{ opacity: 0 }}
-                className="flex-1 md:w-[244px] h-full flex flex-col px-3 pb-4 overflow-hidden shrink-0"
+                className="w-[244px] h-full flex flex-col px-3 pb-4 overflow-hidden shrink-0"
               >
                 {/* All Chats Shortcut */}
                 {chatHistory.length > 0 && (
