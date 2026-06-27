@@ -219,7 +219,7 @@ export default function TranslatePage() {
   }, []);
 
   return (
-    <PageShell fullScreen>
+    <PageShell>
       <div className="absolute inset-0 pointer-events-none z-0 overflow-hidden">
         {particles.map((p, i) => (
           <motion.div
@@ -250,7 +250,7 @@ export default function TranslatePage() {
       </div>
 
 
-      <div className="min-h-[calc(100dvh-120px)] flex flex-col items-center justify-center p-4 md:p-8 relative">
+      <div className="min-h-[calc(100dvh-300px)] flex flex-col items-center justify-center p-4 md:p-8 relative">
 
 
         <div
