@@ -546,7 +546,7 @@ function ExploreContent() {
           value={search}
           onChange={(e) => setSearch(e.target.value)}
           placeholder={activeTab === "pharaohs" ? t("explore.search.pharaohs") : t("explore.search.landmarks")}
-          className={`w-full h-12 ${isRTL ? 'pr-11 pl-10' : 'pl-11 pr-10'} rounded-xl bg-[#0D0A07] border border-[#E6B23C]/15 text-sm text-[#F5E6D0] placeholder:text-[#A08E70]/40 focus:outline-none focus:border-[#E6B23C]/30 focus:shadow-[0_0_15px_rgba(230,178,60,0.08)] transition-all`}
+          className={`w-full h-12 ${isRTL ? 'pr-11 pl-10' : 'pl-11 pr-10'} rounded-xl bg-[#0D0A07] border border-[#E6B23C]/15 text-base text-[#F5E6D0] placeholder:text-[#A08E70]/40 focus:outline-none focus:border-[#E6B23C]/30 focus:shadow-[0_0_15px_rgba(230,178,60,0.08)] transition-all`}
           style={{ caretColor: "#E6B23C" }}
         />
         {search && (
