@@ -219,7 +219,7 @@ export default function TranslatePage() {
   }, []);
 
   return (
-    <PageShell>
+    <PageShell fullScreen>
       <div className="absolute inset-0 pointer-events-none z-0 overflow-hidden">
         {particles.map((p, i) => (
           <motion.div
@@ -250,7 +250,7 @@ export default function TranslatePage() {
       </div>
 
 
-      <div className="min-h-[calc(100vh-135px)] flex flex-col items-center justify-center p-4 md:p-8 relative">
+      <div className="min-h-[calc(100dvh-120px)] flex flex-col items-center justify-center p-4 md:p-8 relative">
 
 
         <div
@@ -294,13 +294,13 @@ export default function TranslatePage() {
               {/* Subtle Texture Overlay */}
               <div className="absolute inset-0 opacity-[0.08] bg-[url('https://www.transparenttextures.com/patterns/papyros.png')] pointer-events-none" />
 
-              <div className="p-8 md:p-12 relative z-10 flex-1 flex flex-col justify-center">
+              <div className="p-6 md:p-12 relative z-10 flex-1 flex flex-col justify-center">
                 {/* Internal Header */}
-                <div className="text-center mb-10">
-                  <h1 className="font-display text-3xl font-bold text-[#F5E6D0] tracking-[0.1em] uppercase mb-3" style={{ fontFamily: 'var(--font-cormorant), serif' }}>
+                <div className="text-center mb-6 md:mb-10">
+                  <h1 className="font-display text-3xl font-bold text-[#F5E6D0] tracking-[0.1em] uppercase mb-2 md:mb-3" style={{ fontFamily: 'var(--font-cormorant), serif' }}>
                     Hieroglyphics Decoder
                   </h1>
-                  <div className="w-24 h-[1px] mx-auto mb-4 bg-gradient-to-r from-transparent via-[#E6B23C]/40 to-transparent" />
+                  <div className="w-24 h-[1px] mx-auto mb-3 md:mb-4 bg-gradient-to-r from-transparent via-[#E6B23C]/40 to-transparent" />
                   <p className="text-[#A08E70] text-sm font-medium opacity-80 max-w-md mx-auto leading-relaxed">
                     Upload an image of carved hieroglyphs to uncover the stories hidden.
                   </p>
@@ -311,7 +311,7 @@ export default function TranslatePage() {
                   onDragOver={(e) => { e.preventDefault(); setDragActive(true); }}
                   onDragLeave={() => setDragActive(false)}
                   onDrop={(e) => { e.preventDefault(); setDragActive(false); acceptFile(e.dataTransfer.files[0]); }}
-                  className={`relative min-h-[340px] rounded-3xl transition-all duration-500 flex flex-col items-center justify-center p-8 overflow-hidden group ${dragActive ? "bg-[#E6B23C]/[0.08] scale-[1.02]" : "bg-[#E6B23C]/[0.02]"
+                  className={`relative min-h-[220px] md:min-h-[340px] rounded-3xl transition-all duration-500 flex flex-col items-center justify-center p-6 md:p-8 overflow-hidden group ${dragActive ? "bg-[#E6B23C]/[0.08] scale-[1.02]" : "bg-[#E6B23C]/[0.02]"
                     }`}
                 >
                   {/* HUD Scanning Accents */}
@@ -419,11 +419,11 @@ export default function TranslatePage() {
                     ) : (
                       <motion.div key="idle" initial={{ opacity: 0 }} animate={{ opacity: 1 }} className="flex flex-col items-center">
                         {/* Hieroglyph Spirit row */}
-                        <motion.div animate={{ opacity: [0.1, 0.4, 0.1] }} transition={{ duration: 4, repeat: Infinity }} className="text-[#E6B23C] text-3xl font-display tracking-[0.6em] mb-6 select-none">
+                        <motion.div animate={{ opacity: [0.1, 0.4, 0.1] }} transition={{ duration: 4, repeat: Infinity }} className="text-[#E6B23C] text-2xl md:text-3xl font-display tracking-[0.6em] mb-4 md:mb-6 select-none">
                           𓂀 𓃭 𓅃 𓆣 𓇳
                         </motion.div>
                         <p className="text-[#F5E6D0] font-bold text-lg mb-2">Place Your Image</p>
-                        <p className="text-[#A08E70] text-[10px] font-medium opacity-60 mb-10 tracking-widest">Drop an image or Use your camera</p>
+                        <p className="text-[#A08E70] text-[10px] md:text-xs font-medium opacity-60 mb-6 md:mb-10 tracking-widest text-center">Drop an image or Use your camera</p>
 
                         <div className="flex flex-col sm:flex-row gap-4">
                           <Button onClick={pickFile} className="h-12 px-8 rounded-xl bg-[#E6B23C]/10 border border-[#E6B23C]/20 text-[#E6B23C] hover:bg-[#E6B23C]/20 font-bold text-xs uppercase tracking-widest transition-all">
@@ -617,7 +617,7 @@ export default function TranslatePage() {
           initial={{ opacity: 0 }}
           animate={{ opacity: 1 }}
           transition={{ delay: 1 }}
-          className="mt-12 flex justify-center w-full"
+          className="mt-6 md:mt-12 flex justify-center w-full"
         >
           <button
             onClick={result ? resetAll : () => router.back()}
