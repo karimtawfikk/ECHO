@@ -93,7 +93,7 @@ export default function PageShell({
           <div className="w-full flex justify-between items-center md:contents relative">
             
             {/* Mobile Hamburger Menu */}
-            <div className="md:hidden flex items-center">
+            <div className="md:hidden flex items-center flex-1 justify-start">
               {!minimal && (
                 <button onClick={() => setMenuOpen(!menuOpen)} className="p-2 -ml-2 text-[#E6B23C] hover:bg-[#E6B23C]/10 rounded-full transition-colors">
                   {menuOpen ? <X size={20} /> : <Menu size={20} />}
@@ -102,7 +102,7 @@ export default function PageShell({
             </div>
 
             {/* Center Column: Logo */}
-            <div className="absolute left-1/2 -translate-x-1/2 md:static md:translate-x-0 flex justify-center md:col-start-2 md:row-start-1">
+            <div className="flex justify-center md:col-start-2 md:row-start-1 shrink-0">
               <Link href="/" className="group">
                 <span
                   className="text-3xl font-bold tracking-[0.35em] text-[#E6B23C] gold-glow group-hover:text-[#FFD369] transition-colors"
@@ -114,7 +114,7 @@ export default function PageShell({
             </div>
 
             {/* Right Column: Language & User */}
-            <div className="flex justify-end items-center gap-2 md:gap-4 md:col-start-3 md:row-start-1">
+            <div className="flex justify-end items-center gap-2 md:gap-4 md:col-start-3 md:row-start-1 flex-1">
               {!minimal && (
                 <>
                   {/* Language Switcher */}
