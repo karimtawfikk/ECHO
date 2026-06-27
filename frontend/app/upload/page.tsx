@@ -140,8 +140,8 @@ export default function UploadPage() {
   }, []);
 
   return (
-    <PageShell fullWidth>
-      <div className="min-h-[100dvh] pt-24 pb-8 flex flex-col items-center justify-center px-4 md:px-8 relative">
+    <PageShell>
+      <div className="min-h-[calc(100dvh-160px)] md:min-h-[calc(100dvh-120px)] flex flex-col items-center justify-center p-4 md:p-8 relative">
         
         {/* Cinematic Particles */}
         <div className="absolute inset-0 pointer-events-none">
