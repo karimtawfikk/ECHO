@@ -1007,10 +1007,10 @@ function ChatContent() {
         <motion.aside
           initial={false}
           animate={{ width: sidebarOpen ? "100%" : 56 }}
-          className={`h-full border-r border-[#E6B23C]/10 bg-[#0D0A07]/95 flex flex-row z-[60] ${sidebarOpen ? 'absolute md:relative inset-0 z-[100] max-w-full md:max-w-[300px]' : 'relative max-w-[56px]'}`}
+          className={`border-r border-[#E6B23C]/10 bg-[#0D0A07]/95 flex flex-row ${sidebarOpen ? 'fixed inset-0 z-[9999] md:relative md:inset-auto md:h-full md:z-[60] md:mt-0 max-w-full md:max-w-[300px]' : 'relative -mt-20 h-[100vh] z-[40] md:mt-0 md:h-full md:z-[60] max-w-[56px]'}`}
         >
           {/* Narrow Left Column - Always visible */}
-          <div className="w-[56px] h-full flex flex-col items-center pt-8 md:pt-4 pb-4 gap-4 shrink-0 border-r border-[#E6B23C]/5">
+          <div className="w-[56px] h-full flex flex-col items-center pt-[100px] md:pt-4 pb-4 gap-4 shrink-0 border-r border-[#E6B23C]/5">
             {/* Return Button */}
             <div className="relative group">
               <button
@@ -1061,7 +1061,7 @@ function ChatContent() {
                 initial={{ opacity: 0 }}
                 animate={{ opacity: 1 }}
                 exit={{ opacity: 0 }}
-                className="flex-1 h-full flex flex-col px-3 pt-6 md:pt-0 pb-4 overflow-hidden shrink-0"
+                className="flex-1 h-full flex flex-col px-3 pt-[100px] md:pt-0 pb-4 overflow-hidden shrink-0"
               >
                 {/* All Chats Shortcut */}
                 {chatHistory.length > 0 && (
