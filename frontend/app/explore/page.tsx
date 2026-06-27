@@ -724,26 +724,26 @@ function ExploreContent() {
               <AnimatePresence>
                 {selectedCity && (
                   <motion.div
-                    initial={{ x: "100%", opacity: 0 }}
-                    animate={{ x: 0, opacity: 1 }}
-                    exit={{ x: "100%", opacity: 0 }}
+                    initial={{ opacity: 0, y: 20 }}
+                    animate={{ opacity: 1, y: 0 }}
+                    exit={{ opacity: 0, y: 20 }}
                     transition={{ type: "spring", damping: 25, stiffness: 200 }}
-                    className="absolute top-0 right-0 h-full w-full md:w-[450px] bg-[#0D0A07]/95 backdrop-blur-xl border-l border-[#E6B23C]/20 z-[100] shadow-[-20px_0_50px_rgba(0,0,0,0.5)] flex flex-col rounded-r-3xl overflow-hidden"
+                    className="relative md:absolute top-0 right-0 md:h-full w-full md:w-[450px] bg-[#0D0A07]/95 backdrop-blur-xl border border-[#E6B23C]/20 md:border-t-0 md:border-b-0 md:border-r-0 md:border-l z-[100] md:shadow-[-20px_0_50px_rgba(0,0,0,0.5)] flex flex-col rounded-2xl md:rounded-l-none md:rounded-r-3xl overflow-hidden mt-6 md:mt-0"
                   >
                     {/* Header */}
-                    <div className="p-8 border-b border-[#E6B23C]/10 flex items-center justify-between bg-gradient-to-r from-[#1A1208] to-[#0D0A07]">
+                    <div className="p-6 md:p-8 border-b border-[#E6B23C]/10 flex items-center justify-between bg-gradient-to-r from-[#1A1208] to-[#0D0A07]">
                       <div>
                         <div className="flex items-center gap-2 text-[#E6B23C] mb-1">
                           <MapPin size={16} />
                           <span className="text-[10px] font-bold tracking-[0.3em] uppercase">{t("explore.map.region")}</span>
                         </div>
-                        <h2 className="text-2xl font-bold text-[#F5E6D0] uppercase tracking-wider font-heading">
+                        <h2 className="text-xl md:text-2xl font-bold text-[#F5E6D0] uppercase tracking-wider font-heading">
                           {selectedCity.split(",")[0]}
                         </h2>
                       </div>
                       <button
                         onClick={() => setSelectedCity(null)}
-                        className="p-3 rounded-full bg-[#E6B23C]/10 text-[#E6B23C] hover:bg-[#E6B23C]/20 transition-all border border-[#E6B23C]/20"
+                        className="p-3 rounded-full bg-[#E6B23C]/10 text-[#E6B23C] hover:bg-[#E6B23C]/20 transition-all border border-[#E6B23C]/20 shrink-0"
                       >
                         <X size={20} />
                       </button>
@@ -752,7 +752,7 @@ function ExploreContent() {
                     {/* Landmarks List */}
                     <div
                       ref={landmarksListRef}
-                      className="flex-1 overflow-y-auto p-6 space-y-4 custom-scrollbar"
+                      className="flex-1 md:overflow-y-auto p-4 md:p-6 grid grid-cols-2 gap-2 md:gap-4 custom-scrollbar"
                     >
                       {landmarksByCity
                         .filter(([city]) => city === selectedCity)
@@ -766,16 +766,6 @@ function ExploreContent() {
                           />
                         ))
                       }
-                    </div>
-
-                    {/* Footer */}
-                    <div className="p-6 border-t border-[#E6B23C]/10 bg-[#0D0A07] text-center">
-                      <button
-                        onClick={() => setSelectedCity(null)}
-                        className="text-xs text-[#A08E70] hover:text-[#E6B23C] transition-colors underline underline-offset-4 uppercase tracking-widest font-bold"
-                      >
-                        {t("explore.map.close")}
-                      </button>
                     </div>
                   </motion.div>
                 )}
