@@ -23,6 +23,7 @@ export default function TranslatePage() {
   const { t, isRTL } = useLanguage();
   const router = useRouter();
   const fileInputRef = useRef<HTMLInputElement | null>(null);
+  const cameraInputRef = useRef<HTMLInputElement | null>(null);
   const [isLoading, setIsLoading] = useState(false);
   const [dragActive, setDragActive] = useState(false);
   const [file, setFile] = useState<File | null>(null);
@@ -36,6 +37,7 @@ export default function TranslatePage() {
   const abortControllerRef = useRef<AbortController | null>(null);
 
   const pickFile = () => fileInputRef.current?.click();
+  const openCamera = () => cameraInputRef.current?.click();
 
   useEffect(() => {
     try {
@@ -429,7 +431,7 @@ export default function TranslatePage() {
                           <Button onClick={pickFile} className="flex-1 h-12 px-2 sm:px-8 rounded-xl bg-[#E6B23C]/10 border border-[#E6B23C]/20 text-[#E6B23C] hover:bg-[#E6B23C]/20 font-bold text-[10px] sm:text-xs uppercase tracking-widest transition-all">
                             <Upload className={isRTL ? "ml-1 sm:ml-2" : "mr-1 sm:mr-2"} size={14} /> UPLOAD
                           </Button>
-                          <Button variant="outline" onClick={() => alert("Scanner Initializing...")} className="flex-1 h-12 px-2 sm:px-8 rounded-xl border-[#A08E70]/20 bg-transparent text-[#A08E70] hover:text-[#F5E6D0] hover:border-[#F5E6D0]/30 font-bold text-[10px] sm:text-xs uppercase tracking-widest transition-all">
+                          <Button variant="outline" onClick={openCamera} className="flex-1 h-12 px-2 sm:px-8 rounded-xl border-[#A08E70]/20 bg-transparent text-[#A08E70] hover:text-[#F5E6D0] hover:border-[#F5E6D0]/30 font-bold text-[10px] sm:text-xs uppercase tracking-widest transition-all">
                             <Camera className={isRTL ? "ml-1 sm:ml-2" : "mr-1 sm:mr-2"} size={14} /> CAPTURE
                           </Button>
                         </div>
@@ -441,6 +443,15 @@ export default function TranslatePage() {
                     type="file"
                     className="hidden"
                     accept="image/*,.heic,.heif"
+                    onChange={(e) => acceptFile(e.target.files?.[0] ?? null)}
+                    onClick={(e) => (e.currentTarget.value = "")}
+                  />
+                  <input
+                    ref={cameraInputRef}
+                    type="file"
+                    className="hidden"
+                    accept="image/*"
+                    capture="environment"
                     onChange={(e) => acceptFile(e.target.files?.[0] ?? null)}
                     onClick={(e) => (e.currentTarget.value = "")}
                   />

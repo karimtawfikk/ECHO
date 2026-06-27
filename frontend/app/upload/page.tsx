@@ -15,6 +15,7 @@ export default function UploadPage() {
   const { t, isRTL } = useLanguage();
   const router = useRouter();
   const inputRef = useRef<HTMLInputElement | null>(null);
+  const cameraInputRef = useRef<HTMLInputElement | null>(null);
   const reqIdRef = useRef(0);
   const [selectedFile, setSelectedFile] = useState<File | null>(null);
   const [fileName, setFileName] = useState<string>("");
@@ -24,6 +25,7 @@ export default function UploadPage() {
   const [error, setError] = useState<string | null>(null);
 
   function openFilePicker() { inputRef.current?.click(); }
+  function openCamera() { cameraInputRef.current?.click(); }
 
   function handleFile(file: File) {
     setFileName(file.name);
@@ -364,7 +366,7 @@ export default function UploadPage() {
 
                         <Button
                           variant="outline"
-                          onClick={() => alert("Scanner Initializing...")}
+                          onClick={openCamera}
                           className="flex-1 h-12 px-2 sm:px-8 rounded-xl border-[#A08E70]/20 bg-transparent text-[#A08E70] hover:text-[#F5E6D0] hover:border-[#F5E6D0]/30 font-bold text-[10px] sm:text-xs uppercase tracking-widest transition-all"
                         >
                           <Camera className={isRTL ? "ml-1 sm:ml-2" : "mr-1 sm:mr-2"} size={14} />
@@ -415,6 +417,7 @@ export default function UploadPage() {
         </motion.div>
       </div>
       <input ref={inputRef} type="file" accept="image/*,.heic,.heif" className="hidden" onChange={onPickFile} />
+      <input ref={cameraInputRef} type="file" accept="image/*" capture="environment" className="hidden" onChange={onPickFile} />
     </PageShell>
   );
 }
