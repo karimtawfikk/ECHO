@@ -752,7 +752,7 @@ function ExploreContent() {
                     {/* Landmarks List */}
                     <div
                       ref={landmarksListRef}
-                      className="flex-1 md:overflow-y-auto p-4 md:p-6 grid grid-cols-2 gap-2 md:gap-4 custom-scrollbar"
+                      className="flex-1 md:overflow-y-auto p-4 md:p-6 grid grid-cols-2 md:flex md:flex-col gap-2 md:gap-4 custom-scrollbar"
                     >
                       {landmarksByCity
                         .filter(([city]) => city === selectedCity)
