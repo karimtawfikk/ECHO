@@ -348,7 +348,7 @@ function ResultContent() {
 
               {/* Entity name heading */}
               <h2
-                className="text-3xl md:text-4xl font-bold text-[#1A1005] uppercase tracking-[0.06em] mb-5 border-b border-[#1A1005]/10 pb-4"
+                className="text-2xl md:text-4xl font-bold text-[#1A1005] uppercase tracking-[0.06em] mb-4 md:mb-5 border-b border-[#1A1005]/10 pb-3 md:pb-4"
                 style={{ fontFamily: "var(--font-cormorant), serif" }}
               >
                 {cleanDisplayName}
@@ -356,7 +356,7 @@ function ResultContent() {
 
               {/* Description */}
               <p
-                className="text-[#1A1005] leading-[1.8] text-lg font-medium text-justify"
+                className="text-[#1A1005] leading-[1.8] text-[15px] md:text-lg font-medium text-justify"
                 style={{ fontFamily: "var(--font-cormorant), serif" }}
               >
                 &quot;{displayDescription}&quot;
@@ -364,32 +364,32 @@ function ResultContent() {
 
               {/* Metadata rows — Only rendered when values are non-null */}
               {(dynasty || period || location || displayType === "pharaoh") && (
-                <div className="mt-6 pt-4 border-t border-[#1A1005]/10 flex flex-col gap-3 font-cormorant">
+                <div className="mt-5 md:mt-6 pt-4 border-t border-[#1A1005]/10 flex flex-col gap-2.5 md:gap-3 font-cormorant">
                   {displayType === "pharaoh" && (
-                    <div className="flex items-center gap-3 text-base text-[#1A1005]/70">
+                    <div className="flex items-center gap-3 text-sm md:text-base text-[#1A1005]/70">
                       <Crown size={15} className={`${isRTL ? 'ml-0' : 'mr-0'} text-[#B8860B] shrink-0`} />
-                      <span className={`font-semibold uppercase tracking-wide text-xs text-[#1A1005]/50 ${isRTL ? 'w-24' : 'w-20'}`}>{t("result.meta.type")}</span>
+                      <span className={`font-semibold uppercase tracking-wide text-[10px] md:text-xs text-[#1A1005]/50 ${isRTL ? 'w-24' : 'w-20'}`}>{t("result.meta.type")}</span>
                       <span className="font-medium capitalize whitespace-nowrap">{dbType}</span>
                     </div>
                   )}
                   {dynasty && (
-                    <div className="flex items-center gap-3 text-base text-[#1A1005]/70">
+                    <div className="flex items-center gap-3 text-sm md:text-base text-[#1A1005]/70">
                       <Scroll size={15} className={`${isRTL ? 'ml-0' : 'mr-0'} text-[#B8860B] shrink-0`} />
-                      <span className={`font-semibold uppercase tracking-wide text-xs text-[#1A1005]/50 ${isRTL ? 'w-24' : 'w-20'}`}>{t("result.meta.dynasty")}</span>
+                      <span className={`font-semibold uppercase tracking-wide text-[10px] md:text-xs text-[#1A1005]/50 ${isRTL ? 'w-24' : 'w-20'}`}>{t("result.meta.dynasty")}</span>
                       <span className="font-medium">{dynasty}</span>
                     </div>
                   )}
                   {period && (
-                    <div className="flex items-center gap-3 text-base text-[#1A1005]/70">
+                    <div className="flex items-center gap-3 text-sm md:text-base text-[#1A1005]/70">
                       <Hourglass size={15} className={`${isRTL ? 'ml-0' : 'mr-0'} text-[#B8860B] shrink-0`} />
-                      <span className={`font-semibold uppercase tracking-wide text-xs text-[#1A1005]/50 ${isRTL ? 'w-24' : 'w-20'}`}>{t("result.meta.period")}</span>
+                      <span className={`font-semibold uppercase tracking-wide text-[10px] md:text-xs text-[#1A1005]/50 ${isRTL ? 'w-24' : 'w-20'}`}>{t("result.meta.period")}</span>
                       <span className="font-medium">{period}</span>
                     </div>
                   )}
                   {location && (
-                    <div className="flex items-center gap-3 text-base text-[#1A1005]/70">
+                    <div className="flex items-center gap-3 text-sm md:text-base text-[#1A1005]/70">
                       <MapPin size={15} className={`${isRTL ? 'ml-0' : 'mr-0'} text-[#B8860B] shrink-0`} />
-                      <span className={`font-semibold uppercase tracking-wide text-xs text-[#1A1005]/50 ${isRTL ? 'w-24' : 'w-20'}`}>{t("result.meta.location")}</span>
+                      <span className={`font-semibold uppercase tracking-wide text-[10px] md:text-xs text-[#1A1005]/50 ${isRTL ? 'w-24' : 'w-20'}`}>{t("result.meta.location")}</span>
                       <span className="font-medium">{location}</span>
                     </div>
                   )}
