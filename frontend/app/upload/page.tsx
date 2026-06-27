@@ -211,15 +211,15 @@ export default function UploadPage() {
             {/* Subtle Texture Overlay */}
             <div className="absolute inset-0 opacity-[0.08] bg-[url('https://www.transparenttextures.com/patterns/papyros.png')] pointer-events-none" />
 
-            <div className="p-8 md:p-12 relative z-10">
+            <div className="p-6 md:p-12 relative z-10">
               
               {/* Internal Header */}
-              <div className="text-center mb-10">
+              <div className="text-center mb-6 md:mb-10">
                 <motion.h1
                   initial={{ opacity: 0, y: -10 }}
                   animate={{ opacity: 1, y: 0 }}
                   transition={{ delay: 0.4 }}
-                  className="font-display text-3xl md:text-4xl font-bold text-[#F5E6D0] tracking-[0.05em] uppercase mb-3"
+                  className="font-display text-3xl md:text-4xl font-bold text-[#F5E6D0] tracking-[0.05em] uppercase mb-2 md:mb-3"
                   style={{ fontFamily: 'var(--font-cormorant), serif' }}
                 >
                   {t("upload.title")}
@@ -246,7 +246,7 @@ export default function UploadPage() {
                 onDragLeave={() => setIsDragging(false)}
                 onDrop={(e) => { e.preventDefault(); setIsDragging(false); const f = e.dataTransfer.files[0]; if (f) handleFile(f); }}
                 whileHover={{ borderColor: "rgba(230,178,60,0.4)" }}
-                className={`relative min-h-[340px] rounded-3xl transition-all duration-500 flex flex-col items-center justify-center p-8 overflow-hidden group ${
+                className={`relative min-h-[220px] md:min-h-[340px] rounded-3xl transition-all duration-500 flex flex-col items-center justify-center p-6 md:p-8 overflow-hidden group ${
                   isDragging 
                     ? "bg-[#E6B23C]/[0.08] scale-[1.02]" 
                     : "bg-[#E6B23C]/[0.02]"
@@ -344,13 +344,13 @@ export default function UploadPage() {
                       <motion.div 
                         animate={{ opacity: [0.1, 0.4, 0.1] }}
                         transition={{ duration: 4, repeat: Infinity }}
-                        className="text-[#E6B23C] text-3xl font-display tracking-[0.6em] mb-6 select-none"
+                        className="text-[#E6B23C] text-2xl md:text-3xl font-display tracking-[0.6em] mb-4 md:mb-6 select-none"
                       >
                         𓂀 𓃭 𓅃 𓆣 𓇳
                       </motion.div>
                       
                       <p className="text-[#F5E6D0] font-bold text-lg mb-2">{t("upload.dropzone.title")}</p>
-                      <p className="text-[#A08E70] text-xs font-medium opacity-60 mb-10">{t("upload.dropzone.subtitle")}</p>
+                      <p className="text-[#A08E70] text-[10px] md:text-xs font-medium opacity-60 mb-6 md:mb-10 text-center">{t("upload.dropzone.subtitle")}</p>
 
                       {/* Integrated Action Buttons */}
                       <div className="flex flex-col sm:flex-row gap-4">
@@ -398,7 +398,7 @@ export default function UploadPage() {
           initial={{ opacity: 0 }}
           animate={{ opacity: 1 }}
           transition={{ delay: 1 }}
-          className="mt-12 flex justify-center w-full"
+          className="mt-6 md:mt-12 flex justify-center w-full"
         >
           <button 
             onClick={() => router.back()} 
