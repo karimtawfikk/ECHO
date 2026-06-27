@@ -700,11 +700,9 @@ function ExploreContent() {
                   exit={{ opacity: 0, y: -10 }}
                   className="flex justify-center mb-8"
                 >
-                  <div className="inline-flex items-center gap-3 px-6 py-2.5 rounded-full bg-[#E6B23C]/5 border border-[#E6B23C]/10 backdrop-blur-sm">
-                    <span className="text-[11px] font-bold tracking-[0.2em] text-[#A08E70] uppercase">
-                      {t("explore.map.instruction")}
-                    </span>
-                  </div>
+                  <span className="text-[11px] font-bold tracking-[0.2em] text-[#A08E70] uppercase">
+                    {t("explore.map.instruction")}
+                  </span>
                 </motion.div>
               )}
             </AnimatePresence>
