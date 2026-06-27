@@ -414,7 +414,7 @@ export default function UploadPage() {
           </button>
         </motion.div>
       </div>
-      <input ref={inputRef} type="file" accept="image/*" className="hidden" onChange={onPickFile} />
+      <input ref={inputRef} type="file" accept="image/*,.heic,.heif" className="hidden" onChange={onPickFile} />
     </PageShell>
   );
 }

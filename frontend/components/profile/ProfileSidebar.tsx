@@ -944,7 +944,7 @@ export default function ProfileSidebar({ isOpen, onClose }: ProfileSidebarProps)
                                                         type="file"
                                                         ref={fileInputRef}
                                                         onChange={handleAvatarUpload}
-                                                        accept="image/*"
+                                                        accept="image/*,.heic,.heif"
                                                         className="hidden"
                                                     />
                                                     <button

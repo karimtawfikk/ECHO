@@ -14,7 +14,9 @@ async def translate_hieroglyphs(image: UploadFile = File(...)):
     Proxies the hieroglyph translation request to the dedicated microservice.
     """
     # Validate file type
-    if not image.content_type.startswith("image/"):
+    is_image = image.content_type and image.content_type.startswith("image/")
+    is_heic = image.filename and image.filename.lower().endswith(('.heic', '.heif'))
+    if not (is_image or is_heic):
         raise HTTPException(status_code=400, detail="Invalid file type. Please upload an image.")
 
     image_data = await image.read()
@@ -39,7 +41,9 @@ async def translate_hieroglyphs_stream(image: UploadFile = File(...)):
     """
     Proxies the streaming hieroglyph translation request.
     """
-    if not image.content_type.startswith("image/"):
+    is_image = image.content_type and image.content_type.startswith("image/")
+    is_heic = image.filename and image.filename.lower().endswith(('.heic', '.heif'))
+    if not (is_image or is_heic):
         raise HTTPException(status_code=400, detail="Invalid file type.")
 
     image_data = await image.read()

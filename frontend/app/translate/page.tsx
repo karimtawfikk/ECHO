@@ -440,7 +440,7 @@ export default function TranslatePage() {
                     ref={fileInputRef}
                     type="file"
                     className="hidden"
-                    accept="image/*"
+                    accept="image/*,.heic,.heif"
                     onChange={(e) => acceptFile(e.target.files?.[0] ?? null)}
                     onClick={(e) => (e.currentTarget.value = "")}
                   />
