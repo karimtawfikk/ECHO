@@ -425,12 +425,12 @@ export default function TranslatePage() {
                         <p className="text-[#F5E6D0] font-bold text-lg mb-2">Place Your Image</p>
                         <p className="text-[#A08E70] text-[10px] md:text-xs font-medium opacity-60 mb-6 md:mb-10 tracking-widest text-center">Drop an image or Use your camera</p>
 
-                        <div className="flex flex-col sm:flex-row gap-4">
-                          <Button onClick={pickFile} className="h-12 px-8 rounded-xl bg-[#E6B23C]/10 border border-[#E6B23C]/20 text-[#E6B23C] hover:bg-[#E6B23C]/20 font-bold text-xs uppercase tracking-widest transition-all">
-                            <Upload className={isRTL ? "ml-2" : "mr-2"} size={16} /> UPLOAD
+                        <div className="flex flex-row w-full max-w-sm gap-2 sm:gap-4 justify-center">
+                          <Button onClick={pickFile} className="flex-1 h-12 px-2 sm:px-8 rounded-xl bg-[#E6B23C]/10 border border-[#E6B23C]/20 text-[#E6B23C] hover:bg-[#E6B23C]/20 font-bold text-[10px] sm:text-xs uppercase tracking-widest transition-all">
+                            <Upload className={isRTL ? "ml-1 sm:ml-2" : "mr-1 sm:mr-2"} size={14} /> UPLOAD
                           </Button>
-                          <Button variant="outline" onClick={() => alert("Scanner Initializing...")} className="h-12 px-8 rounded-xl border-[#A08E70]/20 bg-transparent text-[#A08E70] hover:text-[#F5E6D0] hover:border-[#F5E6D0]/30 font-bold text-xs uppercase tracking-widest transition-all">
-                            <Camera className={isRTL ? "ml-2" : "mr-2"} size={16} /> CAPTURE
+                          <Button variant="outline" onClick={() => alert("Scanner Initializing...")} className="flex-1 h-12 px-2 sm:px-8 rounded-xl border-[#A08E70]/20 bg-transparent text-[#A08E70] hover:text-[#F5E6D0] hover:border-[#F5E6D0]/30 font-bold text-[10px] sm:text-xs uppercase tracking-widest transition-all">
+                            <Camera className={isRTL ? "ml-1 sm:ml-2" : "mr-1 sm:mr-2"} size={14} /> CAPTURE
                           </Button>
                         </div>
                       </motion.div>
