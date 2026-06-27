@@ -250,7 +250,7 @@ export default function TranslatePage() {
       </div>
 
 
-      <div className="min-h-[calc(100dvh-160px)] md:min-h-[calc(100dvh-120px)] flex flex-col items-center justify-center p-4 md:p-8 relative">
+      <div className="-mt-6 md:mt-0 min-h-[calc(100dvh-160px)] md:min-h-[calc(100dvh-120px)] flex flex-col items-center justify-center p-4 md:p-8 relative">
 
 
         <div
