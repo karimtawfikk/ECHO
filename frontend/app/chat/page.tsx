@@ -995,7 +995,7 @@ function ChatContent() {
   );
 
   return (
-    <PageShell fullScreen headerExtension={showAllChats ? null : chatHeader}>
+    <PageShell fullScreen noScroll headerExtension={showAllChats ? null : chatHeader}>
       <audio
         ref={audioRef}
         muted={isAudioMuted}

@@ -20,13 +20,15 @@ export default function PageShell({
   fullScreen = false, 
   fullWidth = false,
   headerExtension,
-  minimal = false
+  minimal = false,
+  noScroll = false
 }: { 
   children: ReactNode, 
   fullScreen?: boolean, 
   fullWidth?: boolean,
   headerExtension?: ReactNode,
-  minimal?: boolean
+  minimal?: boolean,
+  noScroll?: boolean
 }) {
   const pathname = usePathname();
   const { language, setLanguage, t, isRTL } = useLanguage();
@@ -270,7 +272,7 @@ export default function PageShell({
       )}
 
       {/* Content */}
-      <div className={fullScreen ? "relative z-10 pt-20 h-[100dvh] w-full flex flex-col overflow-y-auto overflow-x-hidden" : (fullWidth ? "relative z-10 w-full" : "relative z-10 pt-24 md:pt-32 pb-12 md:pb-20 px-6 lg:px-12 max-w-7xl mx-auto")}>
+      <div className={fullScreen ? `relative z-10 pt-20 h-[100dvh] w-full flex flex-col overflow-x-hidden ${noScroll ? 'overflow-hidden' : 'overflow-y-auto'}` : (fullWidth ? "relative z-10 w-full" : "relative z-10 pt-24 md:pt-32 pb-12 md:pb-20 px-6 lg:px-12 max-w-7xl mx-auto")}>
         <RouteTransition fullScreen={fullScreen}>{children}</RouteTransition>
       </div>
 
