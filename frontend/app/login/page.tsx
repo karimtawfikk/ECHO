@@ -131,7 +131,7 @@ export default function LoginPage() {
             transition: background-color 5000s ease-in-out 0s;
         }
       `}</style>
-      <div className="relative min-h-screen w-full flex items-center justify-center overflow-hidden">
+      <div className="relative min-h-[100dvh] w-full flex items-start md:items-center justify-center overflow-x-hidden pt-32 pb-24 md:py-12">
         {/* Background Elements */}
         <div className="absolute inset-0 z-0 overflow-hidden pointer-events-none">
           <div className="absolute inset-0 bg-[#0D0A07]" />

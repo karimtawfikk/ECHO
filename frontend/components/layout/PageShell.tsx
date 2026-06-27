@@ -5,7 +5,7 @@ import Link from "next/link";
 import { usePathname } from "next/navigation";
 import RouteTransition from "../animations/RouteTransition";
 import { motion, AnimatePresence } from "framer-motion";
-import { Sparkles, User, Globe, ChevronDown } from "lucide-react";
+import { Sparkles, User, Globe, ChevronDown, Menu, X } from "lucide-react";
 import { useLanguage } from "../../context/LanguageContext";
 import type { Language } from "../../lib/i18n/dictionaries";
 import { useEffect } from "react";
@@ -87,9 +87,116 @@ export default function PageShell({
           backdropFilter: "blur(20px)",
         }}
       >
-        <div className="w-full h-20 px-8 grid grid-cols-3 items-center relative">
-          {/* Left Column: Horizontal Navigation */}
-          <div className="flex justify-start items-center gap-8">
+        <div className="w-full px-4 md:px-8 py-3 md:py-0 md:h-20 flex flex-col md:grid md:grid-cols-3 items-center relative gap-3 md:gap-0">
+          
+          {/* Mobile Top Row: Logo & Controls */}
+          <div className="w-full flex justify-between items-center md:contents relative">
+            
+            {/* Mobile Hamburger Menu */}
+            <div className="md:hidden flex items-center flex-1 justify-start">
+              {!minimal && (
+                <button onClick={() => setMenuOpen(!menuOpen)} className="p-2 -ml-2 text-[#E6B23C] hover:bg-[#E6B23C]/10 rounded-full transition-colors">
+                  {menuOpen ? <X size={20} /> : <Menu size={20} />}
+                </button>
+              )}
+            </div>
+
+            {/* Center Column: Logo */}
+            <div className="flex justify-center md:col-start-2 md:row-start-1 shrink-0">
+              <Link href="/" className="group">
+                <span
+                  className="text-3xl font-bold tracking-[0.35em] text-[#E6B23C] gold-glow group-hover:text-[#FFD369] transition-colors"
+                  style={{ fontFamily: 'var(--font-cormorant), serif' }}
+                >
+                  ECHO
+                </span>
+              </Link>
+            </div>
+
+            {/* Right Column: Language & User */}
+            <div className="flex justify-end items-center gap-2 md:gap-4 md:col-start-3 md:row-start-1 flex-1">
+              {!minimal && (
+                <>
+                  {/* Language Switcher */}
+                  <div className="relative hidden md:block">
+                    <button
+                      onClick={() => setLangOpen(!langOpen)}
+                      className="h-10 px-3 flex items-center gap-2 rounded-full bg-[#0D0A07] md:bg-[#E6B23C]/[0.04] border border-[#E6B23C]/20 md:border-[#E6B23C]/10 text-[#E6B23C] hover:bg-[#E6B23C]/10 transition-all group"
+                    >
+                      <Globe size={16} className="group-hover:rotate-12 transition-transform" />
+                      <span className="text-[10px] font-bold tracking-widest">{language}</span>
+                      <ChevronDown size={12} className={`transition-transform duration-300 ${langOpen ? 'rotate-180' : ''}`} />
+                    </button>
+
+                    <AnimatePresence>
+                      {langOpen && (
+                        <>
+                          <motion.div 
+                            initial={{ opacity: 0 }}
+                            animate={{ opacity: 1 }}
+                            exit={{ opacity: 0 }}
+                            onClick={() => setLangOpen(false)}
+                            className="fixed inset-0 z-[-1]"
+                          />
+                          <motion.div
+                            initial={{ opacity: 0, y: 10, scale: 0.95 }}
+                            animate={{ opacity: 1, y: 0, scale: 1 }}
+                            exit={{ opacity: 0, y: 10, scale: 0.95 }}
+                            className={`absolute top-full ${isRTL ? 'left-0' : 'right-0'} mt-4 w-40 py-2 bg-[#0D0A07]/95 backdrop-blur-2xl border border-[#E6B23C]/20 rounded-2xl shadow-[0_20px_50px_rgba(0,0,0,0.5)] overflow-hidden`}
+                          >
+                            <div className="px-4 py-2 mb-1 border-b border-[#E6B23C]/10">
+                              <span className="text-[9px] font-bold tracking-[0.2em] text-[#E6B23C]/50 uppercase">{t("nav.language")}</span>
+                            </div>
+                            {languages.map((lang) => (
+                              <button
+                                key={lang.code}
+                                onClick={() => {
+                                  setLanguage(lang.code);
+                                  setLangOpen(false);
+                                }}
+                                className={`w-full flex items-center justify-between px-4 py-2.5 text-[10px] font-bold tracking-widest uppercase transition-all hover:bg-[#E6B23C]/5 ${language === lang.code ? "text-[#E6B23C]" : "text-[#A08E70]"}`}
+                              >
+                                {lang.name}
+                                {language === lang.code && <div className="h-1 w-1 rounded-full bg-[#E6B23C] shadow-[0_0_5px_#E6B23C]" />}
+                              </button>
+                            ))}
+                          </motion.div>
+                        </>
+                      )}
+                    </AnimatePresence>
+                  </div>
+
+                  {/* User Profile */}
+                  <div className="relative">
+                    {!user ? (
+                      <Link 
+                        href="/login"
+                        className="h-10 w-10 flex items-center justify-center rounded-full bg-[#E6B23C]/10 border border-[#E6B23C]/20 text-[#E6B23C] hover:bg-[#E6B23C]/20 transition-all shadow-[0_0_15px_rgba(230,178,60,0.1)] group"
+                      >
+                        <User size={18} className="transition-transform group-hover:scale-110" />
+                      </Link>
+                    ) : (
+                      <>
+                        <button 
+                          onClick={() => setProfileOpen(true)}
+                          className="h-10 w-10 flex items-center justify-center rounded-full bg-[#E6B23C]/10 border border-[#E6B23C]/20 text-[#E6B23C] hover:bg-[#E6B23C]/20 transition-all shadow-[0_0_15px_rgba(230,178,60,0.1)] group overflow-hidden"
+                        >
+                          {user.user_metadata?.avatar_url ? (
+                            <img src={user.user_metadata.avatar_url} alt="Profile" className="w-full h-full object-cover" />
+                          ) : (
+                            <User size={18} className="transition-transform group-hover:scale-110" />
+                          )}
+                        </button>
+                      </>
+                    )}
+                  </div>
+                </>
+              )}
+            </div>
+          </div>
+
+          {/* Left Column: Desktop Navigation */}
+          <div className="hidden md:flex justify-start items-center gap-8 w-full md:w-auto md:col-start-1 md:row-start-1">
             {!minimal && navLinks.map((link) => {
               const isActive = pathname === link.href || (link.href === "/upload" && pathname.startsWith("/result"));
               return (
@@ -124,98 +231,35 @@ export default function PageShell({
             })}
           </div>
 
-          {/* Center Column: Logo */}
-          <div className="flex justify-center">
-            <Link href="/" className="group">
-              <span
-                className="text-3xl font-bold tracking-[0.35em] text-[#E6B23C] gold-glow group-hover:text-[#FFD369] transition-colors"
-                style={{ fontFamily: 'var(--font-cormorant), serif' }}
+          {/* Mobile Dropdown Menu */}
+          <AnimatePresence>
+            {menuOpen && !minimal && (
+              <motion.div
+                initial={{ opacity: 0, y: -10 }}
+                animate={{ opacity: 1, y: 0 }}
+                exit={{ opacity: 0, y: -10 }}
+                className="md:hidden absolute top-full left-0 right-0 bg-[#0D0A07]/95 backdrop-blur-3xl border-b border-[#E6B23C]/10 flex flex-col items-center py-6 gap-6 shadow-[0_20px_50px_rgba(0,0,0,0.8)]"
               >
-                ECHO
-              </span>
-            </Link>
-          </div>
-
-          {/* Right Column: Language & User */}
-          <div className="flex justify-end items-center gap-4">
-            {!minimal && (
-              <>
-                {/* Language Switcher */}
-                <div className="relative">
-                  <button
-                    onClick={() => setLangOpen(!langOpen)}
-                    className="h-10 px-3 flex items-center gap-2 rounded-full bg-[#E6B23C]/[0.04] border border-[#E6B23C]/10 text-[#E6B23C] hover:bg-[#E6B23C]/10 transition-all group"
-                  >
-                    <Globe size={16} className="group-hover:rotate-12 transition-transform" />
-                    <span className="text-[10px] font-bold tracking-widest">{language}</span>
-                    <ChevronDown size={12} className={`transition-transform duration-300 ${langOpen ? 'rotate-180' : ''}`} />
-                  </button>
-
-                  <AnimatePresence>
-                    {langOpen && (
-                      <>
-                        <motion.div 
-                          initial={{ opacity: 0 }}
-                          animate={{ opacity: 1 }}
-                          exit={{ opacity: 0 }}
-                          onClick={() => setLangOpen(false)}
-                          className="fixed inset-0 z-[-1]"
-                        />
-                        <motion.div
-                          initial={{ opacity: 0, y: 10, scale: 0.95 }}
-                          animate={{ opacity: 1, y: 0, scale: 1 }}
-                          exit={{ opacity: 0, y: 10, scale: 0.95 }}
-                          className={`absolute top-full ${isRTL ? 'left-0' : 'right-0'} mt-4 w-40 py-2 bg-[#0D0A07]/95 backdrop-blur-2xl border border-[#E6B23C]/20 rounded-2xl shadow-[0_20px_50px_rgba(0,0,0,0.5)] overflow-hidden`}
-                        >
-                          <div className="px-4 py-2 mb-1 border-b border-[#E6B23C]/10">
-                            <span className="text-[9px] font-bold tracking-[0.2em] text-[#E6B23C]/50 uppercase">{t("nav.language")}</span>
-                          </div>
-                          {languages.map((lang) => (
-                            <button
-                              key={lang.code}
-                              onClick={() => {
-                                setLanguage(lang.code);
-                                setLangOpen(false);
-                              }}
-                              className={`w-full flex items-center justify-between px-4 py-2.5 text-[10px] font-bold tracking-widest uppercase transition-all hover:bg-[#E6B23C]/5 ${language === lang.code ? "text-[#E6B23C]" : "text-[#A08E70]"}`}
-                            >
-                              {lang.name}
-                              {language === lang.code && <div className="h-1 w-1 rounded-full bg-[#E6B23C] shadow-[0_0_5px_#E6B23C]" />}
-                            </button>
-                          ))}
-                        </motion.div>
-                      </>
-                    )}
-                  </AnimatePresence>
-                </div>
-
-                {/* User Profile */}
-                <div className="relative">
-                  {!user ? (
-                    <Link 
-                      href="/login"
-                      className="h-10 w-10 flex items-center justify-center rounded-full bg-[#E6B23C]/10 border border-[#E6B23C]/20 text-[#E6B23C] hover:bg-[#E6B23C]/20 transition-all shadow-[0_0_15px_rgba(230,178,60,0.1)] group"
+                {navLinks.map((link) => {
+                  const isActive = pathname === link.href || (link.href === "/upload" && pathname.startsWith("/result"));
+                  const isHome = link.href === "/";
+                  if (isHome) return null; // Remove home from mobile menu
+                  return (
+                    <Link
+                      key={link.name}
+                      href={link.href}
+                      onClick={() => setMenuOpen(false)}
+                      className={`text-xs font-bold tracking-[0.2em] uppercase transition-all py-2 ${
+                        isActive ? "text-[#E6B23C]" : "text-[#A08E70] hover:text-[#F5E6D0]"
+                      }`}
                     >
-                      <User size={18} className="transition-transform group-hover:scale-110" />
+                      {link.name}
                     </Link>
-                  ) : (
-                    <>
-                      <button 
-                        onClick={() => setProfileOpen(true)}
-                        className="h-10 w-10 flex items-center justify-center rounded-full bg-[#E6B23C]/10 border border-[#E6B23C]/20 text-[#E6B23C] hover:bg-[#E6B23C]/20 transition-all shadow-[0_0_15px_rgba(230,178,60,0.1)] group overflow-hidden"
-                      >
-                        {user.user_metadata?.avatar_url ? (
-                          <img src={user.user_metadata.avatar_url} alt="Profile" className="w-full h-full object-cover" />
-                        ) : (
-                          <User size={18} className="transition-transform group-hover:scale-110" />
-                        )}
-                      </button>
-                    </>
-                  )}
-                </div>
-              </>
+                  );
+                })}
+              </motion.div>
             )}
-          </div>
+          </AnimatePresence>
         </div>
       </nav>
       
@@ -226,7 +270,7 @@ export default function PageShell({
       )}
 
       {/* Content */}
-      <div className={fullScreen ? "relative z-10 pt-20 h-screen w-full flex flex-col overflow-hidden" : (fullWidth ? "relative z-10 w-full" : "relative z-10 pt-32 pb-20 px-6 lg:px-12 max-w-7xl mx-auto")}>
+      <div className={fullScreen ? "relative z-10 pt-20 h-[100dvh] w-full flex flex-col overflow-y-auto overflow-x-hidden" : (fullWidth ? "relative z-10 w-full" : "relative z-10 pt-32 pb-20 px-6 lg:px-12 max-w-7xl mx-auto")}>
         <RouteTransition fullScreen={fullScreen}>{children}</RouteTransition>
       </div>
 

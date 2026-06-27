@@ -141,7 +141,7 @@ export default function UploadPage() {
 
   return (
     <PageShell>
-      <div className="min-h-[calc(100vh-140px)] flex flex-col items-center justify-center p-4 md:p-8 relative">
+      <div className="min-h-[calc(100dvh-300px)] flex flex-col items-center justify-center p-4 md:p-8 relative">
         
         {/* Cinematic Particles */}
         <div className="absolute inset-0 pointer-events-none">
@@ -211,15 +211,15 @@ export default function UploadPage() {
             {/* Subtle Texture Overlay */}
             <div className="absolute inset-0 opacity-[0.08] bg-[url('https://www.transparenttextures.com/patterns/papyros.png')] pointer-events-none" />
 
-            <div className="p-8 md:p-12 relative z-10">
+            <div className="p-6 md:p-12 relative z-10">
               
               {/* Internal Header */}
-              <div className="text-center mb-10">
+              <div className="text-center mb-6 md:mb-10">
                 <motion.h1
                   initial={{ opacity: 0, y: -10 }}
                   animate={{ opacity: 1, y: 0 }}
                   transition={{ delay: 0.4 }}
-                  className="font-display text-3xl md:text-4xl font-bold text-[#F5E6D0] tracking-[0.05em] uppercase mb-3"
+                  className="font-display text-3xl md:text-4xl font-bold text-[#F5E6D0] tracking-[0.05em] uppercase mb-2 md:mb-3"
                   style={{ fontFamily: 'var(--font-cormorant), serif' }}
                 >
                   {t("upload.title")}
@@ -246,7 +246,7 @@ export default function UploadPage() {
                 onDragLeave={() => setIsDragging(false)}
                 onDrop={(e) => { e.preventDefault(); setIsDragging(false); const f = e.dataTransfer.files[0]; if (f) handleFile(f); }}
                 whileHover={{ borderColor: "rgba(230,178,60,0.4)" }}
-                className={`relative min-h-[340px] rounded-3xl transition-all duration-500 flex flex-col items-center justify-center p-8 overflow-hidden group ${
+                className={`relative min-h-[220px] md:min-h-[340px] rounded-3xl transition-all duration-500 flex flex-col items-center justify-center p-6 md:p-8 overflow-hidden group ${
                   isDragging 
                     ? "bg-[#E6B23C]/[0.08] scale-[1.02]" 
                     : "bg-[#E6B23C]/[0.02]"
@@ -269,7 +269,7 @@ export default function UploadPage() {
                       exit={{ opacity: 0, scale: 0.9 }}
                       className="flex flex-col items-center w-full"
                     >
-                      <div className="relative group/preview mb-6">
+                      <div className="relative group/preview mb-4 md:mb-6">
                         <motion.div 
                           animate={{ rotate: 360 }}
                           transition={{ duration: 20, repeat: Infinity, ease: "linear" }}
@@ -280,7 +280,7 @@ export default function UploadPage() {
                           <img
                             src={previewUrl}
                             alt="Preview"
-                            className="max-h-[220px] w-auto object-contain"
+                            className="max-h-[140px] md:max-h-[220px] w-auto object-contain"
                           />
                           
                           {/* Constrained Scanning HUD (Now clipped to image) */}
@@ -312,7 +312,7 @@ export default function UploadPage() {
                       <motion.div 
                         initial={{ opacity: 0 }}
                         animate={{ opacity: 1 }}
-                        className="mb-8"
+                        className="mb-4 md:mb-8"
                       >
                         <p className="text-[10px] font-bold text-[#A08E70] tracking-widest uppercase truncate opacity-80">
                           {fileName}
@@ -322,7 +322,7 @@ export default function UploadPage() {
                       <Button
                         onClick={handleRecognize}
                         disabled={isLoading}
-                        className="h-14 px-12 rounded-full bg-[#E6B23C]/5 border border-[#E6B23C]/30 text-[#E6B23C] hover:bg-[#E6B23C]/10 font-bold text-sm uppercase tracking-[0.2em] transition-all hover:scale-105 shadow-[0_10px_30px_rgba(230,178,60,0.1)] w-full max-w-[280px]"
+                        className="h-12 md:h-14 px-12 rounded-full bg-[#E6B23C]/5 border border-[#E6B23C]/30 text-[#E6B23C] hover:bg-[#E6B23C]/10 font-bold text-xs md:text-sm uppercase tracking-[0.2em] transition-all hover:scale-105 shadow-[0_10px_30px_rgba(230,178,60,0.1)] w-full max-w-[280px]"
                       >
                         {isLoading ? (
                           <Loader2 size={20} className="animate-spin" />
@@ -344,30 +344,30 @@ export default function UploadPage() {
                       <motion.div 
                         animate={{ opacity: [0.1, 0.4, 0.1] }}
                         transition={{ duration: 4, repeat: Infinity }}
-                        className="text-[#E6B23C] text-3xl font-display tracking-[0.6em] mb-6 select-none"
+                        className="text-[#E6B23C] text-2xl md:text-3xl font-display tracking-[0.6em] mb-4 md:mb-6 select-none"
                       >
                         𓂀 𓃭 𓅃 𓆣 𓇳
                       </motion.div>
                       
                       <p className="text-[#F5E6D0] font-bold text-lg mb-2">{t("upload.dropzone.title")}</p>
-                      <p className="text-[#A08E70] text-xs font-medium opacity-60 mb-10">{t("upload.dropzone.subtitle")}</p>
+                      <p className="text-[#A08E70] text-[10px] md:text-xs font-medium opacity-60 mb-6 md:mb-10 text-center">{t("upload.dropzone.subtitle")}</p>
 
                       {/* Integrated Action Buttons */}
-                      <div className="flex flex-col sm:flex-row gap-4">
+                      <div className="flex flex-row w-full max-w-sm gap-2 sm:gap-4 justify-center">
                         <Button
                           onClick={openFilePicker}
-                          className="h-12 px-8 rounded-xl bg-[#E6B23C]/10 border border-[#E6B23C]/20 text-[#E6B23C] hover:bg-[#E6B23C]/20 font-bold text-xs uppercase tracking-widest transition-all"
+                          className="flex-1 h-12 px-2 sm:px-8 rounded-xl bg-[#E6B23C]/10 border border-[#E6B23C]/20 text-[#E6B23C] hover:bg-[#E6B23C]/20 font-bold text-[10px] sm:text-xs uppercase tracking-widest transition-all"
                         >
-                          <Upload className={isRTL ? "ml-2" : "mr-2"} size={16} />
+                          <Upload className={isRTL ? "ml-1 sm:ml-2" : "mr-1 sm:mr-2"} size={14} />
                           {t("upload.button.upload")}
                         </Button>
 
                         <Button
                           variant="outline"
                           onClick={() => alert("Scanner Initializing...")}
-                          className="h-12 px-8 rounded-xl border-[#A08E70]/20 bg-transparent text-[#A08E70] hover:text-[#F5E6D0] hover:border-[#F5E6D0]/30 font-bold text-xs uppercase tracking-widest transition-all"
+                          className="flex-1 h-12 px-2 sm:px-8 rounded-xl border-[#A08E70]/20 bg-transparent text-[#A08E70] hover:text-[#F5E6D0] hover:border-[#F5E6D0]/30 font-bold text-[10px] sm:text-xs uppercase tracking-widest transition-all"
                         >
-                          <Camera className={isRTL ? "ml-2" : "mr-2"} size={16} />
+                          <Camera className={isRTL ? "ml-1 sm:ml-2" : "mr-1 sm:mr-2"} size={14} />
                           {t("upload.button.capture")}
                         </Button>
                       </div>
@@ -398,7 +398,7 @@ export default function UploadPage() {
           initial={{ opacity: 0 }}
           animate={{ opacity: 1 }}
           transition={{ delay: 1 }}
-          className="mt-12 flex justify-center w-full"
+          className="mt-6 md:mt-12 flex justify-center w-full"
         >
           <button 
             onClick={() => router.back()} 
@@ -414,7 +414,7 @@ export default function UploadPage() {
           </button>
         </motion.div>
       </div>
-      <input ref={inputRef} type="file" accept="image/*" className="hidden" onChange={onPickFile} />
+      <input ref={inputRef} type="file" accept="image/*,.heic,.heif" className="hidden" onChange={onPickFile} />
     </PageShell>
   );
 }

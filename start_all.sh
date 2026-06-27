@@ -1,5 +1,7 @@
 #!/bin/bash
 
+# Globally export the unified CUDA 12 libraries so ALL services (PyTorch & TF) can find them
+export LD_LIBRARY_PATH=/workspace/venv/lib/python3.11/site-packages/nvidia/cuda_runtime/lib:/workspace/venv/lib/python3.11/site-packages/nvidia/cudnn/lib:/workspace/venv/lib/python3.11/site-packages/nvidia/cublas/lib:$LD_LIBRARY_PATH
 
 
 # 1. Main Recognition & Orchestrator (Port 8010)

@@ -607,7 +607,7 @@ export default function ProfileSidebar({ isOpen, onClose }: ProfileSidebarProps)
                         animate={{ x: 0 }}
                         exit={{ x: "100%" }}
                         transition={{ type: "spring", damping: 25, stiffness: 200 }}
-                        className="fixed top-0 right-0 h-screen w-full max-w-md bg-[#0D0A07] border-l border-[#E6B23C]/20 z-[101] shadow-[-20px_0_50px_rgba(0,0,0,0.5)] flex flex-col"
+                        className="fixed top-0 right-0 h-[100dvh] w-full max-w-md bg-[#0D0A07] border-l border-[#E6B23C]/20 z-[101] shadow-[-20px_0_50px_rgba(0,0,0,0.5)] flex flex-col"
                     >
                         <AnimatePresence mode="wait">
                             {view === "profile" ? (
@@ -695,7 +695,7 @@ export default function ProfileSidebar({ isOpen, onClose }: ProfileSidebarProps)
                                     </div>
 
                                     {/* Tab Content - Scrollable */}
-                                    <div className="flex-1 overflow-y-auto trending-scrollbar-hide">
+                                    <div className="flex-1 overflow-y-auto trending-scrollbar-hide pb-24">
                                         <motion.div
                                             key={activeTab}
                                             initial={{ opacity: 0, y: 10 }}
@@ -921,7 +921,7 @@ export default function ProfileSidebar({ isOpen, onClose }: ProfileSidebarProps)
                                     </div>
 
                                     {/* Form Content */}
-                                    <div className="flex-1 overflow-y-auto p-8 space-y-10 trending-scrollbar-hide">
+                                    <div className="flex-1 overflow-y-auto p-8 pb-24 space-y-10 trending-scrollbar-hide">
                                         {/* Profile Picture*/}
                                         <section>
                                             <div className="flex flex-col items-center justify-center gap-3">
@@ -944,7 +944,7 @@ export default function ProfileSidebar({ isOpen, onClose }: ProfileSidebarProps)
                                                         type="file"
                                                         ref={fileInputRef}
                                                         onChange={handleAvatarUpload}
-                                                        accept="image/*"
+                                                        accept="image/*,.heic,.heif"
                                                         className="hidden"
                                                     />
                                                     <button

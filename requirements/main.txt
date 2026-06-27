@@ -24,6 +24,7 @@ pandas
 requests
 tqdm
 pillow
+pillow-heif
 boto3
 scipy
 sounddevice

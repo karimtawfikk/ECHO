@@ -86,7 +86,7 @@ export default function TrendingRow({ title, items, type, isLoading = false }: T
             {/* ── 5-Column Grid ───────────────────────────────────── */}
             <motion.div 
                 variants={containerVariants}
-                className="grid grid-cols-2 md:grid-cols-3 lg:grid-cols-5 gap-4"
+                className="flex flex-wrap justify-center gap-4 [&>*]:w-[calc(50%-0.5rem)] md:[&>*]:w-[calc(33.33%-0.67rem)] lg:[&>*]:w-[calc(20%-0.8rem)]"
             >
                 {isLoading
                     ? Array.from({ length: 5 }).map((_, i) => (

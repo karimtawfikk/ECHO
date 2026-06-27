@@ -103,7 +103,7 @@ export default function HomePage() {
             <img
               src="/images/backgrounds/x.jpg"
               alt="Background"
-              className="w-full h-auto object-top opacity-60"
+              className="w-full h-full object-cover object-top opacity-60"
               onError={(e) => { e.currentTarget.style.display = 'none'; }}
             />
           </div>
@@ -237,10 +237,10 @@ export default function HomePage() {
           </svg>
         </div>
 
-        <div className="space-y-64 relative z-10">
+        <div className="space-y-32 md:space-y-64 relative z-10">
           {/* 1. Recognition Feature */}
-          <ScrollReveal direction="up" className="grid lg:grid-cols-2 gap-16 items-center">
-            <div className="relative">
+          <ScrollReveal direction="up" className="grid lg:grid-cols-2 gap-10 md:gap-16 items-center">
+            <div className="relative order-last lg:order-none">
               <div className="aspect-[4/3] max-w-[480px] mx-auto rounded-3xl overflow-hidden border border-[#E6B23C]/20 bg-[#1A1208] shadow-[0_0_50px_rgba(230,178,60,0.15)] relative z-10">
                 <img
                   src="/images/cards/Tutankhamun(1).jpg"
@@ -302,7 +302,7 @@ export default function HomePage() {
           </ScrollReveal>
 
           {/* 2. Video Feature */}
-          <ScrollReveal direction="up" className="grid lg:grid-cols-2 gap-16 items-center">
+          <ScrollReveal direction="up" className="grid lg:grid-cols-2 gap-10 md:gap-16 items-center">
             <div className="lg:text-right space-y-6">
               <div className="inline-flex items-center gap-2 px-4 py-1.5 rounded-full bg-[#E6B23C]/10 border border-[#E6B23C]/20 text-[#E6B23C] text-xs font-bold tracking-widest uppercase lg:flex-row-reverse">
                 <PlayCircle size={14} /> {t("home.feature2.badge")}
@@ -334,8 +334,8 @@ export default function HomePage() {
           </ScrollReveal>
 
           {/* 3. Chat Feature */}
-          <ScrollReveal direction="up" className="grid lg:grid-cols-2 gap-16 items-center">
-            <div className="relative">
+          <ScrollReveal direction="up" className="grid lg:grid-cols-2 gap-10 md:gap-16 items-center">
+            <div className="relative order-last lg:order-none">
               <div className="aspect-[4/5] max-w-[320px] mx-auto rounded-3xl overflow-hidden border border-[#E6B23C]/20 bg-[#0D0A07] shadow-[0_0_50px_rgba(230,178,60,0.15)] flex flex-col relative z-10">
                 {/* Chat Atmosphere Background */}
                 <div className="absolute inset-0 opacity-40 pointer-events-none">
@@ -397,7 +397,7 @@ export default function HomePage() {
           </ScrollReveal>
 
           {/* 4. Translation Feature */}
-          <ScrollReveal direction="up" className="grid lg:grid-cols-2 gap-16 items-center">
+          <ScrollReveal direction="up" className="grid lg:grid-cols-2 gap-10 md:gap-16 items-center">
             <div className="lg:text-right space-y-6">
               <div className="inline-flex items-center gap-2 px-4 py-1.5 rounded-full bg-[#E6B23C]/10 border border-[#E6B23C]/20 text-[#E6B23C] text-xs font-bold tracking-widest uppercase lg:flex-row-reverse">
                 <span className="text-xl">𓅓</span> {t("home.feature4.badge")}

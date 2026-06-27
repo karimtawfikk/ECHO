@@ -13,7 +13,9 @@ async def recognize_artifact(
 ):
     try:
         # Validate file
-        if not file.content_type or not file.content_type.startswith("image/"):
+        is_image = file.content_type and file.content_type.startswith("image/")
+        is_heic = file.filename and file.filename.lower().endswith(('.heic', '.heif'))
+        if not (is_image or is_heic):
             return RecognitionResponse(
                 source="error", type="error", name="Invalid file type", 
                 confidence=0.0, binary_confidence=0.0

@@ -5,20 +5,12 @@ import ctypes
 from pathlib import Path
 import numpy as np
 from PIL import Image
+import pillow_heif
+pillow_heif.register_heif_opener()
 import warnings
 
-# Force load the correct cuDNN library from the venv to fix the 9.1 vs 9.3 mismatch
-try:
-    ctypes.CDLL("/workspace/venv/lib/python3.11/site-packages/nvidia/cudnn/lib/libcudnn.so.9", mode=ctypes.RTLD_GLOBAL)
-except Exception as e:
-    # Try the global dist-packages path if venv fails
-    try:
-        ctypes.CDLL("/usr/local/lib/python3.11/dist-packages/nvidia/cudnn/lib/libcudnn.so.9", mode=ctypes.RTLD_GLOBAL)
-    except:
-        print(f"[ML] Warning: Could not force-load cuDNN 9: {e}")
-
-os.environ["TF_CPP_MIN_LOG_LEVEL"] = "3"  # Silence TensorFlow logs
-warnings.filterwarnings('ignore', category=UserWarning, module='keras') # Silence Keras structure warnings
+os.environ["TF_CPP_MIN_LOG_LEVEL"] = "3"
+warnings.filterwarnings('ignore', category=UserWarning, module='keras')
 
 try:
     import tensorflow as tf
@@ -57,12 +49,10 @@ class RecognitionInference:
             str(self.repo_root / "src" / "ml_models" / "recognition_models")
         )
 
-        # Load encoders
         self.binary_encoder = self._load_encoder("binary")
         self.pharaoh_encoder = self._load_encoder("pharaoh")
         self.landmark_encoder = self._load_encoder("landmark")
 
-        # Load models
         if tf is None:
             print("[ML] WARNING: TensorFlow not installed.")
             self.binary_model = self.pharaoh_model = self.landmark_model = None
