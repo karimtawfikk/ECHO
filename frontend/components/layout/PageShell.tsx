@@ -112,7 +112,7 @@ export default function PageShell({
                   <div className="relative">
                     <button
                       onClick={() => setLangOpen(!langOpen)}
-                      className="h-10 px-3 flex items-center gap-2 rounded-full bg-[#E6B23C]/[0.04] border border-[#E6B23C]/10 text-[#E6B23C] hover:bg-[#E6B23C]/10 transition-all group"
+                      className="h-10 px-3 flex items-center gap-2 rounded-full bg-[#0D0A07] md:bg-[#E6B23C]/[0.04] border border-[#E6B23C]/20 md:border-[#E6B23C]/10 text-[#E6B23C] hover:bg-[#E6B23C]/10 transition-all group"
                     >
                       <Globe size={16} className="group-hover:rotate-12 transition-transform" />
                       <span className="text-[10px] font-bold tracking-widest">{language}</span>
@@ -187,14 +187,15 @@ export default function PageShell({
           </div>
 
           {/* Left Column: Horizontal Navigation (Mobile Bottom Row) */}
-          <div className="flex justify-center md:justify-start items-center gap-4 md:gap-8 w-full md:w-auto overflow-x-auto no-scrollbar pb-1 md:pb-0 md:col-start-1 md:row-start-1">
+          <div className="flex justify-start items-center gap-6 md:gap-8 w-full md:w-auto overflow-x-auto no-scrollbar pb-1 md:pb-0 md:col-start-1 md:row-start-1">
             {!minimal && navLinks.map((link) => {
               const isActive = pathname === link.href || (link.href === "/upload" && pathname.startsWith("/result"));
+              const isHome = link.href === "/";
               return (
                 <Link
                   key={link.name}
                   href={link.href}
-                  className={`text-[9px] md:text-[11px] whitespace-nowrap font-bold tracking-[0.1em] md:tracking-[0.2em] uppercase transition-all relative group py-2 ${
+                  className={`${isHome ? 'hidden md:block' : ''} text-[11px] whitespace-nowrap font-bold tracking-[0.1em] md:tracking-[0.2em] uppercase transition-all relative group py-2 ${
                     isActive ? "text-[#E6B23C]" : "text-[#A08E70] hover:text-[#F5E6D0]"
                   }`}
                 >
