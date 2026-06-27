@@ -140,8 +140,8 @@ export default function UploadPage() {
   }, []);
 
   return (
-    <PageShell>
-      <div className="min-h-[calc(100dvh-340px)] md:min-h-[calc(100vh-240px)] flex flex-col items-center justify-center p-4 md:p-8 relative">
+    <PageShell fullWidth>
+      <div className="min-h-[100dvh] pt-24 pb-8 flex flex-col items-center justify-center px-4 md:px-8 relative">
         
         {/* Cinematic Particles */}
         <div className="absolute inset-0 pointer-events-none">
@@ -246,7 +246,7 @@ export default function UploadPage() {
                 onDragLeave={() => setIsDragging(false)}
                 onDrop={(e) => { e.preventDefault(); setIsDragging(false); const f = e.dataTransfer.files[0]; if (f) handleFile(f); }}
                 whileHover={{ borderColor: "rgba(230,178,60,0.4)" }}
-                className={`relative h-[300px] md:h-auto md:min-h-[340px] rounded-3xl transition-all duration-500 flex flex-col items-center justify-center p-6 md:p-8 overflow-hidden group ${
+                className={`relative min-h-[220px] md:min-h-[340px] rounded-3xl transition-all duration-500 flex flex-col items-center justify-center p-6 md:p-8 overflow-hidden group ${
                   isDragging 
                     ? "bg-[#E6B23C]/[0.08] scale-[1.02]" 
                     : "bg-[#E6B23C]/[0.02]"

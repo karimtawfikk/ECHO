@@ -219,7 +219,7 @@ export default function TranslatePage() {
   }, []);
 
   return (
-    <PageShell>
+    <PageShell fullWidth>
       <div className="absolute inset-0 pointer-events-none z-0 overflow-hidden">
         {particles.map((p, i) => (
           <motion.div
@@ -250,7 +250,7 @@ export default function TranslatePage() {
       </div>
 
 
-      <div className="min-h-[calc(100dvh-340px)] md:min-h-[calc(100vh-240px)] flex flex-col items-center justify-center p-4 md:p-8 relative">
+      <div className="min-h-[100dvh] pt-24 pb-8 flex flex-col items-center justify-center px-4 md:px-8 relative">
 
 
         <div
@@ -311,7 +311,7 @@ export default function TranslatePage() {
                   onDragOver={(e) => { e.preventDefault(); setDragActive(true); }}
                   onDragLeave={() => setDragActive(false)}
                   onDrop={(e) => { e.preventDefault(); setDragActive(false); acceptFile(e.dataTransfer.files[0]); }}
-                  className={`relative h-[300px] md:h-auto md:min-h-[340px] rounded-3xl transition-all duration-500 flex flex-col items-center justify-center p-6 md:p-8 overflow-hidden group ${dragActive ? "bg-[#E6B23C]/[0.08] scale-[1.02]" : "bg-[#E6B23C]/[0.02]"
+                  className={`relative min-h-[220px] md:min-h-[340px] rounded-3xl transition-all duration-500 flex flex-col items-center justify-center p-6 md:p-8 overflow-hidden group ${dragActive ? "bg-[#E6B23C]/[0.08] scale-[1.02]" : "bg-[#E6B23C]/[0.02]"
                     }`}
                 >
                   {/* HUD Scanning Accents */}
