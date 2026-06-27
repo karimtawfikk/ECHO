@@ -1061,7 +1061,7 @@ function ChatContent() {
                 initial={{ opacity: 0 }}
                 animate={{ opacity: 1 }}
                 exit={{ opacity: 0 }}
-                className="w-[244px] h-full flex flex-col px-3 pb-4 overflow-hidden shrink-0"
+                className="flex-1 md:w-[244px] md:flex-none h-full flex flex-col px-3 pb-4 overflow-hidden shrink-0"
               >
                 {/* All Chats Shortcut */}
                 {chatHistory.length > 0 && (
