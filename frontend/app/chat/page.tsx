@@ -1006,8 +1006,8 @@ function ChatContent() {
         {/* Sidebar - Collapsible */}
         <motion.aside
           initial={false}
-          animate={{ width: sidebarOpen ? 300 : 56 }}
-          className="h-full border-r border-[#E6B23C]/10 bg-[#0D0A07]/95 flex flex-row z-[60] relative"
+          animate={{ width: sidebarOpen ? (typeof window !== 'undefined' && window.innerWidth < 768 ? '100vw' : 300) : 56 }}
+          className={`border-r border-[#E6B23C]/10 bg-[#0D0A07]/95 flex flex-row z-[60] relative ${sidebarOpen ? 'md:h-full h-[calc(100%+5rem)] -mt-20 pt-20 md:mt-0 md:pt-0 md:h-full' : 'h-full'}`}
         >
           {/* Narrow Left Column - Always visible */}
           <div className="w-[56px] h-full flex flex-col items-center py-4 gap-4 shrink-0 border-r border-[#E6B23C]/5">
