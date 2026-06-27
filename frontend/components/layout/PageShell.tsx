@@ -87,16 +87,114 @@ export default function PageShell({
           backdropFilter: "blur(20px)",
         }}
       >
-        <div className="w-full h-20 px-8 grid grid-cols-3 items-center relative">
-          {/* Left Column: Horizontal Navigation */}
-          <div className="flex justify-start items-center gap-8">
+        <div className="w-full px-4 md:px-8 py-3 md:py-0 md:h-20 flex flex-col md:grid md:grid-cols-3 items-center relative gap-3 md:gap-0">
+          
+          {/* Mobile Top Row: Logo & Controls */}
+          <div className="w-full flex justify-between items-center md:contents">
+            
+            {/* Center Column: Logo */}
+            <div className="flex justify-center md:col-start-2 md:row-start-1">
+              <Link href="/" className="group">
+                <span
+                  className="text-3xl font-bold tracking-[0.35em] text-[#E6B23C] gold-glow group-hover:text-[#FFD369] transition-colors"
+                  style={{ fontFamily: 'var(--font-cormorant), serif' }}
+                >
+                  ECHO
+                </span>
+              </Link>
+            </div>
+
+            {/* Right Column: Language & User */}
+            <div className="flex justify-end items-center gap-2 md:gap-4 md:col-start-3 md:row-start-1">
+              {!minimal && (
+                <>
+                  {/* Language Switcher */}
+                  <div className="relative">
+                    <button
+                      onClick={() => setLangOpen(!langOpen)}
+                      className="h-10 px-3 flex items-center gap-2 rounded-full bg-[#E6B23C]/[0.04] border border-[#E6B23C]/10 text-[#E6B23C] hover:bg-[#E6B23C]/10 transition-all group"
+                    >
+                      <Globe size={16} className="group-hover:rotate-12 transition-transform" />
+                      <span className="text-[10px] font-bold tracking-widest">{language}</span>
+                      <ChevronDown size={12} className={`transition-transform duration-300 ${langOpen ? 'rotate-180' : ''}`} />
+                    </button>
+
+                    <AnimatePresence>
+                      {langOpen && (
+                        <>
+                          <motion.div 
+                            initial={{ opacity: 0 }}
+                            animate={{ opacity: 1 }}
+                            exit={{ opacity: 0 }}
+                            onClick={() => setLangOpen(false)}
+                            className="fixed inset-0 z-[-1]"
+                          />
+                          <motion.div
+                            initial={{ opacity: 0, y: 10, scale: 0.95 }}
+                            animate={{ opacity: 1, y: 0, scale: 1 }}
+                            exit={{ opacity: 0, y: 10, scale: 0.95 }}
+                            className={`absolute top-full ${isRTL ? 'left-0' : 'right-0'} mt-4 w-40 py-2 bg-[#0D0A07]/95 backdrop-blur-2xl border border-[#E6B23C]/20 rounded-2xl shadow-[0_20px_50px_rgba(0,0,0,0.5)] overflow-hidden`}
+                          >
+                            <div className="px-4 py-2 mb-1 border-b border-[#E6B23C]/10">
+                              <span className="text-[9px] font-bold tracking-[0.2em] text-[#E6B23C]/50 uppercase">{t("nav.language")}</span>
+                            </div>
+                            {languages.map((lang) => (
+                              <button
+                                key={lang.code}
+                                onClick={() => {
+                                  setLanguage(lang.code);
+                                  setLangOpen(false);
+                                }}
+                                className={`w-full flex items-center justify-between px-4 py-2.5 text-[10px] font-bold tracking-widest uppercase transition-all hover:bg-[#E6B23C]/5 ${language === lang.code ? "text-[#E6B23C]" : "text-[#A08E70]"}`}
+                              >
+                                {lang.name}
+                                {language === lang.code && <div className="h-1 w-1 rounded-full bg-[#E6B23C] shadow-[0_0_5px_#E6B23C]" />}
+                              </button>
+                            ))}
+                          </motion.div>
+                        </>
+                      )}
+                    </AnimatePresence>
+                  </div>
+
+                  {/* User Profile */}
+                  <div className="relative">
+                    {!user ? (
+                      <Link 
+                        href="/login"
+                        className="h-10 w-10 flex items-center justify-center rounded-full bg-[#E6B23C]/10 border border-[#E6B23C]/20 text-[#E6B23C] hover:bg-[#E6B23C]/20 transition-all shadow-[0_0_15px_rgba(230,178,60,0.1)] group"
+                      >
+                        <User size={18} className="transition-transform group-hover:scale-110" />
+                      </Link>
+                    ) : (
+                      <>
+                        <button 
+                          onClick={() => setProfileOpen(true)}
+                          className="h-10 w-10 flex items-center justify-center rounded-full bg-[#E6B23C]/10 border border-[#E6B23C]/20 text-[#E6B23C] hover:bg-[#E6B23C]/20 transition-all shadow-[0_0_15px_rgba(230,178,60,0.1)] group overflow-hidden"
+                        >
+                          {user.user_metadata?.avatar_url ? (
+                            <img src={user.user_metadata.avatar_url} alt="Profile" className="w-full h-full object-cover" />
+                          ) : (
+                            <User size={18} className="transition-transform group-hover:scale-110" />
+                          )}
+                        </button>
+                      </>
+                    )}
+                  </div>
+                </>
+              )}
+            </div>
+          </div>
+
+          {/* Left Column: Horizontal Navigation (Mobile Bottom Row) */}
+          <div className="flex justify-center md:justify-start items-center gap-4 md:gap-8 w-full md:w-auto overflow-x-auto no-scrollbar pb-1 md:pb-0 md:col-start-1 md:row-start-1">
             {!minimal && navLinks.map((link) => {
               const isActive = pathname === link.href || (link.href === "/upload" && pathname.startsWith("/result"));
               return (
                 <Link
                   key={link.name}
                   href={link.href}
-                  className={`text-[11px] font-bold tracking-[0.2em] uppercase transition-all relative group py-2 ${
+                  className={`text-[9px] md:text-[11px] whitespace-nowrap font-bold tracking-[0.1em] md:tracking-[0.2em] uppercase transition-all relative group py-2 ${
                     isActive ? "text-[#E6B23C]" : "text-[#A08E70] hover:text-[#F5E6D0]"
                   }`}
                 >
@@ -124,98 +222,6 @@ export default function PageShell({
             })}
           </div>
 
-          {/* Center Column: Logo */}
-          <div className="flex justify-center">
-            <Link href="/" className="group">
-              <span
-                className="text-3xl font-bold tracking-[0.35em] text-[#E6B23C] gold-glow group-hover:text-[#FFD369] transition-colors"
-                style={{ fontFamily: 'var(--font-cormorant), serif' }}
-              >
-                ECHO
-              </span>
-            </Link>
-          </div>
-
-          {/* Right Column: Language & User */}
-          <div className="flex justify-end items-center gap-4">
-            {!minimal && (
-              <>
-                {/* Language Switcher */}
-                <div className="relative">
-                  <button
-                    onClick={() => setLangOpen(!langOpen)}
-                    className="h-10 px-3 flex items-center gap-2 rounded-full bg-[#E6B23C]/[0.04] border border-[#E6B23C]/10 text-[#E6B23C] hover:bg-[#E6B23C]/10 transition-all group"
-                  >
-                    <Globe size={16} className="group-hover:rotate-12 transition-transform" />
-                    <span className="text-[10px] font-bold tracking-widest">{language}</span>
-                    <ChevronDown size={12} className={`transition-transform duration-300 ${langOpen ? 'rotate-180' : ''}`} />
-                  </button>
-
-                  <AnimatePresence>
-                    {langOpen && (
-                      <>
-                        <motion.div 
-                          initial={{ opacity: 0 }}
-                          animate={{ opacity: 1 }}
-                          exit={{ opacity: 0 }}
-                          onClick={() => setLangOpen(false)}
-                          className="fixed inset-0 z-[-1]"
-                        />
-                        <motion.div
-                          initial={{ opacity: 0, y: 10, scale: 0.95 }}
-                          animate={{ opacity: 1, y: 0, scale: 1 }}
-                          exit={{ opacity: 0, y: 10, scale: 0.95 }}
-                          className={`absolute top-full ${isRTL ? 'left-0' : 'right-0'} mt-4 w-40 py-2 bg-[#0D0A07]/95 backdrop-blur-2xl border border-[#E6B23C]/20 rounded-2xl shadow-[0_20px_50px_rgba(0,0,0,0.5)] overflow-hidden`}
-                        >
-                          <div className="px-4 py-2 mb-1 border-b border-[#E6B23C]/10">
-                            <span className="text-[9px] font-bold tracking-[0.2em] text-[#E6B23C]/50 uppercase">{t("nav.language")}</span>
-                          </div>
-                          {languages.map((lang) => (
-                            <button
-                              key={lang.code}
-                              onClick={() => {
-                                setLanguage(lang.code);
-                                setLangOpen(false);
-                              }}
-                              className={`w-full flex items-center justify-between px-4 py-2.5 text-[10px] font-bold tracking-widest uppercase transition-all hover:bg-[#E6B23C]/5 ${language === lang.code ? "text-[#E6B23C]" : "text-[#A08E70]"}`}
-                            >
-                              {lang.name}
-                              {language === lang.code && <div className="h-1 w-1 rounded-full bg-[#E6B23C] shadow-[0_0_5px_#E6B23C]" />}
-                            </button>
-                          ))}
-                        </motion.div>
-                      </>
-                    )}
-                  </AnimatePresence>
-                </div>
-
-                {/* User Profile */}
-                <div className="relative">
-                  {!user ? (
-                    <Link 
-                      href="/login"
-                      className="h-10 w-10 flex items-center justify-center rounded-full bg-[#E6B23C]/10 border border-[#E6B23C]/20 text-[#E6B23C] hover:bg-[#E6B23C]/20 transition-all shadow-[0_0_15px_rgba(230,178,60,0.1)] group"
-                    >
-                      <User size={18} className="transition-transform group-hover:scale-110" />
-                    </Link>
-                  ) : (
-                    <>
-                      <button 
-                        onClick={() => setProfileOpen(true)}
-                        className="h-10 w-10 flex items-center justify-center rounded-full bg-[#E6B23C]/10 border border-[#E6B23C]/20 text-[#E6B23C] hover:bg-[#E6B23C]/20 transition-all shadow-[0_0_15px_rgba(230,178,60,0.1)] group overflow-hidden"
-                      >
-                        {user.user_metadata?.avatar_url ? (
-                          <img src={user.user_metadata.avatar_url} alt="Profile" className="w-full h-full object-cover" />
-                        ) : (
-                          <User size={18} className="transition-transform group-hover:scale-110" />
-                        )}
-                      </button>
-                    </>
-                  )}
-                </div>
-              </>
-            )}
-          </div>
         </div>
       </nav>
       
