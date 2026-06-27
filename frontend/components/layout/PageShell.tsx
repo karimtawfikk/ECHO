@@ -5,7 +5,7 @@ import Link from "next/link";
 import { usePathname } from "next/navigation";
 import RouteTransition from "../animations/RouteTransition";
 import { motion, AnimatePresence } from "framer-motion";
-import { Sparkles, User, Globe, ChevronDown, Menu, X } from "lucide-react";
+import { Sparkles, User, Globe, ChevronDown, Menu, X, MoreHorizontal } from "lucide-react";
 import { useLanguage } from "../../context/LanguageContext";
 import type { Language } from "../../lib/i18n/dictionaries";
 import { useEffect } from "react";
@@ -90,22 +90,50 @@ export default function PageShell({
         <div className="w-full px-4 md:px-8 py-3 md:py-0 md:h-20 flex flex-col md:grid md:grid-cols-3 items-center relative gap-3 md:gap-0">
           
           {/* Mobile Top Row: Logo & Controls */}
-          <div className="w-full flex justify-between items-center md:contents relative">
+          <div className="w-full flex justify-between items-center md:contents relative h-12 md:h-auto">
             
-            {/* Mobile Hamburger Menu */}
-            <div className="md:hidden flex items-center flex-1 justify-start">
+            {/* Mobile Nav Links & Toggle */}
+            <div className={`md:hidden flex items-center justify-start ${menuOpen ? 'flex-[2]' : 'flex-1'} overflow-hidden transition-all duration-300`}>
               {!minimal && (
-                <button onClick={() => setMenuOpen(!menuOpen)} className="p-2 -ml-2 text-[#E6B23C] hover:bg-[#E6B23C]/10 rounded-full transition-colors">
-                  {menuOpen ? <X size={20} /> : <Menu size={20} />}
+                <button onClick={() => setMenuOpen(!menuOpen)} className="p-2 -ml-2 text-[#E6B23C] hover:bg-[#E6B23C]/10 rounded-full transition-colors shrink-0">
+                  {menuOpen ? <X size={18} /> : <MoreHorizontal size={24} />}
                 </button>
               )}
+              
+              <AnimatePresence>
+                {menuOpen && !minimal && (
+                  <motion.div
+                    initial={{ opacity: 0, width: 0 }}
+                    animate={{ opacity: 1, width: "auto" }}
+                    exit={{ opacity: 0, width: 0 }}
+                    className="flex items-center gap-3 overflow-hidden whitespace-nowrap ml-1"
+                  >
+                    {navLinks.map((link) => {
+                      if (link.href === "/") return null;
+                      const isActive = pathname === link.href || (link.href === "/upload" && pathname.startsWith("/result"));
+                      return (
+                        <Link
+                          key={link.name}
+                          href={link.href}
+                          onClick={() => setMenuOpen(false)}
+                          className={`text-[8.5px] sm:text-[10px] font-bold tracking-[0.1em] sm:tracking-[0.15em] uppercase transition-all ${
+                            isActive ? "text-[#E6B23C]" : "text-[#A08E70] hover:text-[#F5E6D0]"
+                          }`}
+                        >
+                          {link.name}
+                        </Link>
+                      );
+                    })}
+                  </motion.div>
+                )}
+              </AnimatePresence>
             </div>
 
             {/* Center Column: Logo */}
-            <div className="flex justify-center md:col-start-2 md:row-start-1 shrink-0">
-              <Link href="/" className="group">
+            <div className="flex justify-center md:col-start-2 md:row-start-1 shrink-0 transition-all duration-300">
+              <Link href="/" className="group flex items-center">
                 <span
-                  className="text-3xl font-bold tracking-[0.35em] text-[#E6B23C] gold-glow group-hover:text-[#FFD369] transition-colors"
+                  className={`${menuOpen ? 'text-[16px] sm:text-xl' : 'text-3xl'} font-bold tracking-[0.35em] text-[#E6B23C] gold-glow group-hover:text-[#FFD369] transition-all duration-300`}
                   style={{ fontFamily: 'var(--font-cormorant), serif' }}
                 >
                   ECHO
@@ -114,7 +142,7 @@ export default function PageShell({
             </div>
 
             {/* Right Column: Language & User */}
-            <div className="flex justify-end items-center gap-2 md:gap-4 md:col-start-3 md:row-start-1 flex-1">
+            <div className={`flex justify-end items-center gap-2 md:gap-4 md:col-start-3 md:row-start-1 ${menuOpen ? 'shrink-0 ml-3 md:ml-0' : 'flex-1'} transition-all duration-300`}>
               {!minimal && (
                 <>
                   {/* Language Switcher */}
@@ -231,35 +259,7 @@ export default function PageShell({
             })}
           </div>
 
-          {/* Mobile Dropdown Menu */}
-          <AnimatePresence>
-            {menuOpen && !minimal && (
-              <motion.div
-                initial={{ opacity: 0, y: -10 }}
-                animate={{ opacity: 1, y: 0 }}
-                exit={{ opacity: 0, y: -10 }}
-                className="md:hidden absolute top-full left-0 right-0 bg-[#0D0A07]/95 backdrop-blur-3xl border-b border-[#E6B23C]/10 flex flex-col items-center py-6 gap-6 shadow-[0_20px_50px_rgba(0,0,0,0.8)]"
-              >
-                {navLinks.map((link) => {
-                  const isActive = pathname === link.href || (link.href === "/upload" && pathname.startsWith("/result"));
-                  const isHome = link.href === "/";
-                  if (isHome) return null; // Remove home from mobile menu
-                  return (
-                    <Link
-                      key={link.name}
-                      href={link.href}
-                      onClick={() => setMenuOpen(false)}
-                      className={`text-xs font-bold tracking-[0.2em] uppercase transition-all py-2 ${
-                        isActive ? "text-[#E6B23C]" : "text-[#A08E70] hover:text-[#F5E6D0]"
-                      }`}
-                    >
-                      {link.name}
-                    </Link>
-                  );
-                })}
-              </motion.div>
-            )}
-          </AnimatePresence>
+          {/* Mobile dropdown removed in favor of inline header expansion */}
         </div>
       </nav>
       
