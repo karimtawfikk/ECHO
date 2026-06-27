@@ -71,20 +71,20 @@ function EntityCard({ entity, type, onNavigate }: { entity: RecognitionEntity; t
       whileHover={{ scale: 1.02 }}
       whileTap={{ scale: 0.98 }}
       onClick={onNavigate}
-      className="group cursor-pointer rounded-xl border border-[#E6B23C]/8 bg-[#1A1208]/50 hover:border-[#E6B23C]/20 hover:bg-[#1A1208]/80 transition-all p-4 backdrop-blur-sm"
+      className="group cursor-pointer w-full rounded-xl border border-[#E6B23C]/8 bg-[#1A1208]/50 hover:border-[#E6B23C]/20 hover:bg-[#1A1208]/80 transition-all p-3 md:p-4 backdrop-blur-sm overflow-hidden"
     >
-      <div className="flex items-start justify-between gap-3">
-        <div className="flex-1 min-w-0">
-          <h3 className="font-heading text-base font-bold text-[#E6B23C] truncate transition-colors">
+      <div className="flex items-start justify-between gap-2 md:gap-3 w-full">
+        <div className="flex-1 min-w-0 overflow-hidden">
+          <h3 className="font-heading text-sm md:text-base font-bold text-[#E6B23C] truncate transition-colors">
             {cleanName}
           </h3>
           {entity.type && type !== "pharaoh" && (
-            <span className="text-[11px] text-[#A08E70]/70 uppercase tracking-wider">
+            <span className="text-[10px] md:text-[11px] text-[#A08E70]/70 uppercase tracking-wider mt-0.5 block">
               {t("result.badge.landmark")}
             </span>
           )}
           {entity.description && (
-            <p className="text-xs text-[#A08E70]/60 mt-1.5 line-clamp-2 leading-relaxed">
+            <p className="text-[11px] md:text-xs text-[#A08E70]/60 mt-1 md:mt-1.5 line-clamp-2 leading-relaxed">
               {entity.description}
             </p>
           )}
@@ -109,12 +109,12 @@ function DynastyGroup({ dynasty, entities, type, onNavigate }: {
     <div className="border border-[#E6B23C]/8 rounded-2xl overflow-hidden bg-[#0D0A07]/50 backdrop-blur-sm">
       <button
         onClick={() => setOpen(!open)}
-        className="w-full flex items-center justify-between px-5 py-4 hover:bg-[#E6B23C]/5 transition-colors"
+        className="w-full flex items-center justify-between px-4 md:px-5 py-3 md:py-4 hover:bg-[#E6B23C]/5 transition-colors"
       >
         <div className="flex items-center gap-3">
           <Scroll size={15} className="text-[#B8860B] shrink-0" />
-          <span className="text-sm font-bold text-[#EADBB8] tracking-wide">{dynasty}</span>
-          <span className={`text-[10px] text-[#A08E70]/50 font-bold tracking-widest uppercase ${isRTL ? 'mr-1' : 'ml-1'}`}>
+          <span className="text-xs md:text-sm font-bold text-[#EADBB8] tracking-wide text-left">{dynasty}</span>
+          <span className={`text-[10px] text-[#A08E70]/50 font-bold tracking-widest uppercase ${isRTL ? 'mr-1' : 'ml-1'} whitespace-nowrap`}>
             {entities.length} {entities.length === 1 ? t("common.entity") : t("common.entities")}
           </span>
         </div>
@@ -131,7 +131,7 @@ function DynastyGroup({ dynasty, entities, type, onNavigate }: {
             transition={{ duration: 0.3 }}
             className="overflow-hidden"
           >
-            <div className="px-4 pb-4 grid gap-2 sm:grid-cols-2">
+            <div className="px-3 md:px-4 pb-3 md:pb-4 flex flex-col sm:grid sm:grid-cols-2 gap-2 md:gap-3">
               {entities.map((e) => (
                 <EntityCard key={e.id} entity={e} type={type} onNavigate={() => onNavigate(e)} />
               ))}
