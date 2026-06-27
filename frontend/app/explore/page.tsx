@@ -534,7 +534,7 @@ function ExploreContent() {
               }`}
           >
             {tab === "pharaohs" ? (
-              <span className="flex items-center gap-2"><Crown size={18} /> {t("explore.tab.pharaohs")}</span>
+              <span className="flex items-center gap-2"><Crown size={24} /> {t("explore.tab.pharaohs")}</span>
             ) : (
               <span className="flex items-center gap-2"><MapPin size={14} /> {t("explore.tab.landmarks")}</span>
             )}
