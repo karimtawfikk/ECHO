@@ -547,7 +547,7 @@ function ExploreContent() {
         initial={{ opacity: 0 }}
         animate={{ opacity: 1 }}
         transition={{ delay: 0.3 }}
-        className="max-w-lg mx-auto mb-10 relative"
+        className="w-[90%] max-w-[300px] md:max-w-lg md:w-full mx-auto mb-10 relative"
       >
         <Search size={16} className={`absolute ${isRTL ? 'right-4' : 'left-4'} top-1/2 -translate-y-1/2 text-[#A08E70]/40`} />
         <input
