@@ -5,7 +5,7 @@ import Link from "next/link";
 import { usePathname } from "next/navigation";
 import RouteTransition from "../animations/RouteTransition";
 import { motion, AnimatePresence } from "framer-motion";
-import { Sparkles, User, Globe, ChevronDown } from "lucide-react";
+import { Sparkles, User, Globe, ChevronDown, Menu, X } from "lucide-react";
 import { useLanguage } from "../../context/LanguageContext";
 import type { Language } from "../../lib/i18n/dictionaries";
 import { useEffect } from "react";
@@ -90,10 +90,19 @@ export default function PageShell({
         <div className="w-full px-4 md:px-8 py-3 md:py-0 md:h-20 flex flex-col md:grid md:grid-cols-3 items-center relative gap-3 md:gap-0">
           
           {/* Mobile Top Row: Logo & Controls */}
-          <div className="w-full flex justify-between items-center md:contents">
+          <div className="w-full flex justify-between items-center md:contents relative">
             
+            {/* Mobile Hamburger Menu */}
+            <div className="md:hidden flex items-center">
+              {!minimal && (
+                <button onClick={() => setMenuOpen(!menuOpen)} className="p-2 -ml-2 text-[#E6B23C] hover:bg-[#E6B23C]/10 rounded-full transition-colors">
+                  {menuOpen ? <X size={20} /> : <Menu size={20} />}
+                </button>
+              )}
+            </div>
+
             {/* Center Column: Logo */}
-            <div className="flex justify-center md:col-start-2 md:row-start-1">
+            <div className="absolute left-1/2 -translate-x-1/2 md:static md:translate-x-0 flex justify-center md:col-start-2 md:row-start-1">
               <Link href="/" className="group">
                 <span
                   className="text-3xl font-bold tracking-[0.35em] text-[#E6B23C] gold-glow group-hover:text-[#FFD369] transition-colors"
@@ -109,7 +118,7 @@ export default function PageShell({
               {!minimal && (
                 <>
                   {/* Language Switcher */}
-                  <div className="relative">
+                  <div className="relative hidden md:block">
                     <button
                       onClick={() => setLangOpen(!langOpen)}
                       className="h-10 px-3 flex items-center gap-2 rounded-full bg-[#0D0A07] md:bg-[#E6B23C]/[0.04] border border-[#E6B23C]/20 md:border-[#E6B23C]/10 text-[#E6B23C] hover:bg-[#E6B23C]/10 transition-all group"
@@ -186,16 +195,15 @@ export default function PageShell({
             </div>
           </div>
 
-          {/* Left Column: Horizontal Navigation (Mobile Bottom Row) */}
-          <div className="flex justify-start items-center gap-6 md:gap-8 w-full md:w-auto overflow-x-auto no-scrollbar pb-1 md:pb-0 md:col-start-1 md:row-start-1">
+          {/* Left Column: Desktop Navigation */}
+          <div className="hidden md:flex justify-start items-center gap-8 w-full md:w-auto md:col-start-1 md:row-start-1">
             {!minimal && navLinks.map((link) => {
               const isActive = pathname === link.href || (link.href === "/upload" && pathname.startsWith("/result"));
-              const isHome = link.href === "/";
               return (
                 <Link
                   key={link.name}
                   href={link.href}
-                  className={`${isHome ? 'hidden md:block' : ''} text-[11px] whitespace-nowrap font-bold tracking-[0.1em] md:tracking-[0.2em] uppercase transition-all relative group py-2 ${
+                  className={`text-[11px] font-bold tracking-[0.2em] uppercase transition-all relative group py-2 ${
                     isActive ? "text-[#E6B23C]" : "text-[#A08E70] hover:text-[#F5E6D0]"
                   }`}
                 >
@@ -223,6 +231,35 @@ export default function PageShell({
             })}
           </div>
 
+          {/* Mobile Dropdown Menu */}
+          <AnimatePresence>
+            {menuOpen && !minimal && (
+              <motion.div
+                initial={{ opacity: 0, y: -10 }}
+                animate={{ opacity: 1, y: 0 }}
+                exit={{ opacity: 0, y: -10 }}
+                className="md:hidden absolute top-full left-0 right-0 bg-[#0D0A07]/95 backdrop-blur-3xl border-b border-[#E6B23C]/10 flex flex-col items-center py-6 gap-6 shadow-[0_20px_50px_rgba(0,0,0,0.8)]"
+              >
+                {navLinks.map((link) => {
+                  const isActive = pathname === link.href || (link.href === "/upload" && pathname.startsWith("/result"));
+                  const isHome = link.href === "/";
+                  if (isHome) return null; // Remove home from mobile menu
+                  return (
+                    <Link
+                      key={link.name}
+                      href={link.href}
+                      onClick={() => setMenuOpen(false)}
+                      className={`text-xs font-bold tracking-[0.2em] uppercase transition-all py-2 ${
+                        isActive ? "text-[#E6B23C]" : "text-[#A08E70] hover:text-[#F5E6D0]"
+                      }`}
+                    >
+                      {link.name}
+                    </Link>
+                  );
+                })}
+              </motion.div>
+            )}
+          </AnimatePresence>
         </div>
       </nav>
       
