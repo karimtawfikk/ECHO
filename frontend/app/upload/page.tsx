@@ -269,7 +269,7 @@ export default function UploadPage() {
                       exit={{ opacity: 0, scale: 0.9 }}
                       className="flex flex-col items-center w-full"
                     >
-                      <div className="relative group/preview mb-6">
+                      <div className="relative group/preview mb-4 md:mb-6">
                         <motion.div 
                           animate={{ rotate: 360 }}
                           transition={{ duration: 20, repeat: Infinity, ease: "linear" }}
@@ -280,7 +280,7 @@ export default function UploadPage() {
                           <img
                             src={previewUrl}
                             alt="Preview"
-                            className="max-h-[220px] w-auto object-contain"
+                            className="max-h-[140px] md:max-h-[220px] w-auto object-contain"
                           />
                           
                           {/* Constrained Scanning HUD (Now clipped to image) */}
@@ -312,7 +312,7 @@ export default function UploadPage() {
                       <motion.div 
                         initial={{ opacity: 0 }}
                         animate={{ opacity: 1 }}
-                        className="mb-8"
+                        className="mb-4 md:mb-8"
                       >
                         <p className="text-[10px] font-bold text-[#A08E70] tracking-widest uppercase truncate opacity-80">
                           {fileName}
@@ -322,7 +322,7 @@ export default function UploadPage() {
                       <Button
                         onClick={handleRecognize}
                         disabled={isLoading}
-                        className="h-14 px-12 rounded-full bg-[#E6B23C]/5 border border-[#E6B23C]/30 text-[#E6B23C] hover:bg-[#E6B23C]/10 font-bold text-sm uppercase tracking-[0.2em] transition-all hover:scale-105 shadow-[0_10px_30px_rgba(230,178,60,0.1)] w-full max-w-[280px]"
+                        className="h-12 md:h-14 px-12 rounded-full bg-[#E6B23C]/5 border border-[#E6B23C]/30 text-[#E6B23C] hover:bg-[#E6B23C]/10 font-bold text-xs md:text-sm uppercase tracking-[0.2em] transition-all hover:scale-105 shadow-[0_10px_30px_rgba(230,178,60,0.1)] w-full max-w-[280px]"
                       >
                         {isLoading ? (
                           <Loader2 size={20} className="animate-spin" />
