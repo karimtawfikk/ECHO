@@ -82,36 +82,6 @@ export default function HomePage() {
         transition={{ duration: 0.8 }}
         className="min-h-[100vh] pt-[25vh] pb-10 flex flex-col justify-center items-center text-center relative overflow-hidden"
       >
-        {/* Dynamic Background Image */}
-        <div
-          className="absolute inset-0 z-[-2]"
-          style={{
-            maskImage: "linear-gradient(to bottom, black 80%, transparent 100%)",
-            WebkitMaskImage: "linear-gradient(to bottom, black 80%, transparent 100%)"
-          }}
-        >
-          {/* Base Color Fill */}
-          <div className="absolute inset-0 bg-[#0D0A07]" />
-
-          <div
-            className="w-full h-full"
-            style={{
-              maskImage: "linear-gradient(to bottom, black 0%, black 25%, transparent 80%)",
-              WebkitMaskImage: "linear-gradient(to bottom, black 0%, black 25%, transparent 80%)"
-            }}
-          >
-            <img
-              src="/images/backgrounds/x.jpg"
-              alt="Background"
-              className="w-full h-full object-cover object-top opacity-60"
-              onError={(e) => { e.currentTarget.style.display = 'none'; }}
-            />
-          </div>
-          {/* Darkening layer */}
-          <div className="absolute inset-0 bg-[#0D0A07]/50" />
-          {/* Bottom blend */}
-          <div className="absolute inset-0 bg-gradient-to-b from-transparent via-transparent to-[#0D0A07]" />
-        </div>
 
         {/* Warm ambient light behind hero with subtle parallax */}
         <ParallaxLayer speed={0.15} className="absolute inset-0 z-[-1] pointer-events-none flex items-center justify-center">
