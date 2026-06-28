@@ -265,7 +265,22 @@ function ChatContent() {
   const [isAudioMuted, setIsAudioMuted] = useState(false);
   const [playingMsgId, setPlayingMsgId] = useState<string | null>(null);
 
-  // Welcome message logic is now handled in the render phase
+  // Lock body scrolling on mobile to prevent page scroll behind chat
+  useEffect(() => {
+    const isMobile = window.innerWidth < 768;
+    if (isMobile) {
+      document.documentElement.style.overflow = 'hidden';
+      document.body.style.overflow = 'hidden';
+      document.documentElement.style.overscrollBehavior = 'none';
+      document.body.style.overscrollBehavior = 'none';
+    }
+    return () => {
+      document.documentElement.style.overflow = '';
+      document.body.style.overflow = '';
+      document.documentElement.style.overscrollBehavior = '';
+      document.body.style.overscrollBehavior = '';
+    };
+  }, []);
 
   const [input, setInput] = useState("");
   const [isTyping, setIsTyping] = useState(false);
@@ -951,10 +966,10 @@ function ChatContent() {
   };
 
   const chatHeader = (
-    <div className={`w-full pt-[110px] relative ${sidebarOpen ? 'hidden md:block' : ''}`}>
+    <div className={`w-full pt-[84px] md:pt-[110px] relative ${sidebarOpen ? 'hidden md:block' : ''}`}>
       <div className="w-full max-w-5xl mx-auto relative flex flex-col items-center pb-4 px-3 md:px-4">
 
-        <div className="flex flex-col items-center text-center gap-2 pointer-events-auto">
+        <div className="flex flex-col items-center text-center gap-1 md:gap-2 pointer-events-auto">
           <motion.div
             animate={{
               scale: [1, 1.04, 1],
@@ -969,7 +984,7 @@ function ChatContent() {
               repeat: Infinity,
               ease: "easeInOut"
             }}
-            className="h-14 w-14 md:h-16 md:w-16 rounded-full bg-gradient-to-br from-[#E6B23C] to-[#D4A030] p-[2px]"
+            className="h-12 w-12 md:h-16 md:w-16 rounded-full bg-gradient-to-br from-[#E6B23C] to-[#D4A030] p-[2px]"
           >
             <div className="h-full w-full rounded-full bg-[#0D0A07] overflow-hidden flex items-center justify-center">
               {avatarUrl ? (
@@ -985,9 +1000,9 @@ function ChatContent() {
               )}
             </div>
           </motion.div>
-          <div className="space-y-0.5">
-            <h1 className="font-heading text-2xl md:text-3xl font-bold text-[#F5E6D0] tracking-wide">{cleanDisplayName}</h1>
-            <div className="text-[9px] md:text-[10px] font-bold tracking-[0.4em] text-[#E6B23C] uppercase opacity-70">{statusText}</div>
+          <div className="space-y-0.5 md:space-y-0.5 space-y-0">
+            <h1 className="font-heading text-xl md:text-3xl font-bold text-[#F5E6D0] tracking-wide">{cleanDisplayName}</h1>
+            <div className="text-[8px] md:text-[10px] font-bold tracking-[0.4em] text-[#E6B23C] uppercase opacity-70">{statusText}</div>
           </div>
         </div>
       </div>
@@ -1007,15 +1022,15 @@ function ChatContent() {
         <motion.aside
           initial={false}
           animate={{ width: sidebarOpen ? (typeof window !== 'undefined' && window.innerWidth < 768 ? '100vw' : 300) : 56 }}
-          className={`border-r border-[#E6B23C]/10 bg-[#0D0A07]/95 flex flex-row z-[60] relative h-[calc(100%+5rem)] -mt-20 pt-20 md:mt-0 md:pt-0 md:h-full`}
+          className={`h-full flex flex-row z-[60] absolute md:relative left-0 top-0 ${sidebarOpen ? 'bg-[#0D0A07] border-r border-[#E6B23C]/10' : 'bg-transparent border-none md:bg-[#0D0A07] md:border-r md:border-[#E6B23C]/10'}`}
         >
           {/* Narrow Left Column - Always visible */}
-          <div className="w-[56px] h-full flex flex-col items-center py-4 gap-4 shrink-0 border-r border-[#E6B23C]/5">
+          <div className={`w-[56px] h-full flex flex-col items-center py-4 gap-4 shrink-0 ${sidebarOpen ? 'border-r border-[#E6B23C]/5' : 'border-none md:border-r md:border-[#E6B23C]/5'}`}>
             {/* Return Button */}
             <div className="relative group">
               <button
                 onClick={() => router.back()}
-                className="h-8 w-8 flex items-center justify-center rounded-lg hover:bg-[#E6B23C]/10 text-[#A08E70] hover:text-[#E6B23C] transition-all border-none outline-none"
+                className="h-8 w-8 flex items-center justify-center rounded-lg hover:bg-[#E6B23C]/10 active:bg-[#E6B23C]/20 active:ring-2 active:ring-[#E6B23C]/60 active:scale-95 text-[#A08E70] hover:text-[#E6B23C] transition-all border-none outline-none"
               >
                 <ArrowLeft size={16} />
               </button>
@@ -1028,7 +1043,7 @@ function ChatContent() {
             <div className="relative group">
               <button
                 onClick={() => setSidebarOpen(!sidebarOpen)}
-                className="h-8 w-8 flex items-center justify-center rounded-lg hover:bg-[#E6B23C]/10 text-[#A08E70] hover:text-[#E6B23C] transition-all border-none outline-none"
+                className="h-8 w-8 flex items-center justify-center rounded-lg hover:bg-[#E6B23C]/10 active:bg-[#E6B23C]/20 active:ring-2 active:ring-[#E6B23C]/60 active:scale-95 text-[#A08E70] hover:text-[#E6B23C] transition-all border-none outline-none"
               >
                 <PanelLeft size={16} />
               </button>
@@ -1040,18 +1055,7 @@ function ChatContent() {
               </span>
             </div>
 
-            {/* New Chat Button */}
-            <div className="relative group">
-              <button
-                onClick={() => window.location.href = '/chat?entity=' + entityName + '&type=' + entityType}
-                className="h-8 w-8 flex items-center justify-center rounded-lg hover:bg-[#E6B23C]/10 text-[#A08E70] hover:text-[#E6B23C] transition-all border-none outline-none"
-              >
-                <SquarePen size={16} />
-              </button>
-              <span className={`absolute ${isRTL ? 'right-full mr-4' : 'left-full ml-4'} top-1/2 -translate-y-1/2 px-2 py-1 bg-[#1A1208] border border-[#E6B23C]/20 text-[#E6B23C] text-[10px] capitalize font-bold tracking-widest rounded opacity-0 group-hover:opacity-100 transition-opacity whitespace-nowrap z-50 pointer-events-none`}>
-                {t("chat.sidebar.new").charAt(0).toUpperCase() + t("chat.sidebar.new").slice(1).toLowerCase()}
-              </span>
-            </div>
+
           </div>
 
           {/* Expanded Content */}
@@ -1067,7 +1071,7 @@ function ChatContent() {
                 {chatHistory.length > 0 && (
                   <button
                     onClick={() => { setShowAllChats(true); setSidebarOpen(false); }}
-                    className={`w-full flex items-center gap-3 px-4 py-3 rounded-2xl transition-all text-left group mb-4 ${showAllChats
+                    className={`w-full flex items-center gap-3 px-4 py-3 rounded-2xl transition-all text-left group mb-4 mt-6 ${showAllChats
                       ? 'bg-[#E6B23C]/15 border border-[#E6B23C]/20 shadow-[0_4px_20px_rgba(0,0,0,0.3)]'
                       : 'hover:bg-white/[0.03] border border-transparent'}`}
                   >
@@ -1223,6 +1227,18 @@ function ChatContent() {
 
         {/* Main Chat Area */}
         <div className="flex-1 flex flex-col h-full relative overflow-hidden bg-transparent">
+          {/* New Chat Button (Top Right) */}
+          <div className="absolute top-4 right-4 md:right-6 z-[55]">
+            <button
+              onClick={() => window.location.href = `/chat?entity=${entityName}&type=${entityType}`}
+              className="h-8 w-8 flex items-center justify-center rounded-lg hover:bg-[#E6B23C]/10 active:bg-[#E6B23C]/20 active:ring-2 active:ring-[#E6B23C]/60 active:scale-95 text-[#A08E70] hover:text-[#E6B23C] transition-all border-none outline-none group"
+            >
+              <SquarePen size={16} />
+              <span className={`absolute ${isRTL ? 'left-full ml-4' : 'right-full mr-4'} top-1/2 -translate-y-1/2 px-2 py-1 bg-[#1A1208] border border-[#E6B23C]/20 text-[#E6B23C] text-[10px] capitalize font-bold tracking-widest rounded opacity-0 group-hover:opacity-100 transition-opacity whitespace-nowrap z-50 pointer-events-none`}>
+                New Chat
+              </span>
+            </button>
+          </div>
           {showAllChats ? (
             <div className="flex-1 flex flex-col overflow-hidden bg-[#0D0A07]/30 backdrop-blur-sm">
               <div className={`max-w-5xl mx-auto w-full pt-32 px-8 md:px-12 ${showMainFilters && !filterType && filterMonth === null && sortBy === 'name' ? 'mb-14' : 'mb-2'}`}>
@@ -1442,7 +1458,7 @@ function ChatContent() {
               </div>
 
               {/* Grouped List - Now full width for scrolling but inner content centered */}
-              <div className={`flex-1 ${groupedChats.length > 0 ? 'overflow-y-auto' : 'overflow-hidden'} trending-scrollbar-hide`}>
+              <div className={`flex-1 overflow-x-hidden ${groupedChats.length > 0 ? 'overflow-y-auto' : 'overflow-hidden'} trending-scrollbar-hide`}>
                 <div className="max-w-5xl mx-auto w-full px-8 md:px-12 pb-24">
                   {groupedChats.length > 0 ? (
                     <div className="bg-[#1A1208]/30 border border-[#E6B23C]/10 rounded-3xl p-6 md:p-10 backdrop-blur-md shadow-[0_10px_40px_rgba(0,0,0,0.4)]">
@@ -1523,8 +1539,8 @@ function ChatContent() {
           ) : (
             <>
               {/* Messages Area - Positioned below the fixed header area */}
-              <div ref={scrollRef} className="flex-1 overflow-y-auto trending-scrollbar-hide relative mt-48 md:mt-42">
-                <div className="max-w-5xl mx-auto w-full p-4 md:p-8 space-y-8 pb-32" style={{ direction: 'ltr' }}>
+              <div ref={scrollRef} className="flex-1 overflow-y-auto trending-scrollbar-hide relative mt-36 md:mt-42">
+                <div className="max-w-5xl mx-auto w-full pl-12 pr-4 pt-4 pb-32 md:p-8 space-y-8" style={{ direction: 'ltr' }}>
                   <AnimatePresence>
                     {/* Static Welcome Message */}
                     <motion.div key="welcome-message-static" initial={{ opacity: 0, y: 10 }} animate={{ opacity: 1, y: 0 }} transition={{ duration: 0.4 }}
@@ -1532,7 +1548,7 @@ function ChatContent() {
                     >
                       <div className="flex flex-col gap-3 w-full">
                         <div
-                          className="text-[#D4C4A8] text-sm md:text-base leading-relaxed font-normal tracking-wide"
+                          className="text-[#D4C4A8] text-[13px] md:text-base leading-relaxed font-normal tracking-wide"
                           style={{ direction: isRTL ? 'rtl' : 'ltr', textAlign: isRTL ? 'right' : 'left' }}
                         >
                           {renderMessageText(t("chat.welcome", { name: cleanDisplayName }))}
@@ -1582,7 +1598,7 @@ function ChatContent() {
                             )}
 
                             <div
-                              className="text-[#D4C4A8] text-sm md:text-base leading-relaxed font-normal tracking-wide"
+                              className="text-[#D4C4A8] text-[13px] md:text-base leading-relaxed font-normal tracking-wide"
                               style={{ direction: isRTL ? 'rtl' : 'ltr', textAlign: isRTL ? 'right' : 'left' }}
                             >
                               {renderMessageText(msg.text)}
@@ -1630,7 +1646,7 @@ function ChatContent() {
                           <div className="flex flex-col items-end gap-3 text-right">
                             <div className="px-6 py-3 rounded-[24px] bg-[#E6B23C]/10 border border-[#E6B23C]/20 shadow-[0_4px_20px_rgba(230,178,60,0.05)]">
                               <div
-                                className="text-[#E6B23C] text-sm md:text-base leading-relaxed font-normal tracking-wide"
+                                className="text-[#E6B23C] text-[13px] md:text-base leading-relaxed font-normal tracking-wide"
                                 style={{ direction: isRTL ? 'rtl' : 'ltr', textAlign: isRTL ? 'right' : 'left' }}
                               >
                                 {renderMessageText(msg.text)}
@@ -1693,7 +1709,7 @@ function ChatContent() {
                     >
                       <div className="relative flex flex-col items-center gap-8 pointer-events-auto">
                         {/* The Liquid Blob Container */}
-                        <div className="relative h-32 w-32 md:h-[152px] md:w-[152px] flex items-center justify-center">
+                        <div className="relative h-24 w-24 md:h-[152px] md:w-[152px] flex items-center justify-center">
                           {/* Organic Glow (Behind) */}
                           <motion.div
                             animate={{
@@ -1733,7 +1749,7 @@ function ChatContent() {
                             transition={{ repeat: Infinity, duration: 1.5, ease: "easeInOut" }}
                             className="relative z-10"
                           >
-                            <Mic size={36} className="text-[#1A1208] drop-shadow-lg" />
+                            <Mic size={28} className="text-[#1A1208] drop-shadow-lg md:w-9 md:h-9" />
                           </motion.div>
                         </div>
 
@@ -1743,7 +1759,7 @@ function ChatContent() {
                             animate={{ opacity: [1, 0.4, 1] }}
                             transition={{ repeat: Infinity, duration: 2 }}
                           >
-                            <span className="text-sm font-bold tracking-[0.5em] uppercase text-[#E6B23C] drop-shadow-md">{t("chat.listening")}</span>
+                            <span className="text-xs md:text-sm font-bold tracking-[0.5em] uppercase text-[#E6B23C] drop-shadow-md">{t("chat.listening")}</span>
                           </motion.div>
 
                           <button
@@ -1761,7 +1777,7 @@ function ChatContent() {
 
               {/* Input Bar - Floating & Minimal - Centered relative to screen */}
               <div className="w-full shrink-0 z-10">
-                <div className="p-4 md:p-8 md:pb-12 bg-transparent max-w-5xl mx-auto">
+                <div className="pl-12 pr-4 pt-4 pb-4 md:p-8 md:pb-12 bg-transparent max-w-5xl mx-auto">
                   <div className="flex gap-3 md:gap-4 items-center max-w-4xl mx-auto relative">
                     {recordingState === "processing" ? (
                       <motion.div
@@ -1777,26 +1793,28 @@ function ChatContent() {
                         <span className="text-[11px] font-bold tracking-[0.3em] uppercase text-[#E6B23C]">{t("chat.transcribing")}</span>
                       </motion.div>
                     ) : (
-                      <textarea
-                        ref={textareaRef}
-                        value={input}
-                        onChange={(e) => {
-                          setInput(e.target.value);
-                          e.target.style.height = "auto";
-                          e.target.style.height = `${e.target.scrollHeight}px`;
-                        }}
-                        onKeyDown={(e) => {
-                          if (e.key === "Enter" && !e.shiftKey) {
-                            e.preventDefault();
-                            sendMessage();
-                          }
-                        }}
-                        disabled={recordingState !== "idle"}
-                        placeholder={t("chat.placeholder", { name: cleanDisplayName })}
-                        rows={1}
-                        className="flex-1 min-h-[56px] max-h-48 py-4 px-8 rounded-[28px] bg-[#1A1208]/50 backdrop-blur-xl border border-[#E6B23C]/10 text-base placeholder:text-[#A08E70]/40 focus:outline-none focus:border-[#E6B23C]/30 focus:bg-[#1A1208]/80 focus:shadow-[0_0_30px_rgba(230,178,60,0.05)] transition-all disabled:opacity-50 resize-none overflow-y-auto trending-scrollbar-hide"
-                        style={{ color: "#E6B23C", caretColor: "#E6B23C", direction: isRTL ? 'rtl' : 'ltr' }}
-                      />
+                      <div className="flex-1 min-h-[56px] max-h-48 py-4 px-8 rounded-[28px] bg-[#1A1208]/50 backdrop-blur-xl border border-[#E6B23C]/10 focus-within:border-[#E6B23C]/30 focus-within:bg-[#1A1208]/80 focus-within:shadow-[0_0_30px_rgba(230,178,60,0.05)] transition-all flex items-center relative z-[60]">
+                        <textarea
+                          ref={textareaRef}
+                          value={input}
+                          onChange={(e) => {
+                            setInput(e.target.value);
+                            e.target.style.height = "auto";
+                            e.target.style.height = `${e.target.scrollHeight}px`;
+                          }}
+                          onKeyDown={(e) => {
+                            if (e.key === "Enter" && !e.shiftKey) {
+                              e.preventDefault();
+                              sendMessage();
+                            }
+                          }}
+                          disabled={recordingState !== "idle"}
+                          placeholder={t("chat.placeholder", { name: cleanDisplayName })}
+                          rows={1}
+                          className="w-full bg-transparent text-base placeholder:text-[#E6B23C]/50 focus:outline-none disabled:opacity-50 resize-none overflow-y-auto trending-scrollbar-hide"
+                          style={{ color: "#E6B23C", caretColor: "#E6B23C", direction: isRTL ? 'rtl' : 'ltr', transform: 'translateZ(0)' }}
+                        />
+                      </div>
                     )}
 
                     {/* Smart send/mic button */}
