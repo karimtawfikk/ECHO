@@ -115,9 +115,8 @@ export default function PageShell({
                           key={link.name}
                           href={link.href}
                           onClick={() => setMenuOpen(false)}
-                          className={`text-[9px] font-bold tracking-widest uppercase transition-colors ${
-                            isActive ? "text-[#E6B23C]" : "text-[#A08E70] hover:text-[#F5E6D0]"
-                          }`}
+                          className={`text-[8px] font-bold tracking-widest uppercase transition-colors ${isActive ? "text-[#E6B23C]" : "text-[#A08E70] hover:text-[#F5E6D0]"
+                            }`}
                         >
                           {link.name}
                         </Link>
@@ -146,7 +145,7 @@ export default function PageShell({
                 <>
                   <AnimatePresence>
                     {menuOpen && (
-                      <motion.div 
+                      <motion.div
                         initial={{ opacity: 0, x: 10 }}
                         animate={{ opacity: 1, x: 0 }}
                         exit={{ opacity: 0, x: 10 }}
@@ -163,7 +162,7 @@ export default function PageShell({
                       </motion.div>
                     )}
                   </AnimatePresence>
-                  
+
                   {/* Language Switcher */}
                   <div className="relative hidden md:block">
                     <button
