@@ -1540,7 +1540,7 @@ function ChatContent() {
           ) : (
             <>
               {/* Messages Area - Positioned below the fixed header area */}
-              <div ref={scrollRef} className="flex-1 overflow-y-auto trending-scrollbar-hide relative mt-48 md:mt-42">
+              <div ref={scrollRef} className="flex-1 overflow-y-auto trending-scrollbar-hide relative mt-36 md:mt-42">
                 <div className="max-w-5xl mx-auto w-full p-4 md:p-8 space-y-8 pb-32" style={{ direction: 'ltr' }}>
                   <AnimatePresence>
                     {/* Static Welcome Message */}
