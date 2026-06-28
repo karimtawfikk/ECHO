@@ -132,41 +132,7 @@ export default function LoginPage() {
         }
       `}</style>
       <div className="relative min-h-[100dvh] w-full flex items-start md:items-center justify-center overflow-x-hidden pt-32 pb-24 md:py-12">
-        {/* Background Elements */}
-        <div className="absolute inset-0 z-0 overflow-hidden pointer-events-none">
-          <div className="absolute inset-0 bg-[#0D0A07]" />
-          <div className="egyptian-pattern" />
-          <div className="absolute top-[-10%] left-[-10%] w-[40%] h-[40%] bg-[#E6B23C]/5 rounded-full blur-[120px]" />
-          <div className="absolute bottom-[-10%] right-[-10%] w-[50%] h-[50%] bg-[#E6B23C]/10 rounded-full blur-[150px]" />
-          <div className="absolute inset-0 bg-[url('/bg-pattern.png')] opacity-10 mix-blend-overlay" />
 
-          {/* Floating Particles - Only render on client to avoid hydration mismatch */}
-          {mounted && loginParticles.map((p, i) => (
-            <motion.div
-              key={i}
-              className="absolute w-1 h-1 bg-[#E6B23C]/30 rounded-full"
-              style={{
-                left: p.x,
-                top: p.y,
-              }}
-              initial={{
-                opacity: 0,
-                x: 0,
-                y: 0,
-              }}
-              animate={{
-                y: [0, p.driftY],
-                opacity: [0, 1, 0]
-              }}
-              transition={{
-                duration: p.duration,
-                repeat: Infinity,
-                ease: "easeInOut",
-                delay: p.delay
-              }}
-            />
-          ))}
-        </div>
 
         <div className="relative z-10 w-full max-w-6xl px-4 flex flex-col md:flex-row items-center gap-16 py-12">
 
