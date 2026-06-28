@@ -1238,6 +1238,18 @@ function ChatContent() {
 
         {/* Main Chat Area */}
         <div className="flex-1 flex flex-col h-full relative overflow-hidden bg-transparent">
+          {/* New Chat Button (Top Right) */}
+          <div className="absolute top-4 right-4 md:right-6 z-[55]">
+            <button
+              onClick={() => window.location.href = `/chat?entity=${entityName}&type=${entityType}`}
+              className="h-8 w-8 flex items-center justify-center rounded-lg hover:bg-[#E6B23C]/10 text-[#A08E70] hover:text-[#E6B23C] transition-all border-none outline-none group"
+            >
+              <SquarePen size={16} />
+              <span className={`absolute ${isRTL ? 'left-full ml-4' : 'right-full mr-4'} top-1/2 -translate-y-1/2 px-2 py-1 bg-[#1A1208] border border-[#E6B23C]/20 text-[#E6B23C] text-[10px] capitalize font-bold tracking-widest rounded opacity-0 group-hover:opacity-100 transition-opacity whitespace-nowrap z-50 pointer-events-none`}>
+                New Chat
+              </span>
+            </button>
+          </div>
           {showAllChats ? (
             <div className="flex-1 flex flex-col overflow-hidden bg-[#0D0A07]/30 backdrop-blur-sm">
               <div className={`max-w-5xl mx-auto w-full pt-32 px-8 md:px-12 ${showMainFilters && !filterType && filterMonth === null && sortBy === 'name' ? 'mb-14' : 'mb-2'}`}>
