@@ -1792,26 +1792,28 @@ function ChatContent() {
                         <span className="text-[11px] font-bold tracking-[0.3em] uppercase text-[#E6B23C]">{t("chat.transcribing")}</span>
                       </motion.div>
                     ) : (
-                      <textarea
-                        ref={textareaRef}
-                        value={input}
-                        onChange={(e) => {
-                          setInput(e.target.value);
-                          e.target.style.height = "auto";
-                          e.target.style.height = `${e.target.scrollHeight}px`;
-                        }}
-                        onKeyDown={(e) => {
-                          if (e.key === "Enter" && !e.shiftKey) {
-                            e.preventDefault();
-                            sendMessage();
-                          }
-                        }}
-                        disabled={recordingState !== "idle"}
-                        placeholder={t("chat.placeholder", { name: cleanDisplayName })}
-                        rows={1}
-                        className="flex-1 min-h-[56px] max-h-48 py-4 px-8 rounded-[28px] bg-[#1A1208]/50 backdrop-blur-xl border border-[#E6B23C]/10 text-base placeholder:text-[#E6B23C]/50 focus:outline-none focus:border-[#E6B23C]/30 focus:bg-[#1A1208]/80 focus:shadow-[0_0_30px_rgba(230,178,60,0.05)] transition-all disabled:opacity-50 resize-none overflow-y-auto trending-scrollbar-hide"
-                        style={{ color: "#E6B23C", caretColor: "#E6B23C", direction: isRTL ? 'rtl' : 'ltr' }}
-                      />
+                      <div className="flex-1 min-h-[56px] max-h-48 py-4 px-8 rounded-[28px] bg-[#1A1208]/50 backdrop-blur-xl border border-[#E6B23C]/10 focus-within:border-[#E6B23C]/30 focus-within:bg-[#1A1208]/80 focus-within:shadow-[0_0_30px_rgba(230,178,60,0.05)] transition-all flex items-center relative z-[60]">
+                        <textarea
+                          ref={textareaRef}
+                          value={input}
+                          onChange={(e) => {
+                            setInput(e.target.value);
+                            e.target.style.height = "auto";
+                            e.target.style.height = `${e.target.scrollHeight}px`;
+                          }}
+                          onKeyDown={(e) => {
+                            if (e.key === "Enter" && !e.shiftKey) {
+                              e.preventDefault();
+                              sendMessage();
+                            }
+                          }}
+                          disabled={recordingState !== "idle"}
+                          placeholder={t("chat.placeholder", { name: cleanDisplayName })}
+                          rows={1}
+                          className="w-full bg-transparent text-base placeholder:text-[#E6B23C]/50 focus:outline-none disabled:opacity-50 resize-none overflow-y-auto trending-scrollbar-hide"
+                          style={{ color: "#E6B23C", caretColor: "#E6B23C", direction: isRTL ? 'rtl' : 'ltr', transform: 'translateZ(0)' }}
+                        />
+                      </div>
                     )}
 
                     {/* Smart send/mic button */}
