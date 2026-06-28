@@ -131,10 +131,10 @@ export default function LoginPage() {
             transition: background-color 5000s ease-in-out 0s;
         }
       `}</style>
-      <div className="relative min-h-[100dvh] w-full flex items-start md:items-center justify-center overflow-x-hidden pt-32 pb-24 md:py-12">
+      <div className="relative min-h-full w-full flex items-start md:items-center justify-center overflow-x-hidden pt-4 pb-24 md:py-12">
 
 
-        <div className="relative z-10 w-full max-w-6xl px-4 flex flex-col md:flex-row items-center gap-16 py-12">
+        <div className="relative z-10 w-full max-w-6xl px-4 flex flex-col md:flex-row items-center gap-8 md:gap-16 pt-2 pb-12 md:py-12">
 
           {/* Left Side: Branding / Story */}
           <motion.div
