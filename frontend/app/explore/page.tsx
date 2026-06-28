@@ -71,20 +71,20 @@ function EntityCard({ entity, type, onNavigate }: { entity: RecognitionEntity; t
       whileHover={{ scale: 1.02 }}
       whileTap={{ scale: 0.98 }}
       onClick={onNavigate}
-      className="group cursor-pointer rounded-xl border border-[#E6B23C]/8 bg-[#1A1208]/50 hover:border-[#E6B23C]/20 hover:bg-[#1A1208]/80 transition-all p-4 backdrop-blur-sm"
+      className="group cursor-pointer w-full rounded-xl border border-[#E6B23C]/8 bg-[#1A1208]/50 hover:border-[#E6B23C]/20 hover:bg-[#1A1208]/80 transition-all p-3 md:p-4 backdrop-blur-sm overflow-hidden"
     >
-      <div className="flex items-start justify-between gap-3">
-        <div className="flex-1 min-w-0">
-          <h3 className="font-heading text-base font-bold text-[#E6B23C] truncate transition-colors">
+      <div className="flex items-start justify-between gap-1.5 md:gap-3 w-full">
+        <div className="flex-1 min-w-0 overflow-hidden">
+          <h3 className="font-heading text-xs sm:text-sm md:text-base font-bold text-[#E6B23C] truncate transition-colors">
             {cleanName}
           </h3>
           {entity.type && type !== "pharaoh" && (
-            <span className="text-[11px] text-[#A08E70]/70 uppercase tracking-wider">
+            <span className="text-[9px] md:text-[11px] text-[#A08E70]/70 uppercase tracking-wider mt-0.5 block">
               {t("result.badge.landmark")}
             </span>
           )}
           {entity.description && (
-            <p className="text-xs text-[#A08E70]/60 mt-1.5 line-clamp-2 leading-relaxed">
+            <p className="text-[11px] md:text-xs text-[#A08E70]/60 mt-1 md:mt-1.5 line-clamp-2 leading-relaxed">
               {entity.description}
             </p>
           )}
@@ -106,15 +106,15 @@ function DynastyGroup({ dynasty, entities, type, onNavigate }: {
   const [open, setOpen] = useState(false);
 
   return (
-    <div className="border border-[#E6B23C]/8 rounded-2xl overflow-hidden bg-[#0D0A07]/50 backdrop-blur-sm">
+    <div className="border border-[#E6B23C]/8 rounded-2xl bg-[#0D0A07]/50 backdrop-blur-sm relative">
       <button
         onClick={() => setOpen(!open)}
-        className="w-full flex items-center justify-between px-5 py-4 hover:bg-[#E6B23C]/5 transition-colors"
+        className={`w-full flex items-center justify-between px-4 md:px-5 py-3 md:py-4 hover:bg-[#E6B23C]/5 transition-colors sticky top-[68px] md:top-20 z-20 backdrop-blur-xl bg-[#0D0A07]/90 ${open ? "border-b border-[#E6B23C]/10 rounded-t-2xl" : "rounded-2xl"}`}
       >
         <div className="flex items-center gap-3">
           <Scroll size={15} className="text-[#B8860B] shrink-0" />
-          <span className="text-sm font-bold text-[#EADBB8] tracking-wide">{dynasty}</span>
-          <span className={`text-[10px] text-[#A08E70]/50 font-bold tracking-widest uppercase ${isRTL ? 'mr-1' : 'ml-1'}`}>
+          <span className="text-xs md:text-sm font-bold text-[#EADBB8] tracking-wide text-left">{dynasty}</span>
+          <span className={`text-[10px] text-[#A08E70]/50 font-bold tracking-widest uppercase ${isRTL ? 'mr-1' : 'ml-1'} whitespace-nowrap`}>
             {entities.length} {entities.length === 1 ? t("common.entity") : t("common.entities")}
           </span>
         </div>
@@ -131,7 +131,7 @@ function DynastyGroup({ dynasty, entities, type, onNavigate }: {
             transition={{ duration: 0.3 }}
             className="overflow-hidden"
           >
-            <div className="px-4 pb-4 grid gap-2 sm:grid-cols-2">
+            <div className="px-3 md:px-4 py-3 md:py-4 grid grid-cols-2 gap-2 md:gap-3">
               {entities.map((e) => (
                 <EntityCard key={e.id} entity={e} type={type} onNavigate={() => onNavigate(e)} />
               ))}
@@ -357,6 +357,14 @@ function ExploreContent() {
     }
   }, [searchParams]);
 
+  useEffect(() => {
+    if (selectedCity && landmarksListRef.current && window.innerWidth < 768) {
+      setTimeout(() => {
+        landmarksListRef.current?.parentElement?.scrollIntoView({ behavior: "smooth", block: "start" });
+      }, 100);
+    }
+  }, [selectedCity]);
+
   const handleTabChange = (tab: "pharaohs" | "landmarks") => {
     setActiveTab(tab);
     setSearch("");
@@ -526,7 +534,7 @@ function ExploreContent() {
               }`}
           >
             {tab === "pharaohs" ? (
-              <span className="flex items-center gap-2"><Crown size={14} /> {t("explore.tab.pharaohs")}</span>
+              <span className="flex items-center gap-2"><Crown className="w-6 h-6 md:w-[14px] md:h-[14px]" /> {t("explore.tab.pharaohs")}</span>
             ) : (
               <span className="flex items-center gap-2"><MapPin size={14} /> {t("explore.tab.landmarks")}</span>
             )}
@@ -539,14 +547,14 @@ function ExploreContent() {
         initial={{ opacity: 0 }}
         animate={{ opacity: 1 }}
         transition={{ delay: 0.3 }}
-        className="max-w-lg mx-auto mb-10 relative"
+        className="w-[90%] max-w-[300px] md:max-w-lg md:w-full mx-auto mb-10 relative"
       >
         <Search size={16} className={`absolute ${isRTL ? 'right-4' : 'left-4'} top-1/2 -translate-y-1/2 text-[#A08E70]/40`} />
         <input
           value={search}
           onChange={(e) => setSearch(e.target.value)}
           placeholder={activeTab === "pharaohs" ? t("explore.search.pharaohs") : t("explore.search.landmarks")}
-          className={`w-full h-12 ${isRTL ? 'pr-11 pl-10' : 'pl-11 pr-10'} rounded-xl bg-[#0D0A07] border border-[#E6B23C]/15 text-sm text-[#F5E6D0] placeholder:text-[#A08E70]/40 focus:outline-none focus:border-[#E6B23C]/30 focus:shadow-[0_0_15px_rgba(230,178,60,0.08)] transition-all`}
+          className={`w-full h-12 ${isRTL ? 'pr-11 pl-10' : 'pl-11 pr-10'} rounded-xl bg-[#0D0A07] border border-[#E6B23C]/15 text-base text-[#F5E6D0] placeholder:text-[#A08E70]/40 focus:outline-none focus:border-[#E6B23C]/30 focus:shadow-[0_0_15px_rgba(230,178,60,0.08)] transition-all`}
           style={{ caretColor: "#E6B23C" }}
         />
         {search && (
@@ -692,11 +700,9 @@ function ExploreContent() {
                   exit={{ opacity: 0, y: -10 }}
                   className="flex justify-center mb-8"
                 >
-                  <div className="inline-flex items-center gap-3 px-6 py-2.5 rounded-full bg-[#E6B23C]/5 border border-[#E6B23C]/10 backdrop-blur-sm">
-                    <span className="text-[11px] font-bold tracking-[0.2em] text-[#A08E70] uppercase">
-                      {t("explore.map.instruction")}
-                    </span>
-                  </div>
+                  <span className="text-[11px] font-bold tracking-[0.2em] text-[#A08E70] uppercase">
+                    {t("explore.map.instruction")}
+                  </span>
                 </motion.div>
               )}
             </AnimatePresence>
@@ -724,26 +730,26 @@ function ExploreContent() {
               <AnimatePresence>
                 {selectedCity && (
                   <motion.div
-                    initial={{ x: "100%", opacity: 0 }}
-                    animate={{ x: 0, opacity: 1 }}
-                    exit={{ x: "100%", opacity: 0 }}
+                    initial={{ opacity: 0, y: 20 }}
+                    animate={{ opacity: 1, y: 0 }}
+                    exit={{ opacity: 0, y: 20 }}
                     transition={{ type: "spring", damping: 25, stiffness: 200 }}
-                    className="absolute top-0 right-0 h-full w-full md:w-[450px] bg-[#0D0A07]/95 backdrop-blur-xl border-l border-[#E6B23C]/20 z-[100] shadow-[-20px_0_50px_rgba(0,0,0,0.5)] flex flex-col rounded-r-3xl overflow-hidden"
+                    className="relative md:absolute top-0 right-0 md:h-full w-full md:w-[450px] bg-[#0D0A07]/95 backdrop-blur-xl border border-[#E6B23C]/20 md:border-t-0 md:border-b-0 md:border-r-0 md:border-l z-[100] md:shadow-[-20px_0_50px_rgba(0,0,0,0.5)] flex flex-col rounded-2xl md:rounded-l-none md:rounded-r-3xl overflow-hidden mt-6 md:mt-0"
                   >
                     {/* Header */}
-                    <div className="p-8 border-b border-[#E6B23C]/10 flex items-center justify-between bg-gradient-to-r from-[#1A1208] to-[#0D0A07]">
+                    <div className="p-6 md:p-8 border-b border-[#E6B23C]/10 flex items-center justify-between bg-gradient-to-r from-[#1A1208] to-[#0D0A07]">
                       <div>
                         <div className="flex items-center gap-2 text-[#E6B23C] mb-1">
                           <MapPin size={16} />
                           <span className="text-[10px] font-bold tracking-[0.3em] uppercase">{t("explore.map.region")}</span>
                         </div>
-                        <h2 className="text-2xl font-bold text-[#F5E6D0] uppercase tracking-wider font-heading">
+                        <h2 className="text-xl md:text-2xl font-bold text-[#F5E6D0] uppercase tracking-wider font-heading">
                           {selectedCity.split(",")[0]}
                         </h2>
                       </div>
                       <button
                         onClick={() => setSelectedCity(null)}
-                        className="p-3 rounded-full bg-[#E6B23C]/10 text-[#E6B23C] hover:bg-[#E6B23C]/20 transition-all border border-[#E6B23C]/20"
+                        className="p-3 rounded-full bg-[#E6B23C]/10 text-[#E6B23C] hover:bg-[#E6B23C]/20 transition-all border border-[#E6B23C]/20 shrink-0"
                       >
                         <X size={20} />
                       </button>
@@ -752,7 +758,7 @@ function ExploreContent() {
                     {/* Landmarks List */}
                     <div
                       ref={landmarksListRef}
-                      className="flex-1 overflow-y-auto p-6 space-y-4 custom-scrollbar"
+                      className="flex-1 md:overflow-y-auto p-4 md:p-6 grid grid-cols-2 md:flex md:flex-col gap-2 md:gap-4 custom-scrollbar"
                     >
                       {landmarksByCity
                         .filter(([city]) => city === selectedCity)
@@ -766,16 +772,6 @@ function ExploreContent() {
                           />
                         ))
                       }
-                    </div>
-
-                    {/* Footer */}
-                    <div className="p-6 border-t border-[#E6B23C]/10 bg-[#0D0A07] text-center">
-                      <button
-                        onClick={() => setSelectedCity(null)}
-                        className="text-xs text-[#A08E70] hover:text-[#E6B23C] transition-colors underline underline-offset-4 uppercase tracking-widest font-bold"
-                      >
-                        {t("explore.map.close")}
-                      </button>
                     </div>
                   </motion.div>
                 )}

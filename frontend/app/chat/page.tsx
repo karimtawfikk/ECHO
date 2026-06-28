@@ -951,7 +951,7 @@ function ChatContent() {
   };
 
   const chatHeader = (
-    <div className="w-full pt-[110px] relative">
+    <div className={`w-full pt-[110px] relative ${sidebarOpen ? 'hidden md:block' : ''}`}>
       <div className="w-full max-w-5xl mx-auto relative flex flex-col items-center pb-4 px-3 md:px-4">
 
         <div className="flex flex-col items-center text-center gap-2 pointer-events-auto">
@@ -1006,8 +1006,8 @@ function ChatContent() {
         {/* Sidebar - Collapsible */}
         <motion.aside
           initial={false}
-          animate={{ width: sidebarOpen ? 300 : 56 }}
-          className="h-full border-r border-[#E6B23C]/10 bg-[#0D0A07]/95 flex flex-row z-[60] relative"
+          animate={{ width: sidebarOpen ? (typeof window !== 'undefined' && window.innerWidth < 768 ? '100vw' : 300) : 56 }}
+          className={`border-r border-[#E6B23C]/10 bg-[#0D0A07]/95 flex flex-row z-[60] relative h-[calc(100%+5rem)] -mt-20 pt-20 md:mt-0 md:pt-0 md:h-full`}
         >
           {/* Narrow Left Column - Always visible */}
           <div className="w-[56px] h-full flex flex-col items-center py-4 gap-4 shrink-0 border-r border-[#E6B23C]/5">
@@ -1061,7 +1061,7 @@ function ChatContent() {
                 initial={{ opacity: 0 }}
                 animate={{ opacity: 1 }}
                 exit={{ opacity: 0 }}
-                className="w-[244px] h-full flex flex-col px-3 pb-4 overflow-hidden shrink-0"
+                className="flex-1 md:w-[244px] md:flex-none h-full flex flex-col px-3 pb-4 overflow-hidden shrink-0"
               >
                 {/* All Chats Shortcut */}
                 {chatHistory.length > 0 && (

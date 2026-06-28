@@ -9,14 +9,7 @@ import pandas as pd
 from sentence_transformers import SentenceTransformer, util
 import textstat
 
-
-# ============================================================
-# LANDMARKS EVAL — CONFIG (no CLI args)
-# ============================================================
-
 DOCS_DIR = Path("docs")
-
-# folder that contains multiple run folders (each run folder has .txt outputs)
 BASE_RUNS_DIR = Path("Scripts")
 
 EVAL_DIR = BASE_RUNS_DIR / "_eval_all_landmarks"
@@ -30,7 +23,6 @@ MASTER_LEADERBOARD_FINAL_CSV  = EVAL_DIR / "leaderboard_by_final_landmarks.csv"
 
 EMBED_MODEL = "all-MiniLM-L6-v2"
 
-# Generator targets:
 DEFAULT_MIN_WORDS = 140
 DEFAULT_MAX_WORDS = 220
 SMALL_DOC_MIN = 120
@@ -39,10 +31,6 @@ SMALL_DOC_THRESHOLD_WORDS = 450
 
 EXCLUDE_RUN_DIR_NAMES = {"_debug_raw", "_eval", "_eval_all", "_eval_all_landmarks", "__pycache__"}
 
-
-# ============================================================
-# Regex parsing (matches your LANDMARKS .txt outputs)
-# ============================================================
 
 SCRIPT_HEADER_RE = re.compile(
     r"^={10,}\n.*?VIDEO SCRIPT:.*?\n={10,}\nType:.*?\n\n",
@@ -64,7 +52,6 @@ FACT_ITEM_RE = re.compile(
     re.DOTALL | re.MULTILINE
 )
 
-# Hallucination detection (landmark-safe)
 YEAR_RE = re.compile(r"\b(1[0-9]{3}|20[0-9]{2})\b")
 CAP_PHRASE_RE = re.compile(r"\b([A-Z][a-z]+(?:\s+[A-Z][a-z]+){0,3})\b")
 
@@ -75,19 +62,14 @@ STOP_CAP = {
     "One", "Today", "Later", "Finally",
 }
 
-# Number/ordinal risk
+
 DIGIT_RE = re.compile(r"\b\d+\b")
 ORDINAL_WORDS = ["first","second","third","fourth","fifth","sixth","seventh","eighth","ninth","tenth","eleventh","twelfth"]
 NUMBER_WORDS = ["one","two","three","four","five","six","seven","eight","nine","ten","eleven","twelve"]
 ORDINAL_SUFFIX_RE = re.compile(r"\b\d+(?:st|nd|rd|th)\b", re.IGNORECASE)
 
-# Structure (your prompt expects: Hook 1, Context 1, Main 6-9, Ending 1)
 LEGACY_KEYWORDS = ["legacy","lasting","remembered","history","influence","endures","left behind","still","today","mark","shaped"]
 
-
-# ============================================================
-# Helpers
-# ============================================================
 
 def norm_ws(s: str) -> str:
     return re.sub(r"\s+", " ", (s or "").strip())
@@ -127,10 +109,6 @@ def targets_for_doc_words(doc_words: int) -> Tuple[int, int]:
     return DEFAULT_MIN_WORDS, DEFAULT_MAX_WORDS
 
 
-# ============================================================
-# Parse output file (your generator output format)
-# ============================================================
-
 def parse_generated_output(txt_path: Path) -> Dict:
     raw = txt_path.read_text(encoding="utf-8", errors="ignore").replace("\r\n", "\n")
 
@@ -140,7 +118,6 @@ def parse_generated_output(txt_path: Path) -> Dict:
     facts_used_rep = int(m.group(3)) if m else None
     facts_total_rep = int(m.group(4)) if m else None
 
-    # strip header => keep only script portion
     raw2 = raw.lstrip("\ufeff\n\r\t ")
     script = SCRIPT_HEADER_RE.sub("", raw2, count=1)
     cut = re.search(r"\n=+\nGROUNDED FACTS USED", script)
@@ -169,9 +146,6 @@ def parse_generated_output(txt_path: Path) -> Dict:
     }
 
 
-# ============================================================
-# Stage 1 (grounding / extraction) metrics
-# ============================================================
 
 def evidence_in_source_rate(facts: List[Dict], source_text: str) -> Tuple[float, int, int]:
     src = norm_ws(source_text)
@@ -210,7 +184,6 @@ def duplicate_claim_rate(facts: List[Dict]) -> float:
     return float(1.0 - safe_div(len(set(claims)), len(claims)))
 
 def semantic_redundancy_claims(used_facts: List[Dict], model: SentenceTransformer) -> float:
-    """Mean pairwise cosine similarity between claim embeddings (higher => more redundancy)."""
     claims = [f.get("claim","").strip() for f in used_facts if f.get("claim")]
     if len(claims) < 2:
         return 0.0
@@ -226,7 +199,6 @@ def semantic_redundancy_claims(used_facts: List[Dict], model: SentenceTransforme
     return float(np.mean(vals)) if vals else 0.0
 
 def claim_evidence_semantic_mean(used_facts: List[Dict], model: SentenceTransformer) -> float:
-    """Mean cosine similarity between each claim and its evidence."""
     pairs = [(f.get("claim",""), f.get("evidence","")) for f in used_facts if f.get("claim") and f.get("evidence")]
     if not pairs:
         return 0.0
@@ -240,11 +212,6 @@ def claim_evidence_semantic_mean(used_facts: List[Dict], model: SentenceTransfor
     sims = util.cos_sim(emb_c, emb_e).diagonal().cpu().numpy()
     return float(np.mean(sims))
 
-
-# ============================================================
-# Stage 2 (narration quality / obey constraints) metrics
-# ============================================================
-
 def extract_cap_phrases(text: str) -> List[str]:
     out = []
     for m in CAP_PHRASE_RE.finditer(text or ""):
@@ -252,7 +219,6 @@ def extract_cap_phrases(text: str) -> List[str]:
         if ph in STOP_CAP:
             continue
         out.append(ph)
-    # dedupe
     seen, uniq = set(), []
     for x in out:
         k = x.lower()
@@ -262,11 +228,6 @@ def extract_cap_phrases(text: str) -> List[str]:
     return uniq
 
 def hallucination_flags(script: str, allowed_text: str, filename_stem: str) -> Dict:
-    """
-    Landmark-safe:
-    - flags new years not present in allowed (claims+evidence)
-    - flags new capitalized phrases not present in allowed (excluding filename words)
-    """
     a_norm = norm_ws(allowed_text).lower()
 
     years = sorted(set(YEAR_RE.findall(script or "")))
@@ -316,14 +277,12 @@ def number_risk_flags(script: str, allowed_text: str) -> Dict:
             if re.search(rf"\b{re.escape(t)}\b", a) is None:
                 new_tokens.append(t)
 
-    # dedupe
     seen, new_unique = set(), []
     for t in new_tokens:
         if t not in seen:
             new_unique.append(t)
             seen.add(t)
 
-    # risk weighting
     risk = 0.0
     for t in new_unique:
         if t.isdigit() and int(t) >= 100:
@@ -334,14 +293,6 @@ def number_risk_flags(script: str, allowed_text: str) -> Dict:
     return {"new_numbers_risk": float(risk), "new_numbers": new_unique}
 
 def structure_metrics(script: str) -> Dict:
-    """
-    Expected:
-      1) Hook (1 sentence)
-      2) Where it is + what it is (1 sentence)
-      3) Main story (6-9 sentences)
-      4) Why it matters today (1 sentence)
-    => total roughly 9-12 sentences
-    """
     sents = split_sentences(script or "")
     n = len(sents)
 
@@ -350,7 +301,7 @@ def structure_metrics(script: str) -> Dict:
 
     context_ok = int(n >= 2)
 
-    main_story = max(0, n - 3)  # exclude first 2 + last 1
+    main_story = max(0, n - 3) 
     main_story_ok = int(6 <= main_story <= 9)
 
     ending = (sents[-1].lower() if n >= 1 else "")
@@ -419,16 +370,7 @@ def script_source_similarity(script: str, source: str, model: SentenceTransforme
     return float(util.cos_sim(emb_s, emb_d)[0][0].cpu())
 
 
-# ============================================================
-# Stage scores + final ranking score
-# ============================================================
-
 def stage1_score(row: Dict) -> float:
-    """
-    Stage 1: extraction/grounding quality (0..100)
-    - evidence_in_source_rate dominates
-    - penalize duplicates + redundancy
-    """
     evid = float(row["evidence_in_source_rate"])
     dup = float(row["duplicate_claim_rate_used"])
     k = float(row["used_facts_count"])
@@ -439,14 +381,11 @@ def stage1_score(row: Dict) -> float:
     ce = float(row.get("claim_evidence_semantic_mean", 0.0))
     ce = max(0.0, min(1.0, ce))
 
-    # soft target: ~9-10 facts is ideal for your landmarks runs
     k_norm = max(0.0, min(1.0, k / 10.0))
 
-    # duplicates penalty
     dup_norm = max(0.0, min(1.0, dup / 0.4))
     dup_good = 1.0 - dup_norm
 
-    # semantic non-redundancy (penalize if mean sim > ~0.55)
     sem_nonred = 1.0 - max(0.0, min(1.0, (sem_red - 0.55) / 0.30))
 
     return float(
@@ -459,13 +398,6 @@ def stage1_score(row: Dict) -> float:
     )
 
 def stage2_score(row: Dict) -> float:
-    """
-    Stage 2: narrator quality + obeying constraints (0..100)
-    - no invention: hallucination + new numbers
-    - alignment + facts coverage
-    - length + structure
-    - + script-source similarity (landmark useful)
-    """
     wc = float(row["word_count_calc"])
     doc_words = int(row.get("doc_words_reported") or 0)
     min_w, max_w = targets_for_doc_words(doc_words)
@@ -479,11 +411,9 @@ def stage2_score(row: Dict) -> float:
     struct = float(row["structure_score"])
     sim = float(row.get("script_source_similarity", 0.0))
 
-    # normalize halluc/numrisk into 0..1 (1 is best)
     halluc_norm = math.exp(-0.35 * halluc)
     num_norm = math.exp(-0.45 * numrisk)
 
-    # clamp to 0..1
     align = max(0.0, min(1.0, align))
     cov = max(0.0, min(1.0, cov))
     struct = max(0.0, min(1.0, struct))
@@ -503,11 +433,6 @@ def final_score(stage1: float, stage2: float) -> float:
     """Final score (0..100)."""
     return float(0.55 * stage1 + 0.45 * stage2)
 
-
-# ============================================================
-# Run folder discovery
-# ============================================================
-
 def find_run_dirs(base: Path) -> List[Path]:
     run_dirs = []
     for p in sorted(base.iterdir()):
@@ -520,28 +445,21 @@ def find_run_dirs(base: Path) -> List[Path]:
     return run_dirs
 
 
-# ============================================================
-# Main
-# ============================================================
-
 def main():
-    print("============================================================")
-    print("EVALUATE ALL RUNS — LANDMARKS (Stage1 + Stage2 + Final)")
-    print("============================================================")
+    print("Evaluate All Runs (Stage1 + Stage2 + Final)")
     print("Docs base :", DOCS_DIR.resolve())
     print("Runs base :", BASE_RUNS_DIR.resolve())
     print("Eval out  :", EVAL_DIR.resolve())
     print(f"Targets: default {DEFAULT_MIN_WORDS}-{DEFAULT_MAX_WORDS} | small<= {SMALL_DOC_THRESHOLD_WORDS}w => {SMALL_DOC_MIN}-{SMALL_DOC_MAX}")
-    print("============================================================\n")
 
     if not DOCS_DIR.exists():
-        raise SystemExit(f"❌ DOCS_DIR not found: {DOCS_DIR.resolve()}")
+        raise SystemExit(f"DOCS_DIR not found: {DOCS_DIR.resolve()}")
     if not BASE_RUNS_DIR.exists():
-        raise SystemExit(f"❌ BASE_RUNS_DIR not found: {BASE_RUNS_DIR.resolve()}")
+        raise SystemExit(f"BASE_RUNS_DIR not found: {BASE_RUNS_DIR.resolve()}")
 
     run_dirs = find_run_dirs(BASE_RUNS_DIR)
     if not run_dirs:
-        raise SystemExit(f"❌ No run folders found under: {BASE_RUNS_DIR.resolve()}")
+        raise SystemExit(f"No run folders found under: {BASE_RUNS_DIR.resolve()}")
 
     print("Found run folders:")
     for rd in run_dirs:
@@ -588,7 +506,6 @@ def main():
 
             allowed_text = " ".join([f"{u.get('claim','')} {u.get('evidence','')}" for u in used_facts])
 
-            # -------- Stage 1 --------
             ev_rate, ev_ok, ev_total = evidence_in_source_rate(used_facts, src_text)
             ev_stats = evidence_length_stats(used_facts)
             dup_rate = duplicate_claim_rate(used_facts)
@@ -596,7 +513,6 @@ def main():
             sem_red = semantic_redundancy_claims(used_facts, emb_model)
             ce_sem = claim_evidence_semantic_mean(used_facts, emb_model)
 
-            # -------- Stage 2 --------
             wc_calc = count_words(script)
             doc_words_rep = int(parsed["doc_words_reported"] or 0)
             min_w, max_w = targets_for_doc_words(doc_words_rep)
@@ -619,7 +535,6 @@ def main():
                 "facts_used_reported": parsed["facts_used_reported"],
                 "facts_total_reported": parsed["facts_total_reported"],
 
-                # Stage 1 metrics
                 "used_facts_count": len(used_facts),
                 "evidence_in_source_rate": ev_rate,
                 "evidence_in_source_ok": ev_ok,
@@ -630,7 +545,6 @@ def main():
                 "claim_evidence_semantic_mean": ce_sem,
                 **ev_stats,
 
-                # Stage 2 metrics
                 "word_count_calc": wc_calc,
                 "target_min_words": min_w,
                 "target_max_words": max_w,
@@ -651,14 +565,12 @@ def main():
                 **struct,
             }
 
-            # Scores
             row["stage1_score"] = stage1_score(row)
             row["stage2_score"] = stage2_score(row)
             row["final_score"] = final_score(row["stage1_score"], row["stage2_score"])
 
             run_details.append(row)
 
-            # Problem flags
             if ev_rate < 0.8:
                 prob = {"run": run_name, "file": out_fp.name, "problem": f"low_evidence_in_source_rate={ev_rate:.2f}"}
                 run_problems.append(prob); all_problems.append(prob)
@@ -678,13 +590,11 @@ def main():
                 prob = {"run": run_name, "file": out_fp.name, "problem": f"weak_structure_score={struct['structure_score']:.2f}"}
                 run_problems.append(prob); all_problems.append(prob)
 
-        # Save per-run
         run_df = pd.DataFrame(run_details)
         run_df.to_csv(run_eval_dir / "details.csv", index=False, encoding="utf-8")
         if run_problems:
             pd.DataFrame(run_problems).to_csv(run_eval_dir / "problem_cases.csv", index=False, encoding="utf-8")
 
-        # Leaderboard summary
         if not run_df.empty:
             summary = {
                 "run": run_name,
@@ -713,13 +623,12 @@ def main():
             leaderboard_rows.append(summary)
 
         all_rows.extend(run_details)
-        print(f"✅ Run evaluated: {run_name} | files: {len(run_details)}")
+        print(f"Run evaluated: {run_name} | files: {len(run_details)}")
 
-    # MASTER OUTPUTS (all rows)
     all_df = pd.DataFrame(all_rows)
     all_df.to_csv(MASTER_DETAILS_CSV, index=False, encoding="utf-8")
 
-    # LEADERBOARDS
+
     lb_df = pd.DataFrame(leaderboard_rows)
 
     if not lb_df.empty:
@@ -752,13 +661,10 @@ def main():
         pd.DataFrame().to_csv(MASTER_LEADERBOARD_STAGE2_CSV, index=False, encoding="utf-8")
         pd.DataFrame().to_csv(MASTER_LEADERBOARD_FINAL_CSV, index=False, encoding="utf-8")
 
-    # PROBLEMS LIST
     if all_problems:
         pd.DataFrame(all_problems).to_csv(MASTER_PROBLEMS_CSV, index=False, encoding="utf-8")
 
-    print("\n============================================================")
     print("DONE (LANDMARKS)")
-    print("============================================================")
     print("Master details         :", MASTER_DETAILS_CSV.resolve())
     print("Leaderboard (Stage 1)  :", MASTER_LEADERBOARD_STAGE1_CSV.resolve())
     print("Leaderboard (Stage 2)  :", MASTER_LEADERBOARD_STAGE2_CSV.resolve())
@@ -766,7 +672,6 @@ def main():
     if all_problems:
         print("All problem cases      :", MASTER_PROBLEMS_CSV.resolve())
 
-    # Print top 10 for each leaderboard
     if not lb_df.empty:
         print("\nTop runs by Stage 1:")
         print(lb_stage1.head(10).to_string(index=False))

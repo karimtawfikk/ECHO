@@ -1,12 +1,3 @@
-"""
-ANCIENT EGYPT VIDEO SCRIPT GENERATOR (GROUNDED + ROBUST) — MULTI-MODEL (LANDMARKS)
-========================================================================
-Stage Models:
-- Facts   → llama3.1:8b
-- Script  → gemma2:9b
-- Rewrite → llama3.1:8b
-"""
-
 import re
 import gc
 import json
@@ -14,25 +5,16 @@ import requests
 from pathlib import Path
 from typing import List, Dict, Tuple, Optional
 
-# =============================================================================
-# PATHS
-# =============================================================================
 DOCS_DIR = Path("repeat")
 OUT_DIR = Path("llama3.1_gemma2_Landmark_Scripts")
 OUT_DIR.mkdir(parents=True, exist_ok=True)
 
-# =============================================================================
-# MODELS
-# =============================================================================
 MODEL_FACTS   = "llama3.1:8b" 
 MODEL_SCRIPT  = "gemma2:9b"
 MODEL_REWRITE = "llama3.1:8b" 
 
 OLLAMA_URL = "http://localhost:11434/api/chat"
 
-# =============================================================================
-# GENERATION SETTINGS
-# =============================================================================
 SAFE_CHUNK_TOKENS = 1000
 CHUNK_OVERLAP_TOKENS = 180
 
@@ -40,7 +22,6 @@ FACTS_MAX_NEW = 500
 SCRIPT_MAX_NEW = 520
 REWRITE_MAX_NEW = 420
 
-# default targets (normal docs) # ~1 min to ~1.5 min
 TARGET_MIN_WORDS = 140
 TARGET_MAX_WORDS = 220
 TARGET_IDEAL = 185
@@ -48,11 +29,9 @@ TARGET_IDEAL = 185
 FACTS_TEMP = 0.0
 FACTS_TOP_P = 0.9
 
-# Script: Gemma2 writes best with moderate creativity but still controlled
 SCRIPT_TEMP = 0.75
 SCRIPT_TOP_P = 0.92
 
-# Rewrite: deterministic tightening (do NOT invent)
 REWRITE_TEMP = 0.0
 REWRITE_TOP_P = 1.0
 
@@ -64,35 +43,25 @@ CLAIMS_DIR.mkdir(parents=True, exist_ok=True)
 SELECTED_DIR = OUT_DIR / "_selected_json"
 SELECTED_DIR.mkdir(parents=True, exist_ok=True)
 
-# =============================================================================
-# LANDMARK TYPE RULES (UPDATED FOR YOUR FULL LIST)
-# Order matters: specific first, then common classes.
-# =============================================================================
 LANDMARK_TYPE_RULES = [
-    # specific / special names
     ("osireion",   [r"\bosireion\b"]),
-    ("ramesseum",  [r"\bramesseum\b"]),                      # treat like temple complex
+    ("ramesseum",  [r"\bramesseum\b"]),                     
     ("sphinx",     [r"\bsphinx\b"]),
     ("statue",     [r"\bcolossi\b", r"\bcolossus\b", r"\bstatue\b"]),
     ("fortress",   [r"\bqasr\b", r"\bfortress\b", r"\bcastle\b"]),
 
-    # common landmark classes
     ("kiosk",      [r"\bkiosk\b"]),
     ("stela",      [r"\bstela\b", r"\bstele\b"]),
     ("pyramid",    [r"\bpyramid\b", r"\bpyramids\b"]),
     ("tomb",       [r"\btomb\b", r"\bmausoleum\b", r"\bnecropolis\b"]),
     ("temple",     [r"\btemple\b", r"\bmammisi\b", r"\bsanctuary\b", r"\bchapel\b", r"\bspeos\b"]),
 
-    # scenic / general
     ("mountain",   [r"\bel qurn\b", r"\bqurn\b", r"\bmount\b", r"\bpeak\b", r"\bhill\b"]),
     ("complex",    [r"\bcomplex\b", r"\bsite\b"]),
 ]
 
-# =============================================================================
-# ADAPTIVE CONTROLS FOR SMALL DOCS
-# =============================================================================
+
 def facts_range_for_doc(doc_words: int) -> Tuple[int, int]:
-    # small docs: ask for fewer facts to avoid repetition/junk
     if doc_words <= 450:
         return 4, 7
     if doc_words <= 800:
@@ -100,14 +69,11 @@ def facts_range_for_doc(doc_words: int) -> Tuple[int, int]:
     return 8, 12
 
 def targets_for_doc(doc_words: int) -> Tuple[int, int, int]:
-    # small docs: allow slightly shorter scripts to reduce forced repetition
     if doc_words <= 450:
         return 120, 190, 160
     return TARGET_MIN_WORDS, TARGET_MAX_WORDS, TARGET_IDEAL
 
-# =============================================================================
-# NAME UTILITIES
-# =============================================================================
+
 _ROMAN_ONLY = re.compile(r"^(?=[IVXLCDM]+$)[IVXLCDM]+$", re.IGNORECASE)
 
 def clear_mem():
@@ -153,9 +119,6 @@ def extract_display_name(filename_stem: str) -> str:
     raw = normalize_for_display(filename_stem)
     return smart_title(raw)
 
-# =============================================================================
-# LANDMARK TYPE
-# =============================================================================
 def get_entity_type(filename_stem: str) -> str:
     key = normalize_name_key(filename_stem)
     for t, patterns in LANDMARK_TYPE_RULES:
@@ -164,9 +127,6 @@ def get_entity_type(filename_stem: str) -> str:
                 return t
     return "landmark"
 
-# =============================================================================
-# OLLAMA CALL
-# =============================================================================
 def ollama_chat(model, system, user, max_new, temperature, top_p):
     payload = {
         "model": model,
@@ -187,9 +147,6 @@ def ollama_chat(model, system, user, max_new, temperature, top_p):
     data = r.json()
     return (data.get("message", {}).get("content") or "").strip()
 
-# =============================================================================
-# CHUNKING
-# =============================================================================
 def approx_token_count(text: str) -> int:
     return int(len(text.split()) / 0.75) + 1
 
@@ -230,9 +187,6 @@ def chunk_text_approx_tokens(text: str, max_tokens: int, overlap_tokens: int) ->
             seen.add(k)
     return out
 
-# =============================================================================
-# CLEANING / FINALIZATION
-# =============================================================================
 def count_words(s: str) -> int:
     return len(re.findall(r"\b\w+\b", s))
 
@@ -306,9 +260,6 @@ def dedupe_claims(claims: List[Dict], full_text: Optional[str] = None) -> List[D
         out.append({"claim": claim, "evidence": ev})
     return out
 
-# =============================================================================
-# FACT EXTRACTION JSON (LANDMARKS)
-# =============================================================================
 def facts_prompt(name: str, landmark_type: str, chunk_text: str, n_min: int, n_max: int) -> str:
     place_line = f"the landmark {name}"
     if landmark_type != "landmark":
@@ -351,9 +302,6 @@ def try_parse_json_list(s: str) -> Optional[List[Dict]]:
         return None
     return None
 
-# =============================================================================
-# EXTRACTIVE FALLBACK (GUARANTEED GROUNDED)
-# =============================================================================
 def score_sentence(landmark_type: str, s: str) -> int:
     t = s.lower()
     score = 0
@@ -376,7 +324,6 @@ def score_sentence(landmark_type: str, s: str) -> int:
     if any(k in t for k in ["relocated", "moved", "unesco", "campaign", "aswan high dam", "saved", "flooding", "lake nasser"]):
         score += 4
 
-    # type-specific boosts
     if landmark_type == "tomb" and any(k in t for k in ["mummy", "sarcophagus", "burial", "necropolis", "mausoleum", "poem"]):
         score += 4
     if landmark_type == "pyramid" and any(k in t for k in ["mudbrick", "casing", "substructure", "entrance", "chamber", "sarcophagus"]):
@@ -408,9 +355,7 @@ def extractive_claims(full_text: str, landmark_type: str, k: int = 16) -> List[D
 
     return dedupe_claims(out, full_text=full_text)
 
-# =============================================================================
-# SELECT TOP FACTS
-# =============================================================================
+
 def claim_score_for_video(landmark_type: str, claim: str) -> int:
     c = claim.lower()
     score = 0
@@ -437,7 +382,6 @@ def claim_score_for_video(landmark_type: str, claim: str) -> int:
     if any(x in c for x in ["relocated", "moved", "unesco", "aswan high dam", "lake nasser", "campaign"]):
         score += 5
 
-    # type-specific boosts
     if landmark_type == "tomb" and any(x in c for x in ["mummy", "sarcophagus", "burial", "poem"]):
         score += 4
     if landmark_type == "pyramid" and any(x in c for x in ["mudbrick", "casing", "substructure", "chambers", "entrance"]):
@@ -460,9 +404,6 @@ def select_top_claims(landmark_type: str, claims: List[Dict], full_text: str, k:
     ranked = sorted(claims, key=lambda x: claim_score_for_video(landmark_type, x["claim"]), reverse=True)
     return ranked[:k]
 
-# =============================================================================
-# SCRIPT PROMPTS (ADAPTIVE TARGETS + UPDATED TONES)
-# =============================================================================
 SYSTEM_SCRIPT = (
     "You write short, engaging museum-style video scripts in very simple English. "
     "You must not invent facts. You must obey the allowed facts list. "
@@ -536,9 +477,7 @@ CURRENT SCRIPT:
 REWRITE:
 """.strip()
 
-# =============================================================================
-# PIPELINE
-# =============================================================================
+
 def extract_grounded_claims(name: str, landmark_type: str, full_text: str, doc_id: str) -> List[Dict]:
     chunks = chunk_text_approx_tokens(full_text, SAFE_CHUNK_TOKENS, CHUNK_OVERLAP_TOKENS)
     all_claims: List[Dict] = []
@@ -557,7 +496,6 @@ def extract_grounded_claims(name: str, landmark_type: str, full_text: str, doc_i
 
     all_claims = dedupe_claims(all_claims, full_text=full_text)
 
-    # PASS 2 (adaptive)
     if len(all_claims) < max(6, n_min) and len(chunks) > 1:
         n2_min = min(10, n_min + 2)
         n2_max = min(14, n_max + 2)
@@ -569,7 +507,6 @@ def extract_grounded_claims(name: str, landmark_type: str, full_text: str, doc_i
                 all_claims.extend(parsed)
         all_claims = dedupe_claims(all_claims, full_text=full_text)
 
-    # Extractive fallback
     if len(all_claims) < 6:
         all_claims = extractive_claims(full_text, landmark_type, k=16)
 
@@ -625,9 +562,7 @@ def build_script(name: str, landmark_type: str, claims: List[Dict], full_text: s
 
     return final, selected
 
-# =============================================================================
-# SAVE OUTPUT (UPDATED ICONS)
-# =============================================================================
+
 def save_output(out_file: Path, name: str, landmark_type: str,
                 script: str, used: List[Dict], doc_words: int, facts_total: int):
     wc = count_words(script)
@@ -656,36 +591,25 @@ def save_output(out_file: Path, name: str, landmark_type: str,
         facts_lines.append(f"{idx}. {c['claim']}\n   Evidence: \"{c['evidence']}\"")
     facts_block = "\n".join(facts_lines) if facts_lines else "[]"
 
-    text = f"""===========================================================================
-{icon} ANCIENT EGYPT VIDEO SCRIPT: {name}
-===========================================================================
+    text = f""" {icon} VIDEO SCRIPT: {name}
 Type: {landmark_type.upper()}
 
 {script}
 
-===========================================================================
 GROUNDED FACTS USED (CLAIM + EVIDENCE)
-===========================================================================
 {facts_block}
 
-===========================================================================
 METADATA
-===========================================================================
 Word Count: {wc} (target {tmin}-{tmax}, ideal {tideal}) => {'✅ OK' if ok else '⚠️ CHECK'}
 Source Doc Size: {doc_words} words
 facts_used={len(used)} | facts_total={facts_total}
 Models: extractor={MODEL_FACTS} | narration={MODEL_SCRIPT} | rewrite={MODEL_REWRITE}
-===========================================================================
 """
     out_file.write_text(text, encoding="utf-8")
 
-# =============================================================================
-# MAIN
-# =============================================================================
+
 def main():
-    print("============================================================")
-    print("ANCIENT EGYPT VIDEO SCRIPT GENERATOR — MULTI MODEL (LANDMARKS)")
-    print("============================================================")
+    print("VIDEO SCRIPT GENERATOR — MULTI MODEL (LANDMARKS)")
     print("Facts Model  :", MODEL_FACTS)
     print("Script Model :", MODEL_SCRIPT)
     print("Rewrite Model:", MODEL_REWRITE)
@@ -693,13 +617,12 @@ def main():
     print("Out  :", OUT_DIR.resolve())
     print(f"Default target words: {TARGET_MIN_WORDS}-{TARGET_MAX_WORDS} (ideal {TARGET_IDEAL})")
     print("Small docs (<=450w) target words: 120-190 (ideal 160)")
-    print("============================================================\n")
 
     files = sorted(DOCS_DIR.glob("*.txt"))
     if not files:
         raise SystemExit(f"No .txt files found in {DOCS_DIR.resolve()}")
 
-    out_dir = OUT_DIR / "qwen2.5-llama3.1_landmarks_grounded"
+    out_dir = OUT_DIR / "llama3.1-gemma2_landmarks_grounded"
     out_dir.mkdir(parents=True, exist_ok=True)
 
     for i, fp in enumerate(files, 1):
@@ -730,18 +653,16 @@ def main():
             save_output(out_file, name, landmark_type, script, used, doc_words, facts_total=len(claims))
 
             wc = count_words(script)
-            status = "✅OK" if tmin <= wc <= tmax else "⚠️CHECK"
+            status = "OK" if tmin <= wc <= tmax else "CHECK"
             print(f"  -> saved | {wc}w {status} | facts_used={len(used)} | facts_total={len(claims)}\n")
 
         except Exception as e:
-            print(f"  ❌ Error: {e}\n")
+            print(f" Error: {e}\n")
             continue
 
         clear_mem()
 
-    print("============================================================")
-    print(f"🎉 DONE. Outputs saved to: {out_dir.resolve()}")
-    print("============================================================")
+    print(f"DONE. Outputs saved to: {out_dir.resolve()}")
 
 if __name__ == "__main__":
     main()

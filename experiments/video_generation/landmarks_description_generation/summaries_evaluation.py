@@ -14,45 +14,36 @@ from sentence_transformers import SentenceTransformer
 from transformers import AutoTokenizer, AutoModelForSequenceClassification
 
 
-
-# ======================
-# CONFIG
-# ======================
 DOCS_DIR = Path("docs")
 OUTPUTS_DIR = Path("outputs")
 
 TOP_K_KEYWORDS = 30
 NGRAM_N = 3
 
-# compression "sweet spot" (tune if you want)
+# compression 
 COMP_TARGET_LOW = 0.20
 COMP_TARGET_HIGH = 0.40
 
-
-# NLI / factual consistency
+# factual consistency
 NLI_MODEL_ID = "facebook/bart-large-mnli"
 NLI_DEVICE = "cuda" if torch.cuda.is_available() else "cpu"
 
-MAX_NLI_SENTENCES = 6  # evaluate up to first N summary sentences (None = all)
-MIN_SENT_WORDS = 4     # ignore very short sentences
+MAX_NLI_SENTENCES = 6 
+MIN_SENT_WORDS = 4    
 
-# Retrieval-based premise building
-RETRIEVAL_TOP_K = 8              # how many doc sentences to retrieve per summary sentence
-RETRIEVAL_MAX_DOC_SENTS = 350    # cap doc sentences for speed (None = no cap)
-RETRIEVAL_PREMISE_MAX_WORDS = 300  # keep premise short for NLI
+# Retrieval-based premise 
+RETRIEVAL_TOP_K = 8              
+RETRIEVAL_MAX_DOC_SENTS = 350   
+RETRIEVAL_PREMISE_MAX_WORDS = 300 
 
-# MNLI label mapping for BART:
-# 0 = contradiction, 1 = neutral, 2 = entailment
+# MNLI label mapping for BART
 CONTRADICTION_ID = 0
 NEUTRAL_ID = 1
 ENTAILMENT_ID = 2
 
-
-# Weights for final score (tweak)
-# readability is computed but not used in final score by default
 WEIGHTS = {
-    "factual_consistency": 0.28,   # entailment rate
-    "contradiction_rate_inv": 0.10, # 1 - contradiction rate (higher better)
+    "factual_consistency": 0.28,
+    "contradiction_rate_inv": 0.10, 
     "semantic_sim": 0.24,
     "entity_recall": 0.16,
     "entity_precision": 0.10,
@@ -62,9 +53,7 @@ WEIGHTS = {
 }
 
 
-# ======================
-# LOAD MODELS
-# ======================
+# Load Models
 embedder = SentenceTransformer("all-MiniLM-L6-v2")
 nlp = spacy.load("en_core_web_sm")
 
@@ -73,11 +62,9 @@ nli_tokenizer = AutoTokenizer.from_pretrained(NLI_MODEL_ID)
 nli_model = AutoModelForSequenceClassification.from_pretrained(NLI_MODEL_ID).to(NLI_DEVICE)
 nli_model.eval()
 if NLI_DEVICE == "cuda":
-    nli_model = nli_model.half()   # optional: lower VRAM + faster
+    nli_model = nli_model.half()  
 
-# ======================
-# HELPERS
-# ======================
+
 def wc(text: str) -> int:
     return len(text.split())
 
@@ -98,24 +85,13 @@ def compression_ratio(orig: str, summ: str) -> float:
     return wc(summ) / max(wc(orig), 1)
 
 def compression_sweetspot_score(r: float, low=COMP_TARGET_LOW, high=COMP_TARGET_HIGH) -> float:
-    """
-    Score in [0,1], best if r in [low, high].
-    Penalize being too short or too long.
-    """
     if low <= r <= high:
         return 1.0
     if r < low:
-        # linearly drop to 0 at r=0
         return max(0.0, r / low)
-    # r > high: drop as it gets longer
-    # 0 at r = 2*high (adjust if you want)
     return max(0.0, 1.0 - (r - high) / high)
 
 def keyword_set_tfidf(text: str, top_k: int = TOP_K_KEYWORDS) -> set[str]:
-    """
-    Extract top TF-IDF terms from a single document by fitting on its sentences.
-    """
-    # split into pseudo-docs (sentences/lines)
     parts = [p.strip() for p in re.split(r"[.\n]+", text) if p.strip()]
     if len(parts) < 2:
         parts = [text]
@@ -144,11 +120,6 @@ def keyword_recall(orig_keywords: set[str], summ_text: str) -> float:
     return hit / len(orig_keywords)
 
 def entity_scores(orig_ents: set[str], summ_ents: set[str]) -> tuple[float, float]:
-    """
-    Returns (recall, precision)
-    recall: how many original entities appear in summary
-    precision: how many summary entities appear in original (hallucination proxy)
-    """
     if not orig_ents:
         return (1.0, 1.0)
 
@@ -163,36 +134,23 @@ def entity_scores(orig_ents: set[str], summ_ents: set[str]) -> tuple[float, floa
     return recall, precision
 
 def redundancy_ngram_score(text: str, n: int = NGRAM_N) -> float:
-    """
-    Score in [0,1], higher is better (less repetition).
-    Compute repeated n-gram ratio.
-    """
     tokens = normalize_text(text).split()
     if len(tokens) < n * 2:
         return 1.0
     ngrams = [" ".join(tokens[i:i+n]) for i in range(len(tokens)-n+1)]
     total = len(ngrams)
     unique = len(set(ngrams))
-    # repetition ratio = 1 - unique/total ; convert to 'goodness' by 1 - repetition
     repetition = 1.0 - (unique / max(total, 1))
     return float(1.0 - repetition)
 
 def readability_score(text: str) -> float:
-    """
-    Convert Flesch Reading Ease to [0,1] roughly.
-    Higher = easier to read.
-    """
     try:
         flesch = textstat.flesch_reading_ease(text)
-        # typical range ~[-50, 120]; map to [0,1]
         return float(np.clip((flesch + 50) / 170, 0, 1))
     except Exception:
         return 0.5
     
 def split_sentences(text: str) -> list[str]:
-    """
-    Simple sentence splitter, filters out very short sentences.
-    """
     sents = re.split(r"(?<=[.!?])\s+", text.strip())
     sents = [s.strip() for s in sents if s.strip()]
     sents = [s for s in sents if wc(s) >= MIN_SENT_WORDS]
@@ -218,10 +176,6 @@ def build_doc_sentence_bank(orig: str) -> list[str]:
     return doc_sents
 
 def retrieval_premise_for_hypothesis(doc_sents: list[str], hyp_sent: str) -> str:
-    """
-    Retrieve top-K most similar doc sentences to the hypothesis sentence using embeddings,
-    then join them into a short premise for NLI.
-    """
     if not doc_sents:
         return ""
 
@@ -238,13 +192,6 @@ def retrieval_premise_for_hypothesis(doc_sents: list[str], hyp_sent: str) -> str
     return premise
 
 def nli_rates_retrieval(orig: str, summ: str) -> tuple[float, float, float]:
-    """
-    Retrieval-based NLI:
-      For each summary sentence (hypothesis), build a premise from top-K relevant doc sentences,
-      then run MNLI.
-
-    Returns (entailment_rate, contradiction_rate, neutral_rate).
-    """
     hyp_sents = take_first_n_sents(split_sentences(summ), MAX_NLI_SENTENCES)
     if not hyp_sents:
         return 0.0, 0.0, 0.0
@@ -279,9 +226,6 @@ def weighted_score(row: dict) -> float:
     return sum(row[k] * w for k, w in WEIGHTS.items())
 
 
-# ======================
-# MAIN EVAL
-# ======================
 def main():
     if not DOCS_DIR.exists():
         raise FileNotFoundError(f"Missing docs dir: {DOCS_DIR.resolve()}")
