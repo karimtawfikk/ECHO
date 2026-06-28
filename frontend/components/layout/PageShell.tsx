@@ -5,7 +5,7 @@ import Link from "next/link";
 import { usePathname } from "next/navigation";
 import RouteTransition from "../animations/RouteTransition";
 import { motion, AnimatePresence } from "framer-motion";
-import { Sparkles, User, Globe, ChevronDown, Menu, X } from "lucide-react";
+import { Sparkles, User, Globe, ChevronDown, MoreHorizontal, X } from "lucide-react";
 import { useLanguage } from "../../context/LanguageContext";
 import type { Language } from "../../lib/i18n/dictionaries";
 import { useEffect } from "react";
@@ -96,7 +96,7 @@ export default function PageShell({
             <div className="md:hidden flex items-center flex-1 justify-start">
               {!minimal && (
                 <button onClick={() => setMenuOpen(!menuOpen)} className="p-2 -ml-2 text-[#E6B23C] hover:bg-[#E6B23C]/10 rounded-full transition-colors z-50">
-                  {menuOpen ? <X size={20} /> : <Menu size={20} />}
+                  {menuOpen ? <X size={20} /> : <MoreHorizontal size={20} />}
                 </button>
               )}
 
