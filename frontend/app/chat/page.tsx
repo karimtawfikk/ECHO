@@ -1030,7 +1030,7 @@ function ChatContent() {
             <div className="relative group">
               <button
                 onClick={() => router.back()}
-                className="h-8 w-8 flex items-center justify-center rounded-lg hover:bg-[#E6B23C]/10 text-[#A08E70] hover:text-[#E6B23C] transition-all border-none outline-none"
+                className="h-8 w-8 flex items-center justify-center rounded-lg hover:bg-[#E6B23C]/10 active:bg-[#E6B23C]/20 active:ring-2 active:ring-[#E6B23C]/60 active:scale-95 text-[#A08E70] hover:text-[#E6B23C] transition-all border-none outline-none"
               >
                 <ArrowLeft size={16} />
               </button>
@@ -1043,7 +1043,7 @@ function ChatContent() {
             <div className="relative group">
               <button
                 onClick={() => setSidebarOpen(!sidebarOpen)}
-                className="h-8 w-8 flex items-center justify-center rounded-lg hover:bg-[#E6B23C]/10 text-[#A08E70] hover:text-[#E6B23C] transition-all border-none outline-none"
+                className="h-8 w-8 flex items-center justify-center rounded-lg hover:bg-[#E6B23C]/10 active:bg-[#E6B23C]/20 active:ring-2 active:ring-[#E6B23C]/60 active:scale-95 text-[#A08E70] hover:text-[#E6B23C] transition-all border-none outline-none"
               >
                 <PanelLeft size={16} />
               </button>
@@ -1231,7 +1231,7 @@ function ChatContent() {
           <div className="absolute top-4 right-4 md:right-6 z-[55]">
             <button
               onClick={() => window.location.href = `/chat?entity=${entityName}&type=${entityType}`}
-              className="h-8 w-8 flex items-center justify-center rounded-lg hover:bg-[#E6B23C]/10 text-[#A08E70] hover:text-[#E6B23C] transition-all border-none outline-none group"
+              className="h-8 w-8 flex items-center justify-center rounded-lg hover:bg-[#E6B23C]/10 active:bg-[#E6B23C]/20 active:ring-2 active:ring-[#E6B23C]/60 active:scale-95 text-[#A08E70] hover:text-[#E6B23C] transition-all border-none outline-none group"
             >
               <SquarePen size={16} />
               <span className={`absolute ${isRTL ? 'left-full ml-4' : 'right-full mr-4'} top-1/2 -translate-y-1/2 px-2 py-1 bg-[#1A1208] border border-[#E6B23C]/20 text-[#E6B23C] text-[10px] capitalize font-bold tracking-widest rounded opacity-0 group-hover:opacity-100 transition-opacity whitespace-nowrap z-50 pointer-events-none`}>
