@@ -414,7 +414,7 @@ function ResultContent() {
                           <div key={sub.name} className="grid sm:grid-cols-2 gap-4">
                             <Button
                               onClick={() => router.push(`/video?entity=${encodeURIComponent(sub.name)}&type=${displayType}&dynasty=${encodeURIComponent(sub.dynasty || '')}&period=${encodeURIComponent(sub.period || '')}&dbType=${encodeURIComponent(sub.type || '')}&location=${encodeURIComponent(location || '')}`)}
-                              className="h-14 rounded-2xl bg-[#E6B23C]/10 border border-[#E6B23C]/20 hover:bg-[#E6B23C]/20 text-[#E6B23C] font-bold text-base transition-all hover:scale-[1.02] flex items-center justify-center gap-3"
+                              className="h-14 rounded-2xl bg-[#E6B23C]/10 border border-[#E6B23C]/20 hover:bg-[#E6B23C]/20 active:bg-[#E6B23C]/30 active:scale-[0.98] active:ring-2 active:ring-[#E6B23C]/50 text-[#E6B23C] font-bold text-base transition-all hover:scale-[1.02] flex items-center justify-center gap-3"
                             >
                               <Video size={20} />
                               {t("result.button.video_named", { name: cleanSubName })}
@@ -422,7 +422,7 @@ function ResultContent() {
                             <Button
                               onClick={() => router.push(`/chat?entity=${encodeURIComponent(sub.name)}&type=${displayType}`)}
                               variant="outline"
-                              className="h-14 rounded-2xl border-[#E6B23C]/12 bg-[#E6B23C]/[0.04] hover:bg-[#E6B23C]/[0.08] text-[#F5E6D0] font-semibold text-base transition-all hover:scale-[1.02] flex items-center justify-center gap-3"
+                              className="h-14 rounded-2xl border-[#E6B23C]/12 bg-[#E6B23C]/[0.04] hover:bg-[#E6B23C]/[0.08] active:bg-[#E6B23C]/20 active:scale-[0.98] active:ring-2 active:ring-[#E6B23C]/50 text-[#F5E6D0] font-semibold text-base transition-all hover:scale-[1.02] flex items-center justify-center gap-3"
                             >
                               <MessageSquare size={20} />
                               {t("result.button.chat_named", { name: cleanSubName })}
@@ -436,7 +436,7 @@ function ResultContent() {
                     <div className="grid sm:grid-cols-2 gap-5">
                       <Button
                         onClick={() => router.push(`/video?entity=${encodeURIComponent(displayName)}&type=${displayType}&dynasty=${encodeURIComponent(dynasty || '')}&period=${encodeURIComponent(period || '')}&dbType=${encodeURIComponent(dbType || '')}&location=${encodeURIComponent(location || '')}`)}
-                        className="h-14 rounded-2xl bg-[#E6B23C]/10 border border-[#E6B23C]/20 hover:bg-[#E6B23C]/20 text-[#E6B23C] font-bold text-base transition-all hover:scale-[1.02] flex items-center justify-center gap-3"
+                        className="h-14 rounded-2xl bg-[#E6B23C]/10 border border-[#E6B23C]/20 hover:bg-[#E6B23C]/20 active:bg-[#E6B23C]/30 active:scale-[0.98] active:ring-2 active:ring-[#E6B23C]/50 text-[#E6B23C] font-bold text-base transition-all hover:scale-[1.02] flex items-center justify-center gap-3"
                       >
                         <Video size={20} />
                         {t("result.button.video")}
@@ -444,7 +444,7 @@ function ResultContent() {
                       <Button
                         onClick={() => router.push(`/chat?entity=${encodeURIComponent(displayName)}&type=${displayType}`)}
                         variant="outline"
-                        className="h-14 rounded-2xl border-[#E6B23C]/12 bg-[#E6B23C]/[0.04] hover:bg-[#E6B23C]/[0.08] text-[#F5E6D0] font-semibold text-base transition-all hover:scale-[1.02] flex items-center justify-center gap-3"
+                        className="h-14 rounded-2xl border-[#E6B23C]/12 bg-[#E6B23C]/[0.04] hover:bg-[#E6B23C]/[0.08] active:bg-[#E6B23C]/20 active:scale-[0.98] active:ring-2 active:ring-[#E6B23C]/50 text-[#F5E6D0] font-semibold text-base transition-all hover:scale-[1.02] flex items-center justify-center gap-3"
                       >
                         <MessageSquare size={20} />
                         {t("result.button.chat")}
