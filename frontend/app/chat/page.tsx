@@ -1022,10 +1022,10 @@ function ChatContent() {
         <motion.aside
           initial={false}
           animate={{ width: sidebarOpen ? (typeof window !== 'undefined' && window.innerWidth < 768 ? '100vw' : 300) : 56 }}
-          className="h-full border-r border-[#E6B23C]/10 bg-[#0D0A07]/95 flex flex-row z-[60] relative"
+          className={`h-full flex flex-row z-[60] absolute md:relative left-0 top-0 ${sidebarOpen ? 'bg-[#0D0A07]/95 border-r border-[#E6B23C]/10' : 'bg-transparent border-none md:bg-[#0D0A07]/95 md:border-r md:border-[#E6B23C]/10'}`}
         >
           {/* Narrow Left Column - Always visible */}
-          <div className="w-[56px] h-full flex flex-col items-center py-4 gap-4 shrink-0 border-r border-[#E6B23C]/5">
+          <div className={`w-[56px] h-full flex flex-col items-center py-4 gap-4 shrink-0 ${sidebarOpen ? 'border-r border-[#E6B23C]/5' : 'border-none md:border-r md:border-[#E6B23C]/5'}`}>
             {/* Return Button */}
             <div className="relative group">
               <button
@@ -1539,7 +1539,7 @@ function ChatContent() {
             <>
               {/* Messages Area - Positioned below the fixed header area */}
               <div ref={scrollRef} className="flex-1 overflow-y-auto trending-scrollbar-hide relative mt-36 md:mt-42">
-                <div className="max-w-5xl mx-auto w-full p-4 md:p-8 space-y-8 pb-32" style={{ direction: 'ltr' }}>
+                <div className="max-w-5xl mx-auto w-full pl-12 pr-4 pt-4 pb-32 md:p-8 space-y-8" style={{ direction: 'ltr' }}>
                   <AnimatePresence>
                     {/* Static Welcome Message */}
                     <motion.div key="welcome-message-static" initial={{ opacity: 0, y: 10 }} animate={{ opacity: 1, y: 0 }} transition={{ duration: 0.4 }}
