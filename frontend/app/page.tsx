@@ -108,7 +108,7 @@ export default function HomePage() {
               className="hidden md:block w-full h-full object-cover object-top opacity-60"
               onError={(e) => { e.currentTarget.style.display = 'none'; }}
             />
-            {/* Mobile Background */}
+            {/* Mobile Backgroundd */}
             <img
               src="/images/backgrounds/x-mobile.jpeg"
               alt="Background Mobile"
