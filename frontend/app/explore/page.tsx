@@ -734,7 +734,7 @@ function ExploreContent() {
                     animate={{ opacity: 1, y: 0 }}
                     exit={{ opacity: 0, y: 20 }}
                     transition={{ type: "spring", damping: 25, stiffness: 200 }}
-                    className="relative md:absolute top-0 right-0 max-h-[60vh] md:max-h-none md:h-full w-full md:w-[450px] bg-[#0D0A07]/95 backdrop-blur-xl border border-[#E6B23C]/20 md:border-t-0 md:border-b-0 md:border-r-0 md:border-l z-[100] md:shadow-[-20px_0_50px_rgba(0,0,0,0.5)] flex flex-col rounded-2xl md:rounded-l-none md:rounded-r-3xl overflow-hidden mt-6 md:mt-0"
+                    className="relative md:absolute top-0 right-0 max-h-[60vh] md:max-h-none md:h-full w-full md:w-[450px] bg-[#0D0A07]/95 backdrop-blur-xl border border-[#E6B23C]/20 md:border-t-0 md:border-b-0 md:border-r-0 md:border-l z-[100] md:shadow-[-20px_0_50px_rgba(0,0,0,0.5)] flex flex-col rounded-2xl md:rounded-l-none md:rounded-r-3xl overflow-hidden mt-6 md:mt-0 scroll-mt-28"
                   >
                     {/* Header */}
                     <div className="p-6 md:p-8 border-b border-[#E6B23C]/10 flex items-center justify-between bg-gradient-to-r from-[#1A1208] to-[#0D0A07]">
