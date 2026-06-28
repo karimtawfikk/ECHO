@@ -27,7 +27,6 @@ class R2ImageResolver:
         paginator = client.get_paginator("list_objects_v2")
         
         try:
-            # 1. Fetch pharaohs images
             for page in paginator.paginate(Bucket=bucket_name, Prefix="data/video_generation/raw/pharaohs_images/"):
                 for obj in page.get("Contents", []):
                     key = obj["Key"]
@@ -39,7 +38,6 @@ class R2ImageResolver:
                         if name_no_ext.strip().lower() == "statue 1":
                             cls._pharaoh_map[entity_name] = key
                             
-            # 2. Fetch landmarks images
             for page in paginator.paginate(Bucket=bucket_name, Prefix="data/video_generation/raw/landmarks_images/"):
                 for obj in page.get("Contents", []):
                     key = obj["Key"]

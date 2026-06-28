@@ -97,7 +97,6 @@ class EchoChatbotRuntime:
         if not self.valid_groq_keys:
             raise ValueError("No GROQ_API_KEYs found in environment.")
 
-        # Used for transcription fallback loop later
         self.groq_client = Groq(api_key=self.valid_groq_keys[0])
 
         rewriter_llms = [
@@ -106,7 +105,7 @@ class EchoChatbotRuntime:
                 temperature=0.2,
                 max_tokens=1024,
                 api_key=key,
-                max_retries=0, # Fail fast to rotate immediately
+                max_retries=0,
                 extra_body={"reasoning_effort": "none", "reasoning_format": "hidden"},
             )
             for key in self.valid_groq_keys
@@ -124,12 +123,12 @@ class EchoChatbotRuntime:
                 max_tokens=4096,
                 top_p=0.95,
                 api_key=key,
-                max_retries=0, # Fail fast to rotate immediately
+                max_retries=0, 
                 extra_body={"reasoning_effort": "medium", "reasoning_format": "hidden"},
             ).bind_tools(self.tools)
             for key in self.valid_groq_keys
         ]
-        # Notice we reuse the keys loop for the generator too! We're no longer hard-locked to API_KEY2 for generator.
+      
         self.generator_llm = generator_llms[0].with_fallbacks(generator_llms[1:])
         self.reranker = JinaRerank(
             model="jina-reranker-v3",
@@ -337,7 +336,6 @@ class EchoChatbotRuntime:
             search_query = parts[0].replace("Search Query:", "").strip()
             memory_items = [item.strip() for item in parts[1].strip().split(",")]
             
-            # Update local session memory
             for item in memory_items:
                 if "=" not in item:
                     continue
@@ -348,12 +346,10 @@ class EchoChatbotRuntime:
             session_context["user_memory"] = session_memory
             print("Session Memory:", session_memory)
 
-            # Persist to Supabase if user_id is available
             user_id = session_context.get("user_id")
             print("User ID:", user_id)
             if user_id:
                 try:
-                    # Convert our local list of key=value to a dict for the update
                     update_meta = {}
                     for item in session_context["user_memory"]:
                         if "=" in item:
@@ -361,7 +357,6 @@ class EchoChatbotRuntime:
                             update_meta[k.strip()] = v.strip()
 
                     with Session(engine) as db_session:
-                        # Direct update using our synchronized local state
                         db_session.execute(
                             text("UPDATE profiles SET user_metadata = :meta WHERE id = :uid"),
                             {"meta": json.dumps(update_meta), "uid": user_id}
@@ -486,19 +481,15 @@ class EchoChatbotRuntime:
         return None, prompt, has_searched
 
     def _generate_response(self, state: AgentState) -> tuple[str, list]:
-        """Synchronous version of generation (collects the stream)."""
         full_content = ""
         tool_calls = []
         for event in self._stream_generation(state):
             if event["type"] == "token":
                 full_content += event["content"]
         
-        # Note: In sync mode, we'd need to handle tool calls differently if needed, 
-        # but for now this provides a clean wrapper.
         return full_content, []
 
     def _stream_generation(self, state: AgentState):
-        """Unified generator that handles payload building and streaming."""
         out_of_scope_text, prompt, has_searched = self._build_generation_payload(state)
         
         if out_of_scope_text is not None:
@@ -538,7 +529,6 @@ class EchoChatbotRuntime:
         print(f"[chatbot] /init start session={session_id} entity={entity_type}:{entity_name} user_id={user_id} history_len={len(history) if history else 0} rewriter_history_len={len(rewriter_history) if rewriter_history else 0}", flush=True)
         session_context = self.sessions.get(session_id)
 
-        # 1. Resolve Messages (Load from history if provided)
         messages = []
         if history:
             for msg in history:
@@ -551,10 +541,7 @@ class EchoChatbotRuntime:
             for msg in rewriter_history:
                 if msg.role == "assistant":
                     messages.append(AIMessage(content=msg.content, name="search_query"))
-                # Note: We skip rewriter 'user' roles to avoid duplicating HumanMessages
-                # which are already loaded from the main 'history' list.
 
-        # 1. Resolve Memory (Try context first, then DB fetch)
         user_memory = []
         if context:
             try:
@@ -565,7 +552,6 @@ class EchoChatbotRuntime:
             except Exception as e:
                 print(f"[chatbot] Failed to parse memory context: {e}")
         elif user_id:
-            # OPTIMIZATION: Fetch once from DB if context is missing
             try:
                 with Session(engine) as db_session:
                     res = db_session.execute(
@@ -580,7 +566,6 @@ class EchoChatbotRuntime:
             except Exception as e:
                 print(f"[chatbot] Failed to fetch initial memory from DB: {e}")
 
-        # 2. Initialize or Update Session
         if session_context is None or session_context.get("entity_type") != entity_type or session_context.get("entity_name") != entity_name:
             entity_id, gender = self.resolve_entity(entity_type, entity_name)
             self.sessions[session_id] = {
@@ -618,7 +603,6 @@ class EchoChatbotRuntime:
             flush=True,
         )
 
-        # Parse memory context if provided
         user_memory = []
         if context:
             try:
@@ -657,7 +641,6 @@ class EchoChatbotRuntime:
             session_context["user_memory"] = user_memory
             session_context["messages"] = []
         else:
-            # Always ensure user_id is updated in the session
             session_context["user_id"] = user_id
             if user_memory:
                 session_context["user_memory"] = user_memory

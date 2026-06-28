@@ -11,10 +11,6 @@ from .schemas import (
 )
 
 class HieroglyphDetectionService:
-    """
-    Thin orchestration layer between the FastAPI route and the runtime.
-    Full pipeline: Detect → Classify → Translate.
-    """
 
     def __init__(self, max_concurrent_gpu: int = 1) -> None:
         self._gpu_semaphore = Semaphore(max_concurrent_gpu)
@@ -24,16 +20,12 @@ class HieroglyphDetectionService:
         request: HieroglyphTranslationRequest,
         on_step: Any | None = None
     ) -> tuple[TranslationResult, HieroglyphTranslationMetadata]:
-        """Run the full pipeline (Preprocess → Detect → Classify → Translate)."""
 
-        # 1. Decode (CPU)
         image_bgr = hieroglyph_runtime.decode_image(request.image_base64)
 
-        # 2. Run Pipeline (GPU Serialized)
         with self._gpu_semaphore:
             raw_result, raw_metadata = hieroglyph_runtime.run_pipeline(image_bgr, on_step=on_step)
 
-        # 3. Model Conversion
         symbols = [
             ClassifiedSymbol(
                 gardiner_code=s["gardiner_code"],
@@ -60,5 +52,4 @@ class HieroglyphDetectionService:
 
         return result, metadata
 
-# Module-level singleton
 hieroglyph_service = HieroglyphDetectionService()

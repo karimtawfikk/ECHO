@@ -15,7 +15,6 @@ class Conversation(Base):
     entity_location = Column(String, nullable=True)
     is_pinned = Column(Boolean, nullable=True, server_default=text("false"))
 
-    # Relationships
     user = relationship("Profile", back_populates="conversations")
     messages = relationship("ChatMessage", back_populates="conversation", cascade="all, delete-orphan")
     rewritten_messages = relationship("ChatMessageRewriter", back_populates="conversation", cascade="all, delete-orphan")

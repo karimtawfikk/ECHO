@@ -99,7 +99,6 @@ class RecognitionInference:
 
         image = Image.open(io.BytesIO(image_data)).convert("RGB")
 
-        # Stage 1: Binary — pharaoh or landmark?
         bin_tensor = tf.convert_to_tensor(self.preprocess(image, PREPROCESS_MODES["binary"]))
         bin_pred = self.binary_model(bin_tensor, training=False).numpy()[0]
 
@@ -114,7 +113,6 @@ class RecognitionInference:
         else:
             predicted_type = "landmark"
 
-        # Stage 2: Specialized
         model = self.pharaoh_model if predicted_type == "pharaoh" else self.landmark_model
         encoder = self.pharaoh_encoder if predicted_type == "pharaoh" else self.landmark_encoder
 

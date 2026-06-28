@@ -1,8 +1,6 @@
 import sys
 from pathlib import Path
 
-# Add ECHO root to Python path so we can import shared code from src/
-# parents[2]: main.py -> app/ -> echo-backend/ -> ECHO/
 sys.path.insert(0, str(Path(__file__).resolve().parents[2]))
 
 from fastapi import FastAPI
@@ -28,12 +26,10 @@ app.add_middleware(
     allow_headers=["*"],
 )
 
-# Root → redirect to Swagger UI
 @app.get("/", include_in_schema=False)
 def root():
     return RedirectResponse(url="/docs")
 
-# Include Routers
 app.include_router(recognize.router,      prefix="/api/v1/recognize", tags=["recognition"])
 app.include_router(health.router,         prefix="/api/v1/health",    tags=["health"])
 app.include_router(trending_entities.router,    prefix="/api/v1/entities",  tags=["entities"])

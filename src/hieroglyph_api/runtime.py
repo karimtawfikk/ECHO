@@ -16,7 +16,6 @@ import warnings
 warnings.filterwarnings('ignore', category=UserWarning, module='keras')
 
 import ctypes
-# Force load the correct cuDNN library to fix the 9.1 vs 9.3 mismatch
 try:
     ctypes.CDLL("/workspace/venv/lib/python3.11/site-packages/nvidia/cudnn/lib/libcudnn.so.9", mode=ctypes.RTLD_GLOBAL)
 except Exception:
@@ -25,8 +24,6 @@ except Exception:
     except Exception:
         pass
 
-# CRITICAL: Import TensorFlow BEFORE PyTorch to prevent PyTorch's cuDNN 8
-# from polluting the global namespace and crashing TensorFlow's cuDNN 9.
 import tensorflow as tf
 gpus = tf.config.list_physical_devices('GPU')
 if gpus:
@@ -48,24 +45,16 @@ from ultralytics import YOLO
 load_dotenv()
 
 
-# ---------------------------------------------------------------------------
-# Configuration
-# ---------------------------------------------------------------------------
-
 @dataclass
 class HieroglyphPipelineConfig:
-    """Centralised configuration for the Hieroglyph Detection Pipeline."""
 
-    # Preprocessing (Stable Stage 2 Logic)
     clahe_clip_limit: float = 3.0
     clahe_tile_grid_size: tuple[int, int] = (8, 8)
     max_image_dim: int = 4096
 
-    # Detection (YOLOv8/11 Tiled)
     detection_model_path = "src/ml_models/hieroglyph_models/detection/model.pt"
     
-    # Confidence & Refinement
-    classification_confidence_threshold: float = 0.15  # Lowered to reduce 'Unknown' count
+    classification_confidence_threshold: float = 0.15  
     row_clustering_threshold: float = 40.0
     duplicate_iou_threshold: float = 0.45
     min_symbol_size_px: int = 15
@@ -75,36 +64,25 @@ class HieroglyphPipelineConfig:
     detection_tile_size: int = 640
     inference_batch_size: int = 16
 
-    # Classification (EfficientNetV2B0 — matches ClassificationFinalNotebook)
     classification_model_path = "src/ml_models/hieroglyph_models/classification/model.weights.h5"
     
     classification_label_map_path = "src/ml_models/hieroglyph_models/classification/label_map.json"
     classification_img_size: int = 224
 
-    # Translation (M2M-100 Fine-tuned)
     translation_model_path = "ECHO-EG/echo-m2m100-hieroglyph"
 
     translation_max_input_length: int = 512
     translation_max_target_length: int = 128
     translation_num_beams: int = 4
 
-    # Clustering (DBSCAN Row Logic)
-    # FIX 1: dbscan_eps_factor removed — now using two-pass DBSCAN with fixed factors
-    dbscan_tight_eps_factor: float = 0.3   # Pass 1: isolate stacked groups
-    dbscan_loose_eps_factor: float = 1.5   # Pass 2: group into rows/columns
+    dbscan_tight_eps_factor: float = 0.3   
+    dbscan_loose_eps_factor: float = 1.5  
     dbscan_min_samples: int = 1
     quadrant_x_overlap_threshold: float = 0.50
 
 
-# ---------------------------------------------------------------------------
-# Runtime
-# ---------------------------------------------------------------------------
 
 class HieroglyphDetectionRuntime:
-    """
-    Full Hieroglyph pipeline runtime: Detect → Classify → Translate.
-    Follows the clean architecture pattern of Chatbot and Video APIs.
-    """
 
     def __init__(self, config: HieroglyphPipelineConfig | None = None) -> None:
         self.config = config or HieroglyphPipelineConfig()
@@ -120,12 +98,8 @@ class HieroglyphDetectionRuntime:
         path = Path(relative_path)
         return path if path.is_absolute() else self.repo_root / path
 
-    # -------------------------------------------------------------------
-    # Model Loading
-    # -------------------------------------------------------------------
 
     def load_detection_model(self) -> Any:
-        """Load and cache the YOLO detection model."""
         if self._detection_model is not None:
             return self._detection_model
 
@@ -142,7 +116,6 @@ class HieroglyphDetectionRuntime:
         return self._detection_model
 
     def load_classification_model(self) -> Any:
-        """Load and cache the Keras classification model + label map."""
         if self._classification_model is not None:
             return self._classification_model
 
@@ -156,16 +129,13 @@ class HieroglyphDetectionRuntime:
         print(f"[hieroglyph] Loading classification model: {model_path.name}", flush=True)
         load_start = time.time()
 
-        # Suppress TF logs but keep error info
         os.environ.setdefault("TF_CPP_MIN_LOG_LEVEL", "2")
-        
-        # TensorFlow and memory growth are already handled at the top of the file.
+
         tf.get_logger().setLevel("ERROR")
         
         device_used = "GPU" if gpus else "CPU"
         print(f"[hieroglyph] Classification model will use: {device_used}", flush=True)
 
-        # Keras 3 native save format
         config_path = model_path.parent / "config.json"
         expected_weights = model_path.parent / "model.weights.h5"
 
@@ -185,7 +155,6 @@ class HieroglyphDetectionRuntime:
             self._classification_model = tf.keras.models.load_model(str(model_path))
             print(f"[hieroglyph] Loaded model from file: {model_path}", flush=True)
 
-        # Warm-up prediction to avoid first-hit latency
         try:
             print("[hieroglyph] Warming up classification model...", flush=True)
             img_size = self.config.classification_img_size
@@ -208,21 +177,17 @@ class HieroglyphDetectionRuntime:
         return self._classification_model
 
     def load_translation_model(self) -> tuple[Any, Any] | None:
-        """Load and cache the M2M-100 translation model + tokenizer."""
         if self._translation_model is not None:
             return self._translation_model, self._translation_tokenizer
 
         model_id = self.config.translation_model_path
         model_path = self._resolve_path(model_id)
         
-        # Use local path if it exists, otherwise assume it's a Hugging Face repo ID
         if model_path.exists():
             load_path = str(model_path)
         else:
             load_path = model_id
 
-        # Returning to GPU with FP16 optimization to prevent timeouts
-        # However, this model is 3.5GB. If it fails, we MUST fallback to CPU.
         self._device = "cuda" if torch.cuda.is_available() else "cpu"
         print(f"[hieroglyph] Translation model will use: {self._device} (Optimized) from {load_path}", flush=True)
 
@@ -235,11 +200,9 @@ class HieroglyphDetectionRuntime:
                 extra_special_tokens={}
             )
             
-            # Clear cache before loading big model
             if torch.cuda.is_available():
                 torch.cuda.empty_cache()
 
-            # Load in FP16 if using CUDA to be faster and use less memory
             if self._device == "cuda":
                 try:
                     self._translation_model = M2M100ForConditionalGeneration.from_pretrained(
@@ -255,7 +218,6 @@ class HieroglyphDetectionRuntime:
             
             self._translation_model.eval()
 
-            # Match notebook: src_lang and tgt_lang both set to "en"
             self._translation_tokenizer.src_lang = "en"
             self._translation_tokenizer.tgt_lang = "en"
 
@@ -271,30 +233,18 @@ class HieroglyphDetectionRuntime:
         return self._translation_model, self._translation_tokenizer
 
     def ensure_models_loaded(self) -> None:
-        """Startup warm-up — load all models."""
         self.load_detection_model()
         self.load_classification_model()
         self.load_translation_model()
 
-    # -------------------------------------------------------------------
-    # Stage 0: Decode
-    # -------------------------------------------------------------------
 
     def decode_image(self, image_b64: str) -> np.ndarray:
-        """Convert base64 string to BGR image."""
         img_bytes = base64.b64decode(image_b64)
         pil_img = Image.open(io.BytesIO(img_bytes)).convert("RGB")
         return cv2.cvtColor(np.array(pil_img), cv2.COLOR_RGB2BGR)
 
-    # -------------------------------------------------------------------
-    # Stage 1: Preprocessing
-    # -------------------------------------------------------------------
 
     def preprocess(self, image_bgr: np.ndarray) -> np.ndarray:
-        """
-        Exact match for apply_pro_enhancement from FinalDetectionIOU80.py.
-        CLAHE in LAB space (clipLimit=3.0, tileGrid=8×8) + Laplacian sharpening.
-        """
         if image_bgr is None: return None
         lab = cv2.cvtColor(image_bgr, cv2.COLOR_BGR2LAB)
         l, a, b = cv2.split(lab)
@@ -304,18 +254,12 @@ class HieroglyphDetectionRuntime:
         kernel = np.array([[0, -1, 0], [-1, 5, -1], [0, -1, 0]], dtype=np.float32)
         return cv2.filter2D(enhanced, -1, kernel)
 
-    # -------------------------------------------------------------------
-    # Stage 2: Detection (YOLO Tiled)
-    # -------------------------------------------------------------------
-
     def detect(self, image_bgr: np.ndarray) -> list[dict[str, Any]]:
-        """Tiled YOLO inference with Stage 2 NMS."""
         h, w = image_bgr.shape[:2]
         tile = self.config.detection_tile_size
         model = self.load_detection_model()
         if model is None: return []
 
-        # Tiling logic
         step = int(tile * 0.5)
         y_offsets = list(range(0, max(1, h - tile + 1), step))
         if h > tile: y_offsets.append(h - tile)
@@ -329,7 +273,6 @@ class HieroglyphDetectionRuntime:
                 tiles.append(image_bgr[oy:oy+tile, ox:ox+tile])
                 offsets.append((ox, oy))
 
-        # Batch inference
         bs = self.config.inference_batch_size
         for i in range(0, len(tiles), bs):
             batch_tiles = tiles[i:i+bs]
@@ -344,7 +287,6 @@ class HieroglyphDetectionRuntime:
 
         if not all_raw: return []
 
-        # NMS
         boxes_t = torch.tensor([d[:4] for d in all_raw], dtype=torch.float32)
         scores_t = torch.tensor([d[4] for d in all_raw], dtype=torch.float32)
         keep = torch_nms(boxes_t, scores_t, iou_threshold=self.config.detection_iou_threshold)
@@ -356,12 +298,8 @@ class HieroglyphDetectionRuntime:
             "centre_y": (all_raw[int(i)][1] + all_raw[int(i)][3]) / 2
         } for i in keep if all_raw[int(i)][4] >= self.config.detection_confidence]
 
-    # -------------------------------------------------------------------
-    # Stage 3: Post-Detection Refinement
-    # -------------------------------------------------------------------
 
     def remove_duplicates(self, detections: list[dict[str, Any]]) -> list[dict[str, Any]]:
-        """Global suppression for overlapping tiles."""
         if not detections: return []
         sorted_dets = sorted(detections, key=lambda x: -x["confidence"])
         keep = []
@@ -380,7 +318,6 @@ class HieroglyphDetectionRuntime:
         return keep
 
     def deduplicate_by_center(self, detections: list[dict[str, Any]], dist_thr: float = 25.0) -> list[dict[str, Any]]:
-        """Merge boxes with nearly identical centers."""
         if not detections: return []
         sorted_dets = sorted(detections, key=lambda x: -x["confidence"])
         keep = []
@@ -395,36 +332,20 @@ class HieroglyphDetectionRuntime:
             if not is_duplicate: keep.append(d)
         return keep
 
-    # -------------------------------------------------------------------
-    # Stage 4: Clustering & Ordering
-    # -------------------------------------------------------------------
     def cluster(self, detections: list[dict[str, Any]]) -> dict[int, list[dict[str, Any]]]:
-        """
-        Two-Pass DBSCAN Clustering.
-
-        FIX 3: Two-pass DBSCAN replaces the single-pass approach.
-        Pass 1 (tight eps): Isolates stacked symbol groups.
-        Pass 2 (loose eps): Groups stacked-resolved symbols into rows/columns.
-
-        FIX 1: Uses median symbol height instead of mean to be outlier-resistant.
-        """
         if not detections:
             return {}
 
-        # FIX 1: median instead of mean — outlier-resistant to large symbols like birds
         median_h = np.median([d["bbox"][3] - d["bbox"][1] for d in detections])
 
-        # Store median_h and median_w for use in _are_stacked
         self._median_h = median_h
         self._median_w = np.median([d["bbox"][2] - d["bbox"][0] for d in detections])
 
         coords = np.array([[d["centre_x"], d["centre_y"]] for d in detections])
 
-        # Pass 1: Tight eps to isolate stacked groups
         tight_eps = median_h * self.config.dbscan_tight_eps_factor
         pass1 = DBSCAN(eps=tight_eps, min_samples=self.config.dbscan_min_samples).fit(coords)
 
-        # Compute centroid of each Pass 1 group to use as input for Pass 2
         pass1_groups: dict[int, list[dict]] = {}
         for i, label in enumerate(pass1.labels_):
             pass1_groups.setdefault(int(label), []).append(detections[i])
@@ -439,14 +360,12 @@ class HieroglyphDetectionRuntime:
 
         group_centroids = np.array(group_centroids)
 
-        # Pass 2: Loose eps to group stacked clusters into rows/columns
         loose_eps = median_h * self.config.dbscan_loose_eps_factor
         pass2 = DBSCAN(eps=loose_eps, min_samples=self.config.dbscan_min_samples).fit(group_centroids)
         for i, row_label in enumerate(pass2.labels_):
             print(f"[cluster] Pass2 label={row_label} | "
                   f"centroid=({group_centroids[i][0]:.1f}, {group_centroids[i][1]:.1f})")
 
-        # Map Pass 2 row-label → list of original detections
         final_groups: dict[int, list[dict]] = {}
         for i, row_label in enumerate(pass2.labels_):
             pass1_label = group_labels[i]
@@ -456,10 +375,6 @@ class HieroglyphDetectionRuntime:
         return final_groups
 
     def sort_order(self, groups: dict[int, list[dict[str, Any]]]) -> list[dict[str, Any]]:
-        """
-        Steps 4-7: Layout Classification, Inter/Intra Cluster Sorting, and Stacked Symbol Handling.
-        FIX 4: Aspect ratio threshold replaces hard width > height comparison.
-        """
         cluster_data = []
 
         for label, syms in groups.items():
@@ -472,14 +387,13 @@ class HieroglyphDetectionRuntime:
             wk = max(x_centers) - min(x_centers)
             hk = max(y_centers) - min(y_centers)
 
-            # FIX 4: Aspect ratio with threshold gap instead of hard width > height
             aspect_ratio = wk / (hk + 1e-6)
             if aspect_ratio > 1.3:
                 layout = "Row"
             elif aspect_ratio < 0.77:
                 layout = "Column"
             else:
-                layout = "Row"  # default fallback
+                layout = "Row" 
 
             avg_x = np.mean(x_centers)
             avg_y = np.mean(y_centers)
@@ -492,7 +406,6 @@ class HieroglyphDetectionRuntime:
                 "avg_y": avg_y
             })
 
-        # Step 5: Inter-Cluster Sorting (RTL Assumed)
         def cluster_priority(c):
             if c["layout"] == "Row":
                 return (c["avg_y"], -c["avg_x"])
@@ -506,7 +419,6 @@ class HieroglyphDetectionRuntime:
         for cluster in cluster_data:
             syms = cluster["symbols"]
 
-            # Step 6: Intra-Cluster Sorting (RTL Assumed)
             if cluster["layout"] == "Row":
                 for s in syms:
                     print(f"[sort] symbol centre_x={s['centre_x']:.1f} bbox={s['bbox']}")
@@ -514,18 +426,12 @@ class HieroglyphDetectionRuntime:
             else:
                 syms.sort(key=lambda s: s["centre_y"])
 
-            # Step 7: Stacked Symbol Detection & Handling
             resolved_syms = self._resolve_stacked_groups(syms, self._median_h, self._median_w)
             final_sequence.extend(resolved_syms)
 
         return final_sequence
 
     def _resolve_stacked_groups(self, syms: list[dict[str, Any]], median_h: float, median_w: float) -> list[dict[str, Any]]:
-        """
-        Detects and resolves stacked symbols/quadrants within a sequence.
-        FIX 2: Checks ALL pairs instead of only adjacent pairs.
-        FIX 5: Y-distance and X-center proximity gates with dynamic multipliers.
-        """
         if len(syms) < 2:
             return syms
 
@@ -555,16 +461,13 @@ class HieroglyphDetectionRuntime:
             if len(group) == 1:
                 resolved.append(group[0])
             elif len(group) == 2:
-                # Simple stack: Top -> Bottom (by y_min)
                 resolved.extend(sorted(group, key=lambda s: s["bbox"][1]))
             else:
-                # Complex Quadrant Block (>= 3 symbols)
                 resolved.extend(self._resolve_quadrant(group))
 
         return resolved
 
     def _resolve_quadrant(self, group: list[dict[str, Any]]) -> list[dict[str, Any]]:
-        """Handles 2x2 or larger blocks by finding vertical sub-stacks."""
         sorted_by_x = sorted(group, key=lambda s: -s["centre_x"])
 
         sub_stacks = []
@@ -580,15 +483,12 @@ class HieroglyphDetectionRuntime:
                 curr_stack = [sorted_by_x[i]]
         sub_stacks.append(curr_stack)
 
-        # Sort each sub-stack Top -> Bottom
         final = []
         for stack in sub_stacks:
             final.extend(sorted(stack, key=lambda s: s["bbox"][1]))
         return final
 
     def _are_stacked(self, a: dict, b: dict, median_h: float, median_w: float) -> bool:
-        # Gate 0: Outlier exclusion — symbols much larger than median
-        # cannot be part of a stacked group
         h_a = a["bbox"][3] - a["bbox"][1]
         h_b = b["bbox"][3] - b["bbox"][1]
         w_a = a["bbox"][2] - a["bbox"][0]
@@ -599,47 +499,33 @@ class HieroglyphDetectionRuntime:
         if w_a > 2.0 * median_w or w_b > 2.0 * median_w:
             return False
 
-        # Gate 1: X-IoU
         x_iou = self._get_x_iou(a, b)
         if x_iou <= self.config.quadrant_x_overlap_threshold:
             return False
 
-        # Gate 2: Y-distance using smaller symbol's own height
         smaller_h = min(h_a, h_b)
         y_dist = abs(a["centre_y"] - b["centre_y"])
         y_multiplier = np.clip(median_h / (smaller_h + 1e-6), 0.8, 2.0)
         if y_dist >= (y_multiplier * smaller_h):
             return False
 
-        # Gate 3: X-center proximity using smaller symbol's own width
         smaller_w = min(w_a, w_b)
         x_dist = abs(a["centre_x"] - b["centre_x"])
         x_multiplier = np.clip(median_w / (smaller_w + 1e-6), 0.5, 1.5)
         return x_dist < (x_multiplier * smaller_w)
 
     def _get_x_iou(self, a, b):
-        """Calculates X-axis Intersection over Union."""
         ax1, _, ax2, _ = a["bbox"]
         bx1, _, bx2, _ = b["bbox"]
         inter = max(0, min(ax2, bx2) - max(ax1, bx1))
         min_w = min(ax2 - ax1, bx2 - bx1)
         return inter / min_w if min_w > 0 else 0
-    # -------------------------------------------------------------------
-    # Stage 5: Classification (EfficientNetV2B0)
-    # -------------------------------------------------------------------
 
     def classify_symbols(
         self,
         image_bgr: np.ndarray,
         detections: list[dict[str, Any]],
     ) -> list[dict[str, Any]]:
-        """
-        Crop each detected bounding box, resize to classification_img_size,
-        and run through the EfficientNetV2B0 model to get Gardiner codes.
-
-        NOTE: The model already includes preprocess_input in its graph,
-        so crops are fed as raw float32 (range 0-255), NOT normalised.
-        """
         model = self.load_classification_model()
         if model is None or not self._classification_label_map:
             for d in detections:
@@ -718,17 +604,7 @@ class HieroglyphDetectionRuntime:
 
         return detections
 
-    # -------------------------------------------------------------------
-    # Stage 6: Translation (M2M-100 Fine-tuned)
-    # -------------------------------------------------------------------
-
     def translate_gardiner_sequence(self, gardiner_codes: list[str]) -> str:
-        """
-        Translate a sequence of Gardiner codes into English text
-        using the fine-tuned M2M-100 model.
-
-        Input format matches notebook: "translate MdC to English: D21 Q3 D36 F4 D36"
-        """
         result = self.load_translation_model()
         if result is None:
             return ""
@@ -769,32 +645,20 @@ class HieroglyphDetectionRuntime:
 
         return translation
 
-    # -------------------------------------------------------------------
-    # Full Pipeline Orchestration
-    # -------------------------------------------------------------------
-
     def run_pipeline(self, image_bgr: np.ndarray, on_step: Any | None = None) -> tuple[dict[str, Any], dict[str, Any]]:
-        """
-        Full pipeline: Preprocess → Detect → Refine → Cluster → Sort → Classify → Translate.
-        """
         t0 = time.time()
 
-        # Start (Scanning Inscription)
-        if on_step: on_step(0.1) # Show the first icon immediately
+        if on_step: on_step(0.1) 
 
-        # 1. Preprocess
         enhanced = self.preprocess(image_bgr)
 
-        # 2. Detect
         raw = self.detect(enhanced)
-        
-        # Phase 1 DONE -> Move to Determining Sequence (Icon 2)
+
         if on_step: on_step(1.0) 
 
         t_detect = time.time()
         print(f"[hieroglyph] Detection: {len(raw)} raw detections in {t_detect - t0:.2f}s", flush=True)
 
-        # 3. Refine
         t_refine_start = time.time()
         clean = self.remove_duplicates(raw)
         filtered = self.deduplicate_by_center(clean, dist_thr=15.0)
@@ -815,37 +679,30 @@ class HieroglyphDetectionRuntime:
                 "annotated_image_base64": None,
             }, empty_metadata
 
-        # 4. Cluster & Sort
         t_order_start = time.time()
         groups = self.cluster(filtered)
         ordered = self.sort_order(groups)
-        
-        # Phase 2 DONE -> Move to Recognizing Symbols (Icon 3)
+
         if on_step: on_step(2.0) 
         
         print(f"[hieroglyph] Clustering & Sorting done in {time.time() - t_order_start:.2f}s", flush=True)
 
-        # 5. Classify (Gardiner codes)
         t_classify_start = time.time()
         classified_symbols = self.classify_symbols(image_bgr, ordered)
-        
-        # Phase 3 DONE -> Move to Generating Translation (Icon 4)
+
         if on_step: on_step(3.0) 
         
         print(f"[hieroglyph] Classification: {len(classified_symbols)} symbols in {time.time() - t_classify_start:.2f}s", flush=True)
 
-        # 6. Translate (Gardiner → English)
         t_translate_start = time.time()
         gardiner_codes = [s["gardiner_code"] for s in classified_symbols]
         translation_text = self.translate_gardiner_sequence(gardiner_codes)
         print(f"[hieroglyph] Translation done in {time.time() - t_translate_start:.2f}s", flush=True)
-        
-        # Phase 4 DONE
+
         if on_step: on_step(4.0)
         
         print(f"[hieroglyph] Translation done in {time.time() - t_translate_start:.2f}s", flush=True)
 
-        # 7. Format output
         symbols = [{
             "gardiner_code": s["gardiner_code"],
             "classification_confidence": float(s.get("classification_confidence", 0.0)),
@@ -853,7 +710,6 @@ class HieroglyphDetectionRuntime:
             "detection_confidence": float(s["confidence"]),
         } for s in classified_symbols]
 
-        # 8. Debug Annotation (Server-side)
         try:
             os.makedirs("debug", exist_ok=True)
             debug_img = image_bgr.copy()
@@ -867,7 +723,6 @@ class HieroglyphDetectionRuntime:
         except Exception as e:
             print(f"[hieroglyph] WARNING: Could not save debug image: {e}", flush=True)
 
-        # 9. Encode original image (no bboxes for frontend)
         _, buf = cv2.imencode(".jpg", image_bgr)
 
         pipeline_time_ms = int((time.time() - t0) * 1000)

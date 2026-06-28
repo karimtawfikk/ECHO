@@ -13,5 +13,4 @@ class RecognitionHistory(Base):
     entity_name = Column(String, nullable=False)
     entity_type = Column(String, nullable=False)
 
-    # Relationships
     user = relationship("Profile", back_populates="recognition_history")
