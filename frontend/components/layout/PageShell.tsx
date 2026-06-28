@@ -233,52 +233,58 @@ export default function PageShell({
         </div>
       </nav>
 
-      {/* Mobile Bottom Sheet Menu */}
+      {/* Mobile Full-Screen Menu */}
       <AnimatePresence>
         {menuOpen && !minimal && (
-          <>
-            {/* Backdrop */}
-            <motion.div
-              initial={{ opacity: 0 }}
-              animate={{ opacity: 1 }}
-              exit={{ opacity: 0 }}
+          <motion.div
+            initial={{ opacity: 0 }}
+            animate={{ opacity: 1 }}
+            exit={{ opacity: 0 }}
+            transition={{ duration: 0.3 }}
+            className="md:hidden fixed inset-0 bg-[#0D0A07]/95 backdrop-blur-2xl z-[100] flex flex-col justify-center items-center px-8"
+          >
+            {/* Close Button */}
+            <button 
               onClick={() => setMenuOpen(false)}
-              className="md:hidden fixed inset-0 bg-[#0D0A07]/60 backdrop-blur-sm z-[100]"
-            />
-            
-            {/* Sheet */}
-            <motion.div
-              initial={{ opacity: 0, y: "100%" }}
-              animate={{ opacity: 1, y: 0 }}
-              exit={{ opacity: 0, y: "100%" }}
-              transition={{ type: "spring", damping: 25, stiffness: 200 }}
-              className="md:hidden fixed bottom-0 left-0 right-0 bg-[#1A1208]/95 backdrop-blur-xl border-t border-[#E6B23C]/20 rounded-t-[2.5rem] shadow-[0_-20px_50px_rgba(0,0,0,0.8)] z-[101] flex flex-col pt-4 pb-10 px-6"
+              className="absolute top-5 left-4 p-2 text-[#E6B23C] hover:bg-[#E6B23C]/10 rounded-full transition-colors"
             >
-              <div className="w-12 h-1.5 bg-[#E6B23C]/20 rounded-full mx-auto mb-8" />
-              
-              <div className="flex flex-col gap-4">
-                {navLinks.map((link) => {
-                  const isActive = pathname === link.href || (link.href === "/upload" && pathname.startsWith("/result"));
-                  const isHome = link.href === "/";
-                  if (isHome) return null; // Remove home from mobile menu
-                  return (
+              <X size={28} />
+            </button>
+            
+            <div className="flex flex-col gap-10 w-full max-w-sm">
+              {navLinks.map((link, i) => {
+                const isActive = pathname === link.href || (link.href === "/upload" && pathname.startsWith("/result"));
+                const isHome = link.href === "/";
+                if (isHome) return null; // Remove home from mobile menu
+                
+                return (
+                  <motion.div
+                    key={link.name}
+                    initial={{ opacity: 0, y: 40 }}
+                    animate={{ opacity: 1, y: 0 }}
+                    exit={{ opacity: 0, y: 20 }}
+                    transition={{ 
+                      duration: 0.6,
+                      delay: i * 0.1,
+                      ease: [0.25, 0.1, 0.25, 1]
+                    }}
+                  >
                     <Link
-                      key={link.name}
                       href={link.href}
                       onClick={() => setMenuOpen(false)}
-                      className={`w-full flex items-center justify-center py-5 rounded-2xl text-[13px] font-bold tracking-[0.2em] uppercase transition-all ${
+                      className={`block w-full text-center text-3xl font-heading font-bold tracking-[0.25em] uppercase transition-all ${
                         isActive 
-                          ? "bg-[#E6B23C]/15 text-[#E6B23C] border border-[#E6B23C]/30 shadow-inner" 
-                          : "bg-[#0D0A07]/60 text-[#A08E70] border border-[#E6B23C]/10 active:bg-[#E6B23C]/10 active:scale-[0.98]"
+                          ? "text-[#E6B23C] drop-shadow-[0_0_15px_rgba(230,178,60,0.5)]" 
+                          : "text-[#A08E70] hover:text-[#F5E6D0]"
                       }`}
                     >
                       {link.name}
                     </Link>
-                  );
-                })}
-              </div>
-            </motion.div>
-          </>
+                  </motion.div>
+                );
+              })}
+            </div>
+          </motion.div>
         )}
       </AnimatePresence>
 
