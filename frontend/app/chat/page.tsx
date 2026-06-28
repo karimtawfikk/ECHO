@@ -1253,7 +1253,7 @@ function ChatContent() {
                         placeholder="Search chat history..."
                         value={allChatsSearch}
                         onChange={(e) => setAllChatsSearch(e.target.value)}
-                        className="w-full bg-[#0D0A07] border border-[#E6B23C]/10 rounded-2xl py-4 pl-14 pr-6 text-[#F5E6D0] focus:outline-none focus:border-[#E6B23C]/40 transition-all shadow-inner"
+                        className="w-full bg-[#0D0A07] border border-[#E6B23C]/10 rounded-2xl py-4 pl-14 pr-6 text-base text-[#F5E6D0] focus:outline-none focus:border-[#E6B23C]/40 transition-all shadow-inner"
                       />
                     </div>
                     <div className="relative">
