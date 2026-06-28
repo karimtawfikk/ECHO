@@ -1777,7 +1777,7 @@ function ChatContent() {
 
               {/* Input Bar - Floating & Minimal - Centered relative to screen */}
               <div className="w-full shrink-0 z-10">
-                <div className="p-4 md:p-8 md:pb-12 bg-transparent max-w-5xl mx-auto">
+                <div className="pl-12 pr-4 pt-4 pb-4 md:p-8 md:pb-12 bg-transparent max-w-5xl mx-auto">
                   <div className="flex gap-3 md:gap-4 items-center max-w-4xl mx-auto relative">
                     {recordingState === "processing" ? (
                       <motion.div
