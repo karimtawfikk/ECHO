@@ -71,7 +71,7 @@ export default function PageShell({
   ];
 
   return (
-    <main className={fullScreen ? "h-[100dvh] md:min-h-screen overflow-hidden md:overflow-visible relative" : "min-h-screen relative"}>
+    <main className={fullScreen ? "fixed inset-0 md:relative md:min-h-screen overflow-hidden md:overflow-visible" : "min-h-screen relative"}>
       {/* Rich Animated Background */}
       <div className="cinematic-bg">
         <div className="egyptian-pattern" />
