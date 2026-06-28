@@ -265,22 +265,7 @@ function ChatContent() {
   const [isAudioMuted, setIsAudioMuted] = useState(false);
   const [playingMsgId, setPlayingMsgId] = useState<string | null>(null);
 
-  // Lock body scrolling on mobile to prevent page scroll behind chat
-  useEffect(() => {
-    const isMobile = window.innerWidth < 768;
-    if (isMobile) {
-      document.documentElement.style.overflow = 'hidden';
-      document.body.style.overflow = 'hidden';
-      document.documentElement.style.overscrollBehavior = 'none';
-      document.body.style.overscrollBehavior = 'none';
-    }
-    return () => {
-      document.documentElement.style.overflow = '';
-      document.body.style.overflow = '';
-      document.documentElement.style.overscrollBehavior = '';
-      document.body.style.overscrollBehavior = '';
-    };
-  }, []);
+  // Removed body lock useEffect to prevent iOS keyboard bug
 
   const [input, setInput] = useState("");
   const [isTyping, setIsTyping] = useState(false);
