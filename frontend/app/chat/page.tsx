@@ -1794,7 +1794,7 @@ function ChatContent() {
                         disabled={recordingState !== "idle"}
                         placeholder={t("chat.placeholder", { name: cleanDisplayName })}
                         rows={1}
-                        className="flex-1 min-h-[56px] max-h-48 py-4 px-8 rounded-[28px] bg-[#1A1208]/50 backdrop-blur-xl border border-[#E6B23C]/10 text-base placeholder:text-[#A08E70]/40 focus:outline-none focus:border-[#E6B23C]/30 focus:bg-[#1A1208]/80 focus:shadow-[0_0_30px_rgba(230,178,60,0.05)] transition-all disabled:opacity-50 resize-none overflow-y-auto trending-scrollbar-hide"
+                        className="flex-1 min-h-[56px] max-h-48 py-4 px-8 rounded-[28px] bg-[#1A1208]/50 backdrop-blur-xl border border-[#E6B23C]/10 text-base placeholder:text-[#E6B23C]/50 focus:outline-none focus:border-[#E6B23C]/30 focus:bg-[#1A1208]/80 focus:shadow-[0_0_30px_rgba(230,178,60,0.05)] transition-all disabled:opacity-50 resize-none overflow-y-auto trending-scrollbar-hide"
                         style={{ color: "#E6B23C", caretColor: "#E6B23C", direction: isRTL ? 'rtl' : 'ltr' }}
                       />
                     )}
