@@ -92,14 +92,8 @@ export default function PageShell({
           {/* Mobile Top Row: Logo & Controls */}
           <div className="w-full flex justify-between items-center md:contents relative">
 
-            {/* Mobile Hamburger Menu */}
-            <div className="md:hidden flex items-center flex-1 justify-start">
-              {!minimal && (
-                <button onClick={() => setMenuOpen(!menuOpen)} className="p-2 -ml-2 text-[#E6B23C] hover:bg-[#E6B23C]/10 rounded-full transition-colors">
-                  {menuOpen ? <X size={20} /> : <Menu size={20} />}
-                </button>
-              )}
-            </div>
+            {/* Mobile Empty Left Area (to balance flex) */}
+            <div className="md:hidden flex items-center flex-1 justify-start" />
 
             {/* Center Column: Logo */}
             <div className="flex justify-center md:col-start-2 md:row-start-1 shrink-0">
@@ -230,63 +224,38 @@ export default function PageShell({
             })}
           </div>
 
+          {/* Mobile Navigation Tabs */}
+          <div className="md:hidden flex items-center justify-center gap-6 w-full pt-2 pb-2">
+            {!minimal && navLinks.map((link) => {
+              const isActive = pathname === link.href || (link.href === "/upload" && pathname.startsWith("/result"));
+              const isHome = link.href === "/";
+              if (isHome) return null; // Remove home from mobile tabs
+              return (
+                <Link
+                  key={link.name}
+                  href={link.href}
+                  className={`relative py-1 text-[10px] font-bold tracking-[0.15em] uppercase transition-colors ${
+                    isActive ? "text-[#E6B23C]" : "text-[#A08E70]"
+                  }`}
+                >
+                  <span className="relative z-10">{link.name}</span>
+                  {isActive && (
+                    <motion.div
+                      layoutId="mobileNavIndicator"
+                      className="absolute -bottom-1 left-0 right-0 h-[2px] bg-[#E6B23C] shadow-[0_0_8px_rgba(230,178,60,0.6)] rounded-full"
+                      initial={false}
+                      transition={{ type: "spring", stiffness: 300, damping: 30 }}
+                    />
+                  )}
+                </Link>
+              );
+            })}
+          </div>
+
         </div>
       </nav>
 
-      {/* Mobile Full-Screen Menu */}
-      <AnimatePresence>
-        {menuOpen && !minimal && (
-          <motion.div
-            initial={{ opacity: 0 }}
-            animate={{ opacity: 1 }}
-            exit={{ opacity: 0 }}
-            transition={{ duration: 0.3 }}
-            className="md:hidden fixed inset-0 bg-[#0D0A07]/95 backdrop-blur-2xl z-[100] flex flex-col justify-center items-center px-8"
-          >
-            {/* Close Button */}
-            <button 
-              onClick={() => setMenuOpen(false)}
-              className="absolute top-5 left-4 p-2 text-[#E6B23C] hover:bg-[#E6B23C]/10 rounded-full transition-colors"
-            >
-              <X size={28} />
-            </button>
-            
-            <div className="flex flex-col gap-10 w-full max-w-sm">
-              {navLinks.map((link, i) => {
-                const isActive = pathname === link.href || (link.href === "/upload" && pathname.startsWith("/result"));
-                const isHome = link.href === "/";
-                if (isHome) return null; // Remove home from mobile menu
-                
-                return (
-                  <motion.div
-                    key={link.name}
-                    initial={{ opacity: 0, y: 40 }}
-                    animate={{ opacity: 1, y: 0 }}
-                    exit={{ opacity: 0, y: 20 }}
-                    transition={{ 
-                      duration: 0.6,
-                      delay: i * 0.1,
-                      ease: [0.25, 0.1, 0.25, 1]
-                    }}
-                  >
-                    <Link
-                      href={link.href}
-                      onClick={() => setMenuOpen(false)}
-                      className={`block w-full text-center text-3xl font-heading font-bold tracking-[0.25em] uppercase transition-all ${
-                        isActive 
-                          ? "text-[#E6B23C] drop-shadow-[0_0_15px_rgba(230,178,60,0.5)]" 
-                          : "text-[#A08E70] hover:text-[#F5E6D0]"
-                      }`}
-                    >
-                      {link.name}
-                    </Link>
-                  </motion.div>
-                );
-              })}
-            </div>
-          </motion.div>
-        )}
-      </AnimatePresence>
+
 
       {headerExtension && (
         <div className="fixed top-0 left-0 right-0 z-[45] pointer-events-none">
