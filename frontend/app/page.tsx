@@ -110,7 +110,7 @@ export default function HomePage() {
             />
             {/* Mobile Background */}
             <img
-              src="/images/backgrounds/X - Mobile.jpg"
+              src="/images/backgrounds/x-mobile.jpg"
               alt="Background Mobile"
               className="block md:hidden w-full h-full object-cover object-top opacity-60"
               onError={(e) => { e.currentTarget.style.display = 'none'; }}
