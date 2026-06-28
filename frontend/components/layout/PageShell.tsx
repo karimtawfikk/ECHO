@@ -90,7 +90,7 @@ export default function PageShell({
         <div className="w-full px-4 md:px-8 py-3 md:py-0 md:h-20 flex flex-col md:grid md:grid-cols-3 items-center relative gap-3 md:gap-0">
 
           {/* Mobile Top Row: Logo & Controls */}
-          <div className="w-full flex justify-between items-center md:contents relative">
+          <div className="w-full min-h-[40px] flex justify-between items-center md:contents relative">
 
             {/* Mobile Hamburger Menu & Inline Links */}
             <div className="md:hidden flex items-center flex-1 justify-start">
@@ -287,7 +287,7 @@ export default function PageShell({
       )}
 
       {/* Content */}
-      <div className={fullScreen ? "relative z-10 pt-14 md:pt-20 h-[100dvh] w-full flex flex-col overflow-hidden md:overflow-y-auto md:overflow-x-hidden" : (fullWidth ? "relative z-10 w-full" : "relative z-10 pt-24 md:pt-32 pb-12 md:pb-20 px-6 lg:px-12 max-w-7xl mx-auto")}>
+      <div className={fullScreen ? "relative z-10 pt-16 md:pt-20 h-[100dvh] w-full flex flex-col overflow-hidden md:overflow-y-auto md:overflow-x-hidden" : (fullWidth ? "relative z-10 w-full" : "relative z-10 pt-24 md:pt-32 pb-12 md:pb-20 px-6 lg:px-12 max-w-7xl mx-auto")}>
         <RouteTransition fullScreen={fullScreen}>{children}</RouteTransition>
       </div>
 
