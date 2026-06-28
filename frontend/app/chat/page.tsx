@@ -1708,7 +1708,7 @@ function ChatContent() {
                     >
                       <div className="relative flex flex-col items-center gap-8 pointer-events-auto">
                         {/* The Liquid Blob Container */}
-                        <div className="relative h-32 w-32 md:h-[152px] md:w-[152px] flex items-center justify-center">
+                        <div className="relative h-24 w-24 md:h-[152px] md:w-[152px] flex items-center justify-center">
                           {/* Organic Glow (Behind) */}
                           <motion.div
                             animate={{
@@ -1748,7 +1748,7 @@ function ChatContent() {
                             transition={{ repeat: Infinity, duration: 1.5, ease: "easeInOut" }}
                             className="relative z-10"
                           >
-                            <Mic size={36} className="text-[#1A1208] drop-shadow-lg" />
+                            <Mic size={28} className="text-[#1A1208] drop-shadow-lg md:w-9 md:h-9" />
                           </motion.div>
                         </div>
 
@@ -1758,7 +1758,7 @@ function ChatContent() {
                             animate={{ opacity: [1, 0.4, 1] }}
                             transition={{ repeat: Infinity, duration: 2 }}
                           >
-                            <span className="text-sm font-bold tracking-[0.5em] uppercase text-[#E6B23C] drop-shadow-md">{t("chat.listening")}</span>
+                            <span className="text-xs md:text-sm font-bold tracking-[0.5em] uppercase text-[#E6B23C] drop-shadow-md">{t("chat.listening")}</span>
                           </motion.div>
 
                           <button
