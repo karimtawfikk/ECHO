@@ -270,7 +270,7 @@ export default function PageShell({
       )}
 
       {/* Content */}
-      <div className={fullScreen ? "relative z-10 pt-14 md:pt-20 h-[100dvh] w-full flex flex-col overflow-y-auto overflow-x-hidden" : (fullWidth ? "relative z-10 w-full" : "relative z-10 pt-24 md:pt-32 pb-12 md:pb-20 px-6 lg:px-12 max-w-7xl mx-auto")}>
+      <div className={fullScreen ? "relative z-10 pt-14 md:pt-20 h-[100dvh] w-full flex flex-col overflow-hidden md:overflow-y-auto md:overflow-x-hidden" : (fullWidth ? "relative z-10 w-full" : "relative z-10 pt-24 md:pt-32 pb-12 md:pb-20 px-6 lg:px-12 max-w-7xl mx-auto")}>
         <RouteTransition fullScreen={fullScreen}>{children}</RouteTransition>
       </div>
 
