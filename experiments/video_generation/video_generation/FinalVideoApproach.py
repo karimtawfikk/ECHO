@@ -30,9 +30,7 @@ from scipy.io import wavfile
 from sqlalchemy import text
 from sqlalchemy.orm import Session
 
-# -----------------------------------------------------------------------------
-# Project import setup
-# -----------------------------------------------------------------------------
+
 root = Path.cwd()
 while root != root.parent and not (root / "src").exists():
     root = root.parent
@@ -41,9 +39,6 @@ sys.path.append(str(root))
 from src.db import engine 
 
 
-# -----------------------------------------------------------------------------
-# Config
-# -----------------------------------------------------------------------------
 @dataclass
 class VideoPipelineConfig:
     output_dir: str = "tts_Outputs"
@@ -72,9 +67,6 @@ class VideoPipelineConfig:
     cleanup_intermediate: bool = True
 
 
-# -----------------------------------------------------------------------------
-# CLIP model cache
-# -----------------------------------------------------------------------------
 _CLIP_MODEL = None
 _CLIP_TOKENIZER = None
 _CLIP_DEVICE = "cuda" if cuda.is_available() else "cpu"
@@ -96,9 +88,6 @@ def get_clip_model():
     return _CLIP_MODEL, _CLIP_TOKENIZER, _CLIP_DEVICE
 
 
-# -----------------------------------------------------------------------------
-# Script loading and text splitting
-# -----------------------------------------------------------------------------
 def get_script_by_name(name: str, is_landmark: bool = False) -> str | None:
     with Session(engine) as session:
         if is_landmark:
@@ -140,9 +129,6 @@ def split_script_into_paragraph_sentences(script: str) -> tuple[List[str], List[
     return paragraphs, sentence_groups
 
 
-# -----------------------------------------------------------------------------
-# Audio generation
-# -----------------------------------------------------------------------------
 async def edge_tts_save(text: str, out_path: str | Path, voice: str, rate: str) -> None:
     communicate = Communicate(text=text, voice=voice, rate=rate)
     await communicate.save(str(out_path))
@@ -261,9 +247,7 @@ def create_image_chunks(
 
     return image_text_chunks, seconds_for_chunk
 
-# -----------------------------------------------------------------------------
-# Retrieval
-# -----------------------------------------------------------------------------
+
 def cosine(a: np.ndarray, b: np.ndarray) -> float:
     return float(np.dot(a, b))
 
@@ -400,9 +384,6 @@ def retrieve_images_semantic(
     return fetched_image_ids, fetched_image_paths, average_score, average_trials
 
 
-# -----------------------------------------------------------------------------
-# R2 download and image normalization
-# -----------------------------------------------------------------------------
 def _build_r2_client():
     load_dotenv()
     account_id = os.getenv("R2_ACCOUNT_ID")
@@ -457,9 +438,6 @@ def normalize_images_to_jpeg(image_files: Sequence[str | Path]) -> List[str]:
     return sorted(normalized_paths)
 
 
-# -----------------------------------------------------------------------------
-# Subtitles
-# -----------------------------------------------------------------------------
 def normalize_text(text: str) -> str:
     text = unicodedata.normalize("NFKC", text)
     replacements = {
@@ -567,9 +545,7 @@ def generate_srt(
         f.writelines(srt_blocks)
     return output_path
 
-# -----------------------------------------------------------------------------
-# FFmpeg helpers
-# -----------------------------------------------------------------------------
+
 def run_ffmpeg(cmd: Sequence[str]) -> None:
     cmd = [str(c) for c in cmd]
     print("Running:", " ".join(cmd))
@@ -587,9 +563,6 @@ def _stable_unit(seed: str) -> float:
     return (_stable_int(seed) % 10_000) / 10_000.0
 
 
-# -----------------------------------------------------------------------------
-# Ken Burns planning and rendering
-# -----------------------------------------------------------------------------
 def plan_kenburns_sequence(
     image_files: Sequence[str | Path],
     durations: Sequence[float],
@@ -950,9 +923,6 @@ def cleanup_files(output_dir: str = "tts_Outputs", temp_clips_dir: str = "temp_c
                     pass
 
 
-# -----------------------------------------------------------------------------
-# End-to-end pipeline
-# -----------------------------------------------------------------------------
 def build_final_video(
     entity_name: str,
     is_landmark: bool = False,
@@ -973,7 +943,6 @@ def build_final_video(
     # 2) Split script
     paragraphs, sentence_groups = split_script_into_paragraph_sentences(script)
 
-    # TTS Stage
     tts_start = time.time()
     # 3) Generate sentence-level TTS
     asyncio.run(
@@ -997,7 +966,6 @@ def build_final_video(
     )
     stage_times["TTS"] = time.time() - tts_start
 
-    # Retrieval Stage
     retrieval_start = time.time()
     # 6) Build retrieval chunks
     image_text_chunks, seconds_for_chunk = create_image_chunks(
@@ -1023,7 +991,6 @@ def build_final_video(
 
     stage_times["Retrieval"] = time.time() - retrieval_start
     
-    # Subtitles Stage
     subtitles_start = time.time()
     
     # 10) Subtitles 
@@ -1056,7 +1023,6 @@ def build_final_video(
 
     stage_times["Motion"] = time.time() - motion_start
 
-    # Rendering Stage
     rendering_start = time.time()
 
     # 13) Concatenate clips
@@ -1073,7 +1039,6 @@ def build_final_video(
 
     stage_times["Rendering"] = time.time() - rendering_start
 
-    # Total time
     stage_times["Total"] = time.time() - total_start
 
     # 16) Cleanup intermediate files
