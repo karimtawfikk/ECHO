@@ -92,8 +92,24 @@ export default function PageShell({
           {/* Mobile Top Row: Logo & Controls */}
           <div className="w-full flex justify-between items-center md:contents relative">
 
-            {/* Mobile Empty Left Area (to balance flex) */}
-            <div className="md:hidden flex items-center flex-1 justify-start" />
+            {/* Mobile Hamburger Menu */}
+            <div className="md:hidden flex items-center flex-1 justify-start">
+              {!minimal && (
+                <button onClick={() => setMenuOpen(!menuOpen)} className="p-2 -ml-2 text-[#E6B23C] hover:bg-[#E6B23C]/10 rounded-full transition-colors flex items-center justify-center overflow-hidden w-10 h-10 relative">
+                  <AnimatePresence mode="wait" initial={false}>
+                    <motion.div
+                      key={menuOpen ? "close" : "open"}
+                      initial={{ opacity: 0, rotate: -90 }}
+                      animate={{ opacity: 1, rotate: 0 }}
+                      exit={{ opacity: 0, rotate: 90 }}
+                      transition={{ duration: 0.15 }}
+                    >
+                      {menuOpen ? <X size={20} /> : <Menu size={20} />}
+                    </motion.div>
+                  </AnimatePresence>
+                </button>
+              )}
+            </div>
 
             {/* Center Column: Logo */}
             <div className="flex justify-center md:col-start-2 md:row-start-1 shrink-0">
@@ -224,38 +240,69 @@ export default function PageShell({
             })}
           </div>
 
-          {/* Mobile Navigation Tabs */}
-          <div className="md:hidden flex items-center justify-center gap-6 w-full pt-2 pb-2">
-            {!minimal && navLinks.map((link) => {
-              const isActive = pathname === link.href || (link.href === "/upload" && pathname.startsWith("/result"));
-              const isHome = link.href === "/";
-              if (isHome) return null; // Remove home from mobile tabs
-              return (
-                <Link
-                  key={link.name}
-                  href={link.href}
-                  className={`relative py-1 text-[10px] font-bold tracking-[0.15em] uppercase transition-colors ${
-                    isActive ? "text-[#E6B23C]" : "text-[#A08E70]"
-                  }`}
-                >
-                  <span className="relative z-10">{link.name}</span>
-                  {isActive && (
-                    <motion.div
-                      layoutId="mobileNavIndicator"
-                      className="absolute -bottom-1 left-0 right-0 h-[2px] bg-[#E6B23C] shadow-[0_0_8px_rgba(230,178,60,0.6)] rounded-full"
-                      initial={false}
-                      transition={{ type: "spring", stiffness: 300, damping: 30 }}
-                    />
-                  )}
-                </Link>
-              );
-            })}
-          </div>
-
         </div>
       </nav>
 
-
+      {/* Mobile Bottom Sheet Menu */}
+      <AnimatePresence>
+        {menuOpen && !minimal && (
+          <>
+            {/* Backdrop */}
+            <motion.div
+              initial={{ opacity: 0 }}
+              animate={{ opacity: 1 }}
+              exit={{ opacity: 0 }}
+              onClick={() => setMenuOpen(false)}
+              className="md:hidden fixed inset-0 bg-black/85 backdrop-blur-sm z-[100]"
+            />
+            
+            {/* Sheet */}
+            <motion.div
+              initial={{ opacity: 0, y: "100%" }}
+              animate={{ opacity: 1, y: 0 }}
+              exit={{ opacity: 0, y: "100%" }}
+              transition={{ type: "spring", damping: 25, stiffness: 200 }}
+              className="md:hidden fixed bottom-0 left-0 right-0 bg-[#0D0A07]/95 backdrop-blur-2xl border-t border-[#E6B23C]/30 rounded-t-[2.5rem] shadow-[0_-20px_50px_rgba(0,0,0,0.9)] z-[101] flex flex-col pt-4 pb-12 px-2"
+            >
+              <div className="w-12 h-1.5 bg-[#E6B23C]/30 rounded-full mx-auto mb-6" />
+              
+              <div className="flex flex-col w-full">
+                {navLinks.filter(link => link.href !== "/").map((link, index, arr) => {
+                  const isActive = pathname === link.href || (link.href === "/upload" && pathname.startsWith("/result"));
+                  return (
+                    <div key={link.name} className="w-full">
+                      <motion.div
+                        initial={{ opacity: 0, y: 20 }}
+                        animate={{ opacity: 1, y: 0 }}
+                        exit={{ opacity: 0, y: 10 }}
+                        transition={{ delay: index * 0.1, duration: 0.3 }}
+                        className="w-full"
+                      >
+                        <Link
+                          href={link.href}
+                          onClick={() => setMenuOpen(false)}
+                          className={`w-full flex items-center justify-center py-6 text-[15px] font-bold tracking-[0.25em] uppercase transition-all ${
+                            isActive 
+                              ? "text-[#E6B23C] bg-[#E6B23C]/5" 
+                              : "text-[#F5E6D0] active:scale-[0.98] active:bg-[#E6B23C]/5"
+                          }`}
+                        >
+                          {link.name}
+                        </Link>
+                      </motion.div>
+                      {index < arr.length - 1 && (
+                        <div className="w-full flex justify-center">
+                          <div className="h-[1px] w-[80%] bg-gradient-to-r from-transparent via-[#E6B23C]/20 to-transparent" />
+                        </div>
+                      )}
+                    </div>
+                  );
+                })}
+              </div>
+            </motion.div>
+          </>
+        )}
+      </AnimatePresence>
 
       {headerExtension && (
         <div className="fixed top-0 left-0 right-0 z-[45] pointer-events-none">
