@@ -40,19 +40,32 @@ export default function TranslatePage() {
   const openCamera = () => cameraInputRef.current?.click();
 
   useEffect(() => {
-    try {
-      const raw = sessionStorage.getItem("echo_translation_history_result");
-      if (raw) {
-        const payload = JSON.parse(raw);
-        setResult({
-          translation: payload.translation,
-        });
-        setPreviewUrl(payload.imageUrl);
-        sessionStorage.removeItem("echo_translation_history_result");
+    const loadFromStorage = () => {
+      try {
+        const raw = sessionStorage.getItem("echo_translation_history_result");
+        if (raw) {
+          const payload = JSON.parse(raw);
+          setResult({
+            translation: payload.translation,
+          });
+          setPreviewUrl(payload.imageUrl);
+          sessionStorage.removeItem("echo_translation_history_result");
+          setCurrentStep(4); // Finished step
+          setFile(null);
+          setFileName("");
+          setIsLoading(false);
+          setTimeout(() => {
+            document.getElementById('result-section')?.scrollIntoView({ behavior: 'smooth', block: 'start' });
+          }, 200);
+        }
+      } catch (e) {
+        console.error("Error reading translation history result:", e);
       }
-    } catch (e) {
-      console.error("Error reading translation history result:", e);
-    }
+    };
+
+    loadFromStorage();
+    window.addEventListener("echo_load_translation", loadFromStorage);
+    return () => window.removeEventListener("echo_load_translation", loadFromStorage);
   }, []);
 
   useEffect(() => {

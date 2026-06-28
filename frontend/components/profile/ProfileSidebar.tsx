@@ -839,6 +839,7 @@ export default function ProfileSidebar({ isOpen, onClose }: ProfileSidebarProps)
                                                                                     imageUrl: entry.image
                                                                                 }));
                                                                                 router.push("/translate");
+                                                                                setTimeout(() => window.dispatchEvent(new Event("echo_load_translation")), 50);
                                                                                 onClose();
                                                                             }
                                                                         }}
