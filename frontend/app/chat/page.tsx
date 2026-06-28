@@ -1022,7 +1022,7 @@ function ChatContent() {
         <motion.aside
           initial={false}
           animate={{ width: sidebarOpen ? (typeof window !== 'undefined' && window.innerWidth < 768 ? '100vw' : 300) : 56 }}
-          className={`h-full flex flex-row z-[60] absolute md:relative left-0 top-0 ${sidebarOpen ? 'bg-[#0D0A07]/95 border-r border-[#E6B23C]/10' : 'bg-transparent border-none md:bg-[#0D0A07]/95 md:border-r md:border-[#E6B23C]/10'}`}
+          className={`h-full flex flex-row z-[60] absolute md:relative left-0 top-0 ${sidebarOpen ? 'bg-[#0D0A07] border-r border-[#E6B23C]/10' : 'bg-transparent border-none md:bg-[#0D0A07] md:border-r md:border-[#E6B23C]/10'}`}
         >
           {/* Narrow Left Column - Always visible */}
           <div className={`w-[56px] h-full flex flex-col items-center py-4 gap-4 shrink-0 ${sidebarOpen ? 'border-r border-[#E6B23C]/5' : 'border-none md:border-r md:border-[#E6B23C]/5'}`}>
