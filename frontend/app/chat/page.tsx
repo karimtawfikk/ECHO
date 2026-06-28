@@ -970,7 +970,8 @@ function ChatContent() {
       <div className="w-full max-w-5xl mx-auto relative flex flex-col items-center pb-4 px-3 md:px-4">
 
         <div className="flex flex-col items-center text-center gap-1 md:gap-2 pointer-events-auto">
-          <motion.div
+          <motion.button
+            onClick={() => window.location.href = `/result?entity=${encodeURIComponent(entityName)}&type=${encodeURIComponent(entityType)}`}
             animate={{
               scale: [1, 1.04, 1],
               boxShadow: [
@@ -984,7 +985,7 @@ function ChatContent() {
               repeat: Infinity,
               ease: "easeInOut"
             }}
-            className="h-12 w-12 md:h-16 md:w-16 rounded-full bg-gradient-to-br from-[#E6B23C] to-[#D4A030] p-[2px]"
+            className="h-12 w-12 md:h-16 md:w-16 rounded-full bg-gradient-to-br from-[#E6B23C] to-[#D4A030] p-[2px] cursor-pointer hover:brightness-110 active:scale-95 transition-all"
           >
             <div className="h-full w-full rounded-full bg-[#0D0A07] overflow-hidden flex items-center justify-center">
               {avatarUrl ? (
@@ -999,7 +1000,7 @@ function ChatContent() {
                 <span className="text-[#E6B23C] text-4xl leading-none">☥</span>
               )}
             </div>
-          </motion.div>
+          </motion.button>
           <div className="space-y-0.5 md:space-y-0.5 space-y-0">
             <h1 className="font-heading text-xl md:text-3xl font-bold text-[#F5E6D0] tracking-wide">{cleanDisplayName}</h1>
             <div className="text-[8px] md:text-[10px] font-bold tracking-[0.4em] text-[#E6B23C] uppercase opacity-70">{statusText}</div>

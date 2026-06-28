@@ -219,7 +219,7 @@ function VideoPageContent() {
 
             <div className="mt-8 pt-6 border-t border-[#E6B23C]/5">
               <Link href={`/chat?entity=${encodeURIComponent(entityName)}&type=${encodeURIComponent(entityType)}`} className="block w-full">
-                <Button className="w-full h-14 rounded-2xl bg-gradient-to-r from-[#E6B23C] to-[#D4A030] hover:from-[#FFD369] hover:to-[#E6B23C] text-[#1A1005] font-bold text-base transition-all hover:scale-[1.02] shadow-[0_4px_30px_rgba(230,178,60,0.15)] flex items-center justify-center gap-2">
+                <Button className="w-full h-14 rounded-2xl bg-gradient-to-r from-[#E6B23C] to-[#D4A030] hover:from-[#FFD369] hover:to-[#E6B23C] active:scale-[0.98] active:ring-2 active:ring-[#E6B23C]/50 text-[#1A1005] font-bold text-base transition-all hover:scale-[1.02] shadow-[0_4px_30px_rgba(230,178,60,0.15)] flex items-center justify-center gap-2">
                   <MessageSquare size={20} className={isRTL ? "ml-0" : "mr-0"} />
                   {t("video.button.chat")}
                 </Button>
