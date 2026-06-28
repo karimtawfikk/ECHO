@@ -71,7 +71,7 @@ function EntityCard({ entity, type, onNavigate }: { entity: RecognitionEntity; t
       whileHover={{ scale: 1.02 }}
       whileTap={{ scale: 0.98 }}
       onClick={onNavigate}
-      className="group cursor-pointer w-full rounded-xl border border-[#E6B23C]/8 bg-[#1A1208]/50 hover:border-[#E6B23C]/20 hover:bg-[#1A1208]/80 transition-all p-3 md:p-4 backdrop-blur-sm overflow-hidden"
+      className="group cursor-pointer shrink-0 w-full rounded-xl border border-[#E6B23C]/8 bg-[#1A1208]/50 hover:border-[#E6B23C]/20 hover:bg-[#1A1208]/80 transition-all p-3 md:p-4 backdrop-blur-sm overflow-hidden"
     >
       <div className="flex items-start justify-between gap-1.5 md:gap-3 w-full">
         <div className="flex-1 min-w-0 overflow-hidden">
