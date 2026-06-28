@@ -968,10 +968,10 @@ function ChatContent() {
   };
 
   const chatHeader = (
-    <div className={`w-full pt-[110px] relative ${sidebarOpen ? 'hidden md:block' : ''}`}>
+    <div className={`w-full pt-[64px] md:pt-[110px] relative ${sidebarOpen ? 'hidden md:block' : ''}`}>
       <div className="w-full max-w-5xl mx-auto relative flex flex-col items-center pb-4 px-3 md:px-4">
 
-        <div className="flex flex-col items-center text-center gap-2 pointer-events-auto">
+        <div className="flex flex-col items-center text-center gap-1 md:gap-2 pointer-events-auto">
           <motion.div
             animate={{
               scale: [1, 1.04, 1],
@@ -986,7 +986,7 @@ function ChatContent() {
               repeat: Infinity,
               ease: "easeInOut"
             }}
-            className="h-14 w-14 md:h-16 md:w-16 rounded-full bg-gradient-to-br from-[#E6B23C] to-[#D4A030] p-[2px]"
+            className="h-10 w-10 md:h-16 md:w-16 rounded-full bg-gradient-to-br from-[#E6B23C] to-[#D4A030] p-[2px]"
           >
             <div className="h-full w-full rounded-full bg-[#0D0A07] overflow-hidden flex items-center justify-center">
               {avatarUrl ? (
@@ -1002,9 +1002,9 @@ function ChatContent() {
               )}
             </div>
           </motion.div>
-          <div className="space-y-0.5">
-            <h1 className="font-heading text-2xl md:text-3xl font-bold text-[#F5E6D0] tracking-wide">{cleanDisplayName}</h1>
-            <div className="text-[9px] md:text-[10px] font-bold tracking-[0.4em] text-[#E6B23C] uppercase opacity-70">{statusText}</div>
+          <div className="space-y-0.5 md:space-y-0.5 space-y-0">
+            <h1 className="font-heading text-lg md:text-3xl font-bold text-[#F5E6D0] tracking-wide">{cleanDisplayName}</h1>
+            <div className="text-[7px] md:text-[10px] font-bold tracking-[0.4em] text-[#E6B23C] uppercase opacity-70">{statusText}</div>
           </div>
         </div>
       </div>
