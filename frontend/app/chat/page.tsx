@@ -265,7 +265,24 @@ function ChatContent() {
   const [isAudioMuted, setIsAudioMuted] = useState(false);
   const [playingMsgId, setPlayingMsgId] = useState<string | null>(null);
 
-  // Welcome message logic is now handled in the render phase
+  // Lock body scrolling on mobile to prevent page scroll behind chat
+  useEffect(() => {
+    const isMobile = window.innerWidth < 768;
+    if (isMobile) {
+      document.documentElement.style.overflow = 'hidden';
+      document.body.style.overflow = 'hidden';
+      document.body.style.position = 'fixed';
+      document.body.style.width = '100%';
+      document.body.style.height = '100%';
+    }
+    return () => {
+      document.documentElement.style.overflow = '';
+      document.body.style.overflow = '';
+      document.body.style.position = '';
+      document.body.style.width = '';
+      document.body.style.height = '';
+    };
+  }, []);
 
   const [input, setInput] = useState("");
   const [isTyping, setIsTyping] = useState(false);
