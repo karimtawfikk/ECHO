@@ -101,6 +101,7 @@ export default function HomePage() {
             }}
           >
             {/* Desktop Background */}
+            {/*  */}
             <img
               src="/images/backgrounds/x.jpg"
               alt="Background Desktop"
