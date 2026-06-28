@@ -1067,7 +1067,7 @@ function ChatContent() {
                 {chatHistory.length > 0 && (
                   <button
                     onClick={() => { setShowAllChats(true); setSidebarOpen(false); }}
-                    className={`w-full flex items-center gap-3 px-4 py-3 rounded-2xl transition-all text-left group mb-4 ${showAllChats
+                    className={`w-full flex items-center gap-3 px-4 py-3 rounded-2xl transition-all text-left group mb-4 mt-6 ${showAllChats
                       ? 'bg-[#E6B23C]/15 border border-[#E6B23C]/20 shadow-[0_4px_20px_rgba(0,0,0,0.3)]'
                       : 'hover:bg-white/[0.03] border border-transparent'}`}
                   >
