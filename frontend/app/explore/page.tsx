@@ -755,7 +755,14 @@ function ExploreContent() {
                         </h2>
                       </div>
                       <button
-                        onClick={() => setSelectedCity(null)}
+                        onClick={() => {
+                          setSelectedCity(null);
+                          if (window.innerWidth < 768) {
+                            setTimeout(() => {
+                              document.getElementById("explore-content-area")?.scrollIntoView({ behavior: "smooth", block: "start" });
+                            }, 100);
+                          }
+                        }}
                         className="p-3 rounded-full bg-[#E6B23C]/10 text-[#E6B23C] hover:bg-[#E6B23C]/20 transition-all border border-[#E6B23C]/20 shrink-0"
                       >
                         <X size={20} />
