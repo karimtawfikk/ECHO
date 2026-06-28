@@ -1002,7 +1002,7 @@ function ChatContent() {
         onEnded={() => setPlayingMsgId(null)}
         onPause={() => setPlayingMsgId(null)}
       />
-      <div className="flex h-[calc(100%+5rem)] md:h-full w-full bg-transparent overflow-hidden -mt-20 pt-20 md:mt-0 md:pt-0" dir="ltr">
+      <div className="flex h-full w-full bg-transparent overflow-hidden" dir="ltr">
         {/* Sidebar - Collapsible */}
         <motion.aside
           initial={false}
