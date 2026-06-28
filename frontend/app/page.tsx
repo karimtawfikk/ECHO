@@ -163,7 +163,7 @@ export default function HomePage() {
         >
           <Button
             asChild
-            className="h-14 w-64 rounded-full bg-[#E6B23C]/5 border border-[#E6B23C]/30 text-[#E6B23C] hover:bg-[#E6B23C]/10 font-bold text-sm uppercase tracking-widest transition-all hover:scale-105 shadow-[0_10px_30px_rgba(230,178,60,0.1)]"
+            className="h-12 w-60 rounded-full bg-[#E6B23C]/5 border border-[#E6B23C]/30 text-[#E6B23C] hover:bg-[#E6B23C]/10 font-bold text-xs uppercase tracking-widest transition-all hover:scale-105 shadow-[0_10px_30px_rgba(230,178,60,0.1)]"
           >
             <Link href="/upload">
               {t("home.hero.cta.recognize")}
@@ -172,7 +172,7 @@ export default function HomePage() {
 
           <Button
             asChild
-            className="h-14 w-64 rounded-full bg-transparent border border-[#E6B23C]/20 text-[#F5E6D0] hover:bg-[#E6B23C]/5 font-bold text-sm uppercase tracking-widest transition-all hover:scale-105"
+            className="h-12 w-60 rounded-full bg-transparent border border-[#E6B23C]/20 text-[#F5E6D0] hover:bg-[#E6B23C]/5 font-bold text-xs uppercase tracking-widest transition-all hover:scale-105"
           >
             <Link href="/translate">
               {t("home.hero.cta.translate")}
