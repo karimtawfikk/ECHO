@@ -370,6 +370,13 @@ function ExploreContent() {
     setSearch("");
     setSelectedCity(null);
     router.replace(`/explore?tab=${tab}`, { scroll: false });
+    
+    // Auto-scroll on mobile
+    if (window.innerWidth < 768) {
+      setTimeout(() => {
+        document.getElementById("explore-content-area")?.scrollIntoView({ behavior: "smooth", block: "start" });
+      }, 100);
+    }
   };
 
   // Navigate to result page
@@ -601,7 +608,7 @@ function ExploreContent() {
           )}
         </AnimatePresence>
       </div>
-      <div ref={containerRef} className={`relative transition-all duration-700 ${search ? 'blur-3xl pointer-events-none' : ''}`}>
+      <div id="explore-content-area" ref={containerRef} className={`relative transition-all duration-700 scroll-mt-24 ${search ? 'blur-3xl pointer-events-none' : ''}`}>
         {/* Loading */}
         {isLoading && (
           <div className="flex justify-center py-20">
