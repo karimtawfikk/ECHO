@@ -1055,7 +1055,18 @@ function ChatContent() {
               </span>
             </div>
 
-
+            {/* New Chat Button (Desktop) */}
+            <div className="relative group hidden md:block">
+              <button
+                onClick={() => window.location.href = `/chat?entity=${entityName}&type=${entityType}`}
+                className="h-8 w-8 flex items-center justify-center rounded-lg hover:bg-[#E6B23C]/10 active:bg-[#E6B23C]/20 active:ring-2 active:ring-[#E6B23C]/60 active:scale-95 text-[#A08E70] hover:text-[#E6B23C] transition-all border-none outline-none"
+              >
+                <SquarePen size={16} />
+              </button>
+              <span className={`absolute ${isRTL ? 'right-full mr-4' : 'left-full ml-4'} top-1/2 -translate-y-1/2 px-2 py-1 bg-[#1A1208] border border-[#E6B23C]/20 text-[#E6B23C] text-[10px] capitalize font-bold tracking-widest rounded opacity-0 group-hover:opacity-100 transition-opacity whitespace-nowrap z-50 pointer-events-none`}>
+                {t("chat.sidebar.new").charAt(0).toUpperCase() + t("chat.sidebar.new").slice(1).toLowerCase()}
+              </span>
+            </div>
           </div>
 
           {/* Expanded Content */}
@@ -1228,7 +1239,7 @@ function ChatContent() {
         {/* Main Chat Area */}
         <div className="flex-1 flex flex-col h-full relative overflow-hidden bg-transparent">
           {/* New Chat Button (Top Right) */}
-          <div className="absolute top-4 right-4 md:right-6 z-[55]">
+          <div className="absolute top-4 right-4 z-[55] md:hidden">
             <button
               onClick={() => window.location.href = `/chat?entity=${entityName}&type=${entityType}`}
               className="h-8 w-8 flex items-center justify-center rounded-lg hover:bg-[#E6B23C]/10 active:bg-[#E6B23C]/20 active:ring-2 active:ring-[#E6B23C]/60 active:scale-95 text-[#A08E70] hover:text-[#E6B23C] transition-all border-none outline-none group"
@@ -1253,7 +1264,7 @@ function ChatContent() {
                         placeholder="Search chat history..."
                         value={allChatsSearch}
                         onChange={(e) => setAllChatsSearch(e.target.value)}
-                        className="w-full bg-[#0D0A07] border border-[#E6B23C]/10 rounded-2xl py-4 pl-14 pr-6 text-[#F5E6D0] focus:outline-none focus:border-[#E6B23C]/40 transition-all shadow-inner"
+                        className="w-full bg-[#0D0A07] border border-[#E6B23C]/10 rounded-2xl py-4 pl-14 pr-6 text-[16px] text-[#F5E6D0] focus:outline-none focus:border-[#E6B23C]/40 transition-all shadow-inner"
                       />
                     </div>
                     <div className="relative">

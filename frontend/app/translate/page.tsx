@@ -70,6 +70,13 @@ export default function TranslatePage() {
     setResult(null);
     setCurrentStep(0.1);
 
+    // Auto-scroll to results on mobile devices
+    setTimeout(() => {
+      if (window.innerWidth < 1024) {
+        document.getElementById('result-section')?.scrollIntoView({ behavior: 'smooth', block: 'start' });
+      }
+    }, 200);
+
     const formData = new FormData();
     formData.append("image", file as File);
 
@@ -464,12 +471,13 @@ export default function TranslatePage() {
           <AnimatePresence>
             {(isLoading || result) && (
               <motion.div
+                id="result-section"
                 layout
                 initial={{ opacity: 0, x: 100 }}
                 animate={{ opacity: 1, x: 0 }}
                 exit={{ opacity: 0, x: 100 }}
                 transition={{ duration: 1, ease: [0.16, 1, 0.3, 1] }}
-                className="lg:col-span-1"
+                className="lg:col-span-1 scroll-mt-24"
               >
                 <div>
                   <AnimatePresence mode="wait">
