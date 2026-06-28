@@ -5,7 +5,7 @@ import Link from "next/link";
 import { usePathname } from "next/navigation";
 import RouteTransition from "../animations/RouteTransition";
 import { motion, AnimatePresence } from "framer-motion";
-import { Sparkles, User, Globe, ChevronDown, Menu, X } from "lucide-react";
+import { Sparkles, User, Globe, ChevronDown, MoreHorizontal, X } from "lucide-react";
 import { useLanguage } from "../../context/LanguageContext";
 import type { Language } from "../../lib/i18n/dictionaries";
 import { useEffect } from "react";
@@ -15,15 +15,15 @@ import { LogOut, Settings } from "lucide-react";
 import Footer from "./Footer";
 import ProfileSidebar from "../profile/ProfileSidebar";
 
-export default function PageShell({ 
-  children, 
-  fullScreen = false, 
+export default function PageShell({
+  children,
+  fullScreen = false,
   fullWidth = false,
   headerExtension,
   minimal = false
-}: { 
-  children: ReactNode, 
-  fullScreen?: boolean, 
+}: {
+  children: ReactNode,
+  fullScreen?: boolean,
   fullWidth?: boolean,
   headerExtension?: ReactNode,
   minimal?: boolean
@@ -71,7 +71,7 @@ export default function PageShell({
   ];
 
   return (
-    <main className="min-h-screen relative">
+    <main className={fullScreen ? "fixed inset-0 md:relative md:min-h-screen overflow-hidden md:overflow-visible" : "min-h-screen relative"}>
       {/* Rich Animated Background */}
       <div className="cinematic-bg">
         <div className="egyptian-pattern" />
@@ -88,21 +88,47 @@ export default function PageShell({
         }}
       >
         <div className="w-full px-4 md:px-8 py-3 md:py-0 md:h-20 flex flex-col md:grid md:grid-cols-3 items-center relative gap-3 md:gap-0">
-          
+
           {/* Mobile Top Row: Logo & Controls */}
-          <div className="w-full flex justify-between items-center md:contents relative">
-            
-            {/* Mobile Hamburger Menu */}
+          <div className="w-full min-h-[40px] flex justify-between items-center md:contents relative">
+
+            {/* Mobile Hamburger Menu & Inline Links */}
             <div className="md:hidden flex items-center flex-1 justify-start">
               {!minimal && (
-                <button onClick={() => setMenuOpen(!menuOpen)} className="p-2 -ml-2 text-[#E6B23C] hover:bg-[#E6B23C]/10 rounded-full transition-colors">
-                  {menuOpen ? <X size={20} /> : <Menu size={20} />}
+                <button onClick={() => setMenuOpen(!menuOpen)} className="p-2 -ml-2 text-[#E6B23C] hover:bg-[#E6B23C]/10 rounded-full transition-colors z-50">
+                  {menuOpen ? <X size={20} /> : <MoreHorizontal size={20} />}
                 </button>
               )}
+
+              <AnimatePresence>
+                {menuOpen && !minimal && (
+                  <motion.div
+                    initial={{ opacity: 0, x: -10, width: 0 }}
+                    animate={{ opacity: 1, x: 0, width: "auto" }}
+                    exit={{ opacity: 0, x: -10, width: 0 }}
+                    className="flex items-center gap-2.5 overflow-hidden whitespace-nowrap ml-1"
+                  >
+                    {navLinks.filter(l => l.href !== "/").map((link) => {
+                      const isActive = pathname === link.href || (link.href === "/upload" && pathname.startsWith("/result"));
+                      return (
+                        <Link
+                          key={link.name}
+                          href={link.href}
+                          onClick={() => setMenuOpen(false)}
+                          className={`text-[8px] font-bold tracking-widest uppercase transition-colors ${isActive ? "text-[#E6B23C]" : "text-[#A08E70] hover:text-[#F5E6D0]"
+                            }`}
+                        >
+                          {link.name}
+                        </Link>
+                      );
+                    })}
+                  </motion.div>
+                )}
+              </AnimatePresence>
             </div>
 
             {/* Center Column: Logo */}
-            <div className="flex justify-center md:col-start-2 md:row-start-1 shrink-0">
+            <div className={`flex justify-center md:col-start-2 md:row-start-1 shrink-0 transition-opacity duration-300 ${menuOpen ? 'opacity-0 pointer-events-none md:opacity-100 md:pointer-events-auto absolute left-1/2 -translate-x-1/2 md:static md:translate-x-0' : 'absolute left-1/2 -translate-x-1/2 md:static md:translate-x-0'}`}>
               <Link href="/" className="group">
                 <span
                   className="text-3xl font-bold tracking-[0.35em] text-[#E6B23C] gold-glow group-hover:text-[#FFD369] transition-colors"
@@ -117,6 +143,26 @@ export default function PageShell({
             <div className="flex justify-end items-center gap-2 md:gap-4 md:col-start-3 md:row-start-1 flex-1">
               {!minimal && (
                 <>
+                  <AnimatePresence>
+                    {menuOpen && (
+                      <motion.div
+                        initial={{ opacity: 0, x: 10 }}
+                        animate={{ opacity: 1, x: 0 }}
+                        exit={{ opacity: 0, x: 10 }}
+                        className="md:hidden mr-1"
+                      >
+                        <Link href="/" className="group" onClick={() => setMenuOpen(false)}>
+                          <span
+                            className="text-[16px] font-bold tracking-[0.35em] text-[#E6B23C] gold-glow transition-colors"
+                            style={{ fontFamily: 'var(--font-cormorant), serif' }}
+                          >
+                            ECHO
+                          </span>
+                        </Link>
+                      </motion.div>
+                    )}
+                  </AnimatePresence>
+
                   {/* Language Switcher */}
                   <div className="relative hidden md:block">
                     <button
@@ -131,7 +177,7 @@ export default function PageShell({
                     <AnimatePresence>
                       {langOpen && (
                         <>
-                          <motion.div 
+                          <motion.div
                             initial={{ opacity: 0 }}
                             animate={{ opacity: 1 }}
                             exit={{ opacity: 0 }}
@@ -169,7 +215,7 @@ export default function PageShell({
                   {/* User Profile */}
                   <div className="relative">
                     {!user ? (
-                      <Link 
+                      <Link
                         href="/login"
                         className="h-10 w-10 flex items-center justify-center rounded-full bg-[#E6B23C]/10 border border-[#E6B23C]/20 text-[#E6B23C] hover:bg-[#E6B23C]/20 transition-all shadow-[0_0_15px_rgba(230,178,60,0.1)] group"
                       >
@@ -177,7 +223,7 @@ export default function PageShell({
                       </Link>
                     ) : (
                       <>
-                        <button 
+                        <button
                           onClick={() => setProfileOpen(true)}
                           className="h-10 w-10 flex items-center justify-center rounded-full bg-[#E6B23C]/10 border border-[#E6B23C]/20 text-[#E6B23C] hover:bg-[#E6B23C]/20 transition-all shadow-[0_0_15px_rgba(230,178,60,0.1)] group overflow-hidden"
                         >
@@ -203,23 +249,22 @@ export default function PageShell({
                 <Link
                   key={link.name}
                   href={link.href}
-                  className={`text-[11px] font-bold tracking-[0.2em] uppercase transition-all relative group py-2 ${
-                    isActive ? "text-[#E6B23C]" : "text-[#A08E70] hover:text-[#F5E6D0]"
-                  }`}
+                  className={`text-[11px] font-bold tracking-[0.2em] uppercase transition-all relative group py-2 ${isActive ? "text-[#E6B23C]" : "text-[#A08E70] hover:text-[#F5E6D0]"
+                    }`}
                 >
                   {link.name}
                   {/* Glowing Tapered Underline */}
                   <div className="absolute -bottom-1 left-0 right-0 flex justify-center pointer-events-none">
                     <motion.div
                       initial={false}
-                      animate={{ 
+                      animate={{
                         width: isActive ? "100%" : "0%",
-                        opacity: isActive ? 1 : 0 
+                        opacity: isActive ? 1 : 0
                       }}
                       className="h-[1.5px] bg-gradient-to-r from-transparent via-[#E6B23C] to-transparent shadow-[0_0_12px_rgba(230,178,60,0.6)]"
                     />
                   </div>
-                  
+
                   {/* Hover State: Subtle Glow Reveal */}
                   {!isActive && (
                     <div className="absolute -bottom-1 left-0 right-0 flex justify-center opacity-0 group-hover:opacity-100 transition-opacity duration-300">
@@ -231,38 +276,10 @@ export default function PageShell({
             })}
           </div>
 
-          {/* Mobile Dropdown Menu */}
-          <AnimatePresence>
-            {menuOpen && !minimal && (
-              <motion.div
-                initial={{ opacity: 0, y: -10 }}
-                animate={{ opacity: 1, y: 0 }}
-                exit={{ opacity: 0, y: -10 }}
-                className="md:hidden absolute top-full left-0 right-0 bg-[#0D0A07]/95 backdrop-blur-3xl border-b border-[#E6B23C]/10 flex flex-col items-center py-6 gap-6 shadow-[0_20px_50px_rgba(0,0,0,0.8)]"
-              >
-                {navLinks.map((link) => {
-                  const isActive = pathname === link.href || (link.href === "/upload" && pathname.startsWith("/result"));
-                  const isHome = link.href === "/";
-                  if (isHome) return null; // Remove home from mobile menu
-                  return (
-                    <Link
-                      key={link.name}
-                      href={link.href}
-                      onClick={() => setMenuOpen(false)}
-                      className={`text-xs font-bold tracking-[0.2em] uppercase transition-all py-2 ${
-                        isActive ? "text-[#E6B23C]" : "text-[#A08E70] hover:text-[#F5E6D0]"
-                      }`}
-                    >
-                      {link.name}
-                    </Link>
-                  );
-                })}
-              </motion.div>
-            )}
-          </AnimatePresence>
+          {/* Removed Mobile Dropdown Menu, now handled inline above */}
         </div>
       </nav>
-      
+
       {headerExtension && (
         <div className="fixed top-0 left-0 right-0 z-[45] pointer-events-none">
           {headerExtension}
@@ -270,7 +287,7 @@ export default function PageShell({
       )}
 
       {/* Content */}
-      <div className={fullScreen ? "relative z-10 pt-20 h-[100dvh] w-full flex flex-col overflow-y-auto overflow-x-hidden" : (fullWidth ? "relative z-10 w-full" : "relative z-10 pt-24 md:pt-32 pb-12 md:pb-20 px-6 lg:px-12 max-w-7xl mx-auto")}>
+      <div className={fullScreen ? "relative z-10 pt-16 md:pt-20 h-[100dvh] w-full flex flex-col overflow-hidden md:overflow-y-auto md:overflow-x-hidden" : (fullWidth ? "relative z-10 w-full" : "relative z-10 pt-24 md:pt-32 pb-12 md:pb-20 px-6 lg:px-12 max-w-7xl mx-auto")}>
         <RouteTransition fullScreen={fullScreen}>{children}</RouteTransition>
       </div>
 

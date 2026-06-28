@@ -11,7 +11,7 @@ from langgraph.graph.message import add_messages
 from langchain_core.messages import HumanMessage, AIMessage
 from langchain_core.prompts import PromptTemplate
 from langchain_core.output_parsers import StrOutputParser
-from langchain_groq import ChatGroq  # New Cloud Provider
+from langchain_groq import ChatGroq  
 from sentence_transformers import SentenceTransformer
 import chromadb
 from pathlib import Path
@@ -73,7 +73,7 @@ llm = ChatGroq(
 )
 
 
-# --- PROMPT & CHAIN ---
+# PROMPT & CHAIN 
 prompt_template = PromptTemplate.from_template(PROMPTS['assistant_persona'])
 chain = prompt_template | llm | StrOutputParser()
 
@@ -93,10 +93,7 @@ def retrieve_node(state: AgentState) -> dict:
             "limit": TOP_K
         })
 
-        
         context = [row[0] for row in result]
-
-
     return {"context": context}
 
 def generate_node(state: AgentState) -> dict:
@@ -105,15 +102,13 @@ def generate_node(state: AgentState) -> dict:
     for msg in state['messages'][:-1]:
         role = "User" if isinstance(msg, HumanMessage) else "Assistant"
         dialogue.append(f"{role}: {msg.content}")
-    
     history_str = "\n".join(dialogue) if dialogue else "No previous conversation."
 
-    # --- DEBUG SECTION ---
+    # DEBUG SECTION
     print("\n" + "="*30)
     print("DEBUG: CHAT HISTORY PASSED TO LLM")
     print(history_str)
     print("="*30 + "\n")
-    # ---------------------
 
     # 2. Invoke the chain
     response_text = chain.invoke({
@@ -127,7 +122,7 @@ def generate_node(state: AgentState) -> dict:
         "response": response_text
     }
 
-# --- GRAPH CONSTRUCTION ---
+# GRAPH CONSTRUCTION
 workflow = StateGraph(AgentState)
 workflow.add_node("retriever", retrieve_node)
 workflow.add_node("generator", generate_node)
@@ -136,23 +131,21 @@ workflow.set_entry_point("retriever")
 workflow.add_edge("retriever", "generator")
 workflow.add_edge("generator", END)
 
-memory = MemorySaver() # Initialize the "RAM" storage
+memory = MemorySaver() 
 graph = workflow.compile(checkpointer=memory)
 
 
 def main():
     print("Agentic RAG Ready (Streaming & Persistent Memory):")
     
-    # This ID represents "User 1's Chat Room"
     config = {"configurable": {"thread_id": "1"}}
 
     while True:
         user_input = input("You: ").strip()
         if user_input.lower() in ['quit', 'exit', 'q']: break
         
-        # 'stream' will yield a dictionary every time a NODE finishes.
         for event in graph.stream(
-            {"messages": [("user", user_input)], #automatically converted to HumanMessage by the Annotated type
+            {"messages": [("user", user_input)],
              "query": user_input,
              "context": []}, 
             config=config

@@ -1,10 +1,7 @@
 from pathlib import Path
 import sys
 import warnings
-
 import asyncio
-
-
 import pandas as pd
 import json
 import time
@@ -13,7 +10,6 @@ from datetime import datetime
 import matplotlib.pyplot as plt
 import seaborn as sns
 from typing import List, Dict, Any
-
 from datasets import Dataset
 import os
 from dotenv import load_dotenv
@@ -65,9 +61,6 @@ ragas_emb = HuggingFaceEmbeddings(
     model_kwargs={"device": "cuda"}
 )
 
-# ============================================================================
-# Custom Ragas Prompts
-# ============================================================================
 class CustomNLIPrompt(PydanticPrompt[NLIStatementInput, NLIStatementOutput]):
     instruction = """You are a factual auditor for a historical RAG system for ancient egypt. The system's 'answer' is written in a 1st-person narrative persona (e.g., a King, a Queen, or an Ancient Monument).
 
@@ -84,7 +77,6 @@ STRICT EVALUATION RULES:
     output_model = NLIStatementOutput
 
     examples = [
-        # Example 1: Basic persona stripping
         (
             NLIStatementInput(
                 context="The Great Pyramid was built for Pharaoh Khufu around 2560 BCE.",
@@ -102,7 +94,6 @@ STRICT EVALUATION RULES:
             )
         ),
         
-        # Example 2: Paraphrasing and synonyms
         (
             NLIStatementInput(
                 context="Senwosret III built defensive walls along the Nubian frontier.",
@@ -128,7 +119,6 @@ STRICT EVALUATION RULES:
             )
         ),
         
-        # Example 3: Multiple facts in one statement
         (
             NLIStatementInput(
                 context="Pepi I built Ka-chapels at Memphis and constructed pyramids at Abydos and Dendera.",
@@ -148,7 +138,6 @@ STRICT EVALUATION RULES:
             )
         ),
         
-        # Example 4: Emotional/poetic language (should be ignored)
         (
             NLIStatementInput(
                 context="The mummy was identified in 1976 at the Egyptian Museum in Cairo.",
@@ -174,7 +163,6 @@ STRICT EVALUATION RULES:
             )
         ),
         
-        # Example 5: Unfaithful hallucination
         (
             NLIStatementInput(
                 context="Hatshepsut ruled as pharaoh for approximately 22 years during the 18th Dynasty.",
@@ -194,7 +182,6 @@ STRICT EVALUATION RULES:
             )
         ),
         
-        # Example 6: Partial truth (some facts correct, some not)
         (
             NLIStatementInput(
                 context="The tomb KV46 was discovered in the Valley of the Kings.",
@@ -411,10 +398,6 @@ GUIDELINES:
     ]
 
 
-# ============================================================================
-# Load Agent Responses from CSV
-# ============================================================================
-
 def load_agent_responses(csv_path: str) -> List[Dict[str, Any]]:
     """Load pre-collected agent responses from CSV"""
     print(f"\nLoading agent responses from {csv_path}...")
@@ -434,29 +417,11 @@ def load_agent_responses(csv_path: str) -> List[Dict[str, Any]]:
     return results
 
 
-# ============================================================================
-# Groq Key Manager
-# ============================================================================
-
-"""class GroqKeyManager:
-    def __init__(self, keys):
-        self.keys = keys
-        self.current_index = 0
-
-    def get_current_key(self):
-        return self.keys[self.current_index]
-
-    def rotate_key(self):
-        self.current_index = (self.current_index + 1) % len(self.keys)
-        print(f"🔄 Swapping to API Key {self.current_index + 1}...")
-        return self.get_current_key()"""
-
 import os
 
 class GroqKeyManager:
     def __init__(self, keys):
         self.keys = keys
-        # Start at the last index (e.g., index 8 for 9 keys)
         self.current_index = len(self.keys) - 1 if keys else 0
 
     def get_current_key(self):
@@ -467,17 +432,11 @@ class GroqKeyManager:
     def rotate_key(self):
         if not self.keys:
             return None
-            
-        # Subtract 1 to move backward. 
-        # Python's % operator handles negative numbers: -1 % 9 = 8
+
         self.current_index = (self.current_index - 1) % len(self.keys)
         
         print(f"🔄 Swapping to API Key {self.current_index + 1}...")
         return self.get_current_key()
-
-# --- Setup ---
-# This fetches Keys 1 through 9 from your environment
-
 
 def extract_first_paragraph(text):
     if not text:
@@ -498,9 +457,7 @@ def extract_first_paragraph(text):
 
 def compute_ragas_metrics(results: List[Dict]) -> Dict[str, float]:
     """Compute Ragas metrics with manual Strictness 3 for Answer Relevancy"""
-    print("\n" + "="*80)
     print("Computing Ragas Metrics (Enhanced Relevancy Mode)")
-    print("="*80 + "\n")
 
     if sys.platform == 'win32':
         asyncio.set_event_loop_policy(asyncio.WindowsProactorEventLoopPolicy())
@@ -513,7 +470,6 @@ def compute_ragas_metrics(results: List[Dict]) -> Dict[str, float]:
     successful_results = [r for r in results if r.get("success") and r.get("answer")]
     
     keys = [os.getenv(f"GROQ_API_KEY{i}") for i in range(1, 10)]
-    # Filter out any None values if some keys aren't set
     valid_keys = [k for k in keys if k]
 
     manager = GroqKeyManager(valid_keys)
@@ -524,11 +480,10 @@ def compute_ragas_metrics(results: List[Dict]) -> Dict[str, float]:
     i = 0
     retry_count = {} 
 
-    print(f"🚀 Evaluating {len(successful_results)} responses")
-    print(f"🔑 Using {len(manager.keys)} API keys with rotation every 5 samples (due to high call volume)\n")
+    print(f" Evaluating {len(successful_results)} responses")
+    print(f" Using {len(manager.keys)} API keys with rotation every 5 samples (due to high call volume)\n")
 
     while i < len(successful_results):
-        # Rotate more frequently because we are doing 4 calls per sample now
         if i > 0 and i % 5 == 0:
             manager.rotate_key()
         
@@ -540,7 +495,6 @@ def compute_ragas_metrics(results: List[Dict]) -> Dict[str, float]:
         
         if i not in retry_count:
             retry_count[i] = 0
-        # Prepare wrappers with the current key
         evaluator_llm = ChatGroq(
             model="moonshotai/kimi-k2-instruct-0905", 
             api_key=manager.get_current_key(),
@@ -563,8 +517,8 @@ def compute_ragas_metrics(results: List[Dict]) -> Dict[str, float]:
         })
 
         try:
-            # --- PHASE 1: CORE METRICS ---
-            print(f"  → Phase 1: Calculating Faithfulness & Context Metrics...")
+            # PHASE 1: CORE METRICS 
+            print(f"Phase 1: Calculating Faithfulness & Context Metrics")
             f_metric = Faithfulness(llm=ragas_llm)
             f_metric.set_prompts(n_l_i_statement_prompt=CustomNLIPrompt())
             
@@ -583,53 +537,30 @@ def compute_ragas_metrics(results: List[Dict]) -> Dict[str, float]:
                 run_config=RunConfig(timeout=180, max_workers=1)
             )
             core_df = core_res.to_pandas()
-            '''relevancy_scores = []
-            print(f"  → Phase 2: Running Relevancy (3 trials):", end=" ", flush=True)
-            for trial in range(3):
-                rel_res = evaluate(
-                    dataset=single_dataset,
-                    metrics=[r_metric],
-                    llm=ragas_llm,
-                    embeddings=ragas_emb_wrapped,
-                    run_config=RunConfig(timeout=120, max_workers=1)
-                )
-                score = rel_res.to_pandas()['answer_relevancy'].iloc[0]
-                relevancy_scores.append(score)
-                print(f"[{score:.3f}]", end=" ", flush=True)
-            
-            best_relevancy = max(relevancy_scores)
-            print(f" | SCORES: ", relevancy_scores)
-            print(f" | Selected Max: {best_relevancy:.3f}")'''
 
             # Combine and Log
-            final_row = core_df.iloc[0].to_dict()
-            #final_row['answer_relevancy'] = best_relevancy
-            
-            
-            
-            print(f"  → Results: F:{final_row['faithfulness']:.2f} | R:{final_row['answer_relevancy']:.2f} | C-Rec:{final_row['context_recall']:.2f} | C-Pre:{final_row['context_precision']:.2f} | Acc:{final_row['nv_accuracy']:.2f}")
+            final_row = core_df.iloc[0].to_dict()            
+            print(f"Results: F:{final_row['faithfulness']:.2f} | R:{final_row['answer_relevancy']:.2f} | C-Rec:{final_row['context_recall']:.2f} | C-Pre:{final_row['context_precision']:.2f} | Acc:{final_row['nv_accuracy']:.2f}")
             
            
-
-
             all_individual_results.append(pd.DataFrame([final_row]))
             retry_count[i] = 0
             i += 1
             
-            print(f"✅ Success [{i}/{len(successful_results)}]")
+            print(f" Success [{i}/{len(successful_results)}]")
 
         except Exception as e:
             err_msg = str(e)
             if any(x in err_msg.lower() for x in ["rate limit", "rate_limit", "429", "tokens per day"]):
-                print(f"🚨 Rate Limit! Rotating key and sleeping...")
+                print(f" Rate Limit! Rotating key and sleeping...")
                 manager.rotate_key()
                 time.sleep(20)
             elif "StringIO" in err_msg and retry_count[i] < 1:
                 retry_count[i] += 1
-                print(f"⚠️ Parser glitch, retrying sample...")
+                print(f" Parser glitch, retrying sample...")
                 time.sleep(5)
             else:
-                print(f"❌ Skipping sample {i+1} due to error: {err_msg[:100]}")
+                print(f" Skipping sample {i+1} due to error: {err_msg[:100]}")
                 i += 1
 
     if not all_individual_results:
@@ -638,16 +569,10 @@ def compute_ragas_metrics(results: List[Dict]) -> Dict[str, float]:
     final_df = pd.concat(all_individual_results, ignore_index=True)
     summary = final_df.mean(numeric_only=True).to_dict()
     
-    print("\n✅ Ragas evaluation complete!")
-    print(f"📊 Evaluated {len(all_individual_results)}/{len(successful_results)} samples successfully")
+    print("\n Ragas evaluation complete!")
+    print(f" Evaluated {len(all_individual_results)}/{len(successful_results)} samples successfully")
     
     return {k: float(v) for k, v in summary.items()}
-
-
-
-# ============================================================================
-# Compute Custom Metrics
-# ============================================================================
 
 def compute_custom_metrics(results: List[Dict]) -> Dict[str, Any]:
     """Compute custom performance metrics"""
@@ -687,10 +612,6 @@ def compute_custom_metrics(results: List[Dict]) -> Dict[str, Any]:
     print("  ✓ Custom metrics computed successfully!")
     return metrics
 
-
-# ============================================================================
-# Generate Visualizations
-# ============================================================================
 
 def generate_visualizations(results: List[Dict], ragas_scores: Dict, custom_metrics: Dict, output_dir: Path):
     """Generate visualization charts"""
@@ -783,14 +704,8 @@ def generate_visualizations(results: List[Dict], ragas_scores: Dict, custom_metr
     plt.close()
 
 
-# ============================================================================
-# Save JSON Report
-# ============================================================================
-
 def save_json_report(results: List[Dict], ragas_scores: Dict, custom_metrics: Dict, output_dir: Path):
-    """Save detailed results as JSON"""
-    print("\nSaving JSON report...")
-    
+    """Save detailed results as JSON"""    
     report = {
         "metadata": {
             "timestamp": datetime.now().isoformat(),
@@ -810,11 +725,6 @@ def save_json_report(results: List[Dict], ragas_scores: Dict, custom_metrics: Di
     print(f"  ✓ Saved JSON report to {output_path}")
     
     return output_path
-
-
-# ============================================================================
-# Generate Markdown Report
-# ============================================================================
 
 def generate_markdown_report(results: List[Dict], ragas_scores: Dict, custom_metrics: Dict, output_dir: Path):
     """Generate comprehensive markdown report"""
@@ -887,16 +797,8 @@ This evaluation assesses the Ancient Egypt RAG chatbot across {len(results)} tes
     
     return output_path
 
-
-# ============================================================================
-# Main Execution
-# ============================================================================
-
 def main():
-    """Main execution function"""
-    print("\n" + "="*80)
     print(" Ragas Evaluation on Pre-Collected Agent Responses")
-    print("="*80 + "\n")
     
     # Input: Pre-collected agent responses CSV
     responses_csv = r"C:\Uni\4th Year\GP\ECHO\data\chatbot\outputs\echo_agent_evaluation\responses\agent_responses_baseline\agent_responses_pt2.csv"
@@ -923,31 +825,27 @@ def main():
     # Step 6: Generate Markdown report
     md_path = generate_markdown_report(results, ragas_scores, custom_metrics, output_dir)
     
-    print("\n" + "="*80)
     print(" EVALUATION COMPLETE!")
-    print("="*80 + "\n")
     
-    print("📊 Results Summary:")
+    print(" Results Summary:")
     print(f"  • Total test cases: {custom_metrics['total_queries']}")
     print(f"  • Success rate: {custom_metrics['success_rate']*100:.1f}%")
     print(f"  • Avg response time: {custom_metrics['avg_response_time']:.2f}s")
     
     if ragas_scores:
-        print(f"\n📈 RAG Triad Metrics:")
+        print(f"\n RAG Triad Metrics:")
         print(f"  • Faithfulness: {ragas_scores.get('faithfulness', 0):.3f}")
         print(f"  • Answer Relevancy: {ragas_scores.get('answer_relevancy', 0):.3f}")
         print(f"  • Context Precision: {ragas_scores.get('context_precision', 0):.3f}")
         print(f"  • Context Recall: {ragas_scores.get('context_recall', 0):.3f}")
         print(f"  • Answer Accuracy: {ragas_scores.get('nv_accuracy', 0):.3f}")
     
-    print(f"\n📁 Generated Files:")
-    print(f"  • Visualization: {output_dir}/evaluation_visualization.png")
-    print(f"  • JSON Report: {json_path}")
-    print(f"  • Markdown Report: {md_path}")
+    print(f"\n Generated Files:")
+    print(f" Visualization: {output_dir}/evaluation_visualization.png")
+    print(f" JSON Report: {json_path}")
+    print(f" Markdown Report: {md_path}")
     
-    print("\n✅ All evaluation files saved to:", output_dir.absolute())
-    print("\n" + "="*80 + "\n")
-
+    print("\n All evaluation files saved to:", output_dir.absolute())
 
 if __name__ == "__main__":
     main()

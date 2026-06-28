@@ -60,14 +60,14 @@ class AgentState(TypedDict):
     context: List[str]
     response: str
 
-#Embedding Model
+# Embedding Model
 embedding_model = CloudflareWorkersAIEmbeddings(
     account_id=CF_WORKERSAI_ACCOUNTID,
     api_token=CF_AI_API,
     model_name="@cf/qwen/qwen3-embedding-0.6b"
 )
 
-#Reranker Model
+# Reranker Model
 reranker = JinaRerank(
     model="jina-reranker-v3",
     top_n=TOP_K,
@@ -108,7 +108,7 @@ generator_llm = ChatGroq(
     }
 )
 
-#  PROMPT & CHAIN
+# PROMPT & CHAIN
 rewrite_prompt_template = PromptTemplate.from_template(PROMPTS['rewrite_prompt'])
 rewrite_chain = rewrite_prompt_template | query_rewriter_llm | StrOutputParser()
 
@@ -164,7 +164,7 @@ def rerank_node(state: AgentState) -> dict:
     docs = [Document(page_content=chunk) for chunk in state['context']]
     reranked = reranker.compress_documents(docs, query=state['search_query'])
 
-    return {"context": [doc.page_content for doc in reranked]} #first element is the most relevan
+    return {"context": [doc.page_content for doc in reranked]}
 
     
 
@@ -206,18 +206,18 @@ def generate_node(state: AgentState) -> dict:
         "response": response_text
     }
 
-# --- GRAPH CONSTRUCTION ---
+# GRAPH CONSTRUCTION
 workflow = StateGraph(AgentState)
 workflow.add_node("rewriter", rewrite_node)
 workflow.add_node("retriever", retrieve_node)
-workflow.add_node("reranker", rerank_node) # Node added
+workflow.add_node("reranker", rerank_node) 
 workflow.add_node("generator", generate_node)
 
 
 workflow.set_entry_point("rewriter")
 workflow.add_edge("rewriter", "retriever")
-workflow.add_edge("retriever", "reranker") # Link updated
-workflow.add_edge("reranker", "generator") # Link updated
+workflow.add_edge("retriever", "reranker") 
+workflow.add_edge("reranker", "generator") 
 workflow.add_edge("generator", END)
 
 memory = MemorySaver()

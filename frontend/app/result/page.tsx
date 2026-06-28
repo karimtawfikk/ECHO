@@ -268,12 +268,12 @@ function ResultContent() {
       <motion.div initial={{ opacity: 0 }} animate={{ opacity: 1 }} className="max-w-6xl mx-auto">
         {/* Breadcrumb */}
         <motion.div initial={{ opacity: 0, x: isRTL ? 20 : -20 }} animate={{ opacity: 1, x: 0 }} className="mb-8">
-          <Link href={isFromExplore ? `/explore?tab=${displayType}s` : isFromTrending ? "/" : "/upload"} className="group inline-flex items-center gap-2 text-xs font-semibold tracking-[0.15em] uppercase text-[#A08E70] hover:text-[#E6B23C] transition-colors">
+          <button onClick={() => router.back()} className="group inline-flex items-center gap-2 text-xs font-semibold tracking-[0.15em] uppercase text-[#A08E70] hover:text-[#E6B23C] transition-colors bg-transparent border-none p-0 outline-none">
             <span className={`transition-transform ${isRTL ? 'group-hover:translate-x-1' : 'group-hover:-translate-x-1'}`}>
               {isRTL ? '→' : '←'}
             </span>
-            {isFromExplore ? t("common.back_explore") : isFromTrending ? t("common.back_home") : t("common.return")}
-          </Link>
+            Back
+          </button>
         </motion.div>
 
         <div className={`grid ${hasImage ? 'lg:grid-cols-[0.75fr_1.25fr]' : 'lg:grid-cols-1 max-w-2xl mx-auto'} gap-12 items-start`}>
@@ -414,7 +414,7 @@ function ResultContent() {
                           <div key={sub.name} className="grid sm:grid-cols-2 gap-4">
                             <Button
                               onClick={() => router.push(`/video?entity=${encodeURIComponent(sub.name)}&type=${displayType}&dynasty=${encodeURIComponent(sub.dynasty || '')}&period=${encodeURIComponent(sub.period || '')}&dbType=${encodeURIComponent(sub.type || '')}&location=${encodeURIComponent(location || '')}`)}
-                              className="h-14 rounded-2xl bg-[#E6B23C]/10 border border-[#E6B23C]/20 hover:bg-[#E6B23C]/20 text-[#E6B23C] font-bold text-base transition-all hover:scale-[1.02] flex items-center justify-center gap-3"
+                              className="h-14 rounded-2xl bg-[#E6B23C]/10 border border-[#E6B23C]/20 hover:bg-[#E6B23C]/20 active:bg-[#E6B23C]/30 active:scale-[0.98] active:ring-2 active:ring-[#E6B23C]/50 text-[#E6B23C] font-bold text-base transition-all hover:scale-[1.02] flex items-center justify-center gap-3"
                             >
                               <Video size={20} />
                               {t("result.button.video_named", { name: cleanSubName })}
@@ -422,7 +422,7 @@ function ResultContent() {
                             <Button
                               onClick={() => router.push(`/chat?entity=${encodeURIComponent(sub.name)}&type=${displayType}`)}
                               variant="outline"
-                              className="h-14 rounded-2xl border-[#E6B23C]/12 bg-[#E6B23C]/[0.04] hover:bg-[#E6B23C]/[0.08] text-[#F5E6D0] font-semibold text-base transition-all hover:scale-[1.02] flex items-center justify-center gap-3"
+                              className="h-14 rounded-2xl border-[#E6B23C]/12 bg-[#E6B23C]/[0.04] hover:bg-[#E6B23C]/[0.08] active:bg-[#E6B23C]/20 active:scale-[0.98] active:ring-2 active:ring-[#E6B23C]/50 text-[#F5E6D0] font-semibold text-base transition-all hover:scale-[1.02] flex items-center justify-center gap-3"
                             >
                               <MessageSquare size={20} />
                               {t("result.button.chat_named", { name: cleanSubName })}
@@ -436,7 +436,7 @@ function ResultContent() {
                     <div className="grid sm:grid-cols-2 gap-5">
                       <Button
                         onClick={() => router.push(`/video?entity=${encodeURIComponent(displayName)}&type=${displayType}&dynasty=${encodeURIComponent(dynasty || '')}&period=${encodeURIComponent(period || '')}&dbType=${encodeURIComponent(dbType || '')}&location=${encodeURIComponent(location || '')}`)}
-                        className="h-14 rounded-2xl bg-[#E6B23C]/10 border border-[#E6B23C]/20 hover:bg-[#E6B23C]/20 text-[#E6B23C] font-bold text-base transition-all hover:scale-[1.02] flex items-center justify-center gap-3"
+                        className="h-14 rounded-2xl bg-[#E6B23C]/10 border border-[#E6B23C]/20 hover:bg-[#E6B23C]/20 active:bg-[#E6B23C]/30 active:scale-[0.98] active:ring-2 active:ring-[#E6B23C]/50 text-[#E6B23C] font-bold text-base transition-all hover:scale-[1.02] flex items-center justify-center gap-3"
                       >
                         <Video size={20} />
                         {t("result.button.video")}
@@ -444,7 +444,7 @@ function ResultContent() {
                       <Button
                         onClick={() => router.push(`/chat?entity=${encodeURIComponent(displayName)}&type=${displayType}`)}
                         variant="outline"
-                        className="h-14 rounded-2xl border-[#E6B23C]/12 bg-[#E6B23C]/[0.04] hover:bg-[#E6B23C]/[0.08] text-[#F5E6D0] font-semibold text-base transition-all hover:scale-[1.02] flex items-center justify-center gap-3"
+                        className="h-14 rounded-2xl border-[#E6B23C]/12 bg-[#E6B23C]/[0.04] hover:bg-[#E6B23C]/[0.08] active:bg-[#E6B23C]/20 active:scale-[0.98] active:ring-2 active:ring-[#E6B23C]/50 text-[#F5E6D0] font-semibold text-base transition-all hover:scale-[1.02] flex items-center justify-center gap-3"
                       >
                         <MessageSquare size={20} />
                         {t("result.button.chat")}

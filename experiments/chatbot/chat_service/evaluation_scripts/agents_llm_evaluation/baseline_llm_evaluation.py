@@ -1,8 +1,3 @@
-"""
-LLM-Only Evaluation Script (No RAG - No Context)
-Evaluates Answer Relevancy and Answer Accuracy only
-"""
-
 from pathlib import Path
 import sys
 import warnings
@@ -23,7 +18,6 @@ from dotenv import load_dotenv
 warnings.filterwarnings("ignore")
 warnings.filterwarnings("ignore", category=DeprecationWarning)
 
-# Disable LangSmith tracing
 os.environ["LANGCHAIN_TRACING_V2"] = "false"
 os.environ["LANGCHAIN_API_KEY"] = ""
 
@@ -42,18 +36,10 @@ from ragas.metrics._answer_relevance import (
 )
 from ragas.run_config import RunConfig
 
-# ============================================================================
-# Embeddings
-# ============================================================================
-
 ragas_emb = HuggingFaceEmbeddings(
     model_name="BAAI/bge-large-en-v1.5",
     model_kwargs={"device": "cuda"}
 )
-
-# ============================================================================
-# Custom Answer Relevancy Prompt
-# ============================================================================
 
 class CustomRelevancePrompt(PydanticPrompt[ResponseRelevanceInput, ResponseRelevanceOutput]):
     instruction = """You are a question generator for a historical RAG evaluation system. 
@@ -118,10 +104,6 @@ Generate ONE question that matches the answer's level of detail and specificity.
     ]
 
 
-# ============================================================================
-# Load LLM-Only Responses
-# ============================================================================
-
 def load_agent_responses(csv_path: str) -> List[Dict[str, Any]]:
     """Load pre-collected LLM-only responses from CSV"""
     print(f"\nLoading LLM-only responses from {csv_path}...")
@@ -135,10 +117,6 @@ def load_agent_responses(csv_path: str) -> List[Dict[str, Any]]:
     
     return results
 
-
-# ============================================================================
-# Groq Key Manager
-# ============================================================================
 
 class GroqKeyManager:
     def __init__(self, keys):
@@ -154,13 +132,8 @@ class GroqKeyManager:
         if not self.keys:
             return None
         self.current_index = (self.current_index - 1) % len(self.keys)
-        print(f"🔄 Swapping to API Key {self.current_index + 1}...")
+        print(f"Swapping to API Key {self.current_index + 1}...")
         return self.get_current_key()
-
-
-# ============================================================================
-# Extract First Paragraph
-# ============================================================================
 
 def extract_first_paragraph(text):
     if not text:
@@ -176,9 +149,6 @@ def extract_first_paragraph(text):
     return paragraphs[0] if paragraphs else text
 
 
-# ============================================================================
-# Compute Ragas Metrics (Answer Relevancy + Answer Accuracy Only)
-# ============================================================================
 
 def compute_ragas_metrics(results: List[Dict]) -> Dict[str, float]:
     """Compute Answer Relevancy and Answer Accuracy only (no context-based metrics)"""
@@ -204,8 +174,8 @@ def compute_ragas_metrics(results: List[Dict]) -> Dict[str, float]:
     i = 0
     retry_count = {} 
 
-    print(f"🚀 Evaluating {len(successful_results)} responses")
-    print(f"🔑 Using {len(manager.keys)} API keys with rotation every 5 samples\n")
+    print(f" Evaluating {len(successful_results)} responses")
+    print(f" Using {len(manager.keys)} API keys with rotation every 5 samples\n")
 
     while i < len(successful_results):
         if i > 0 and i % 5 == 0:
@@ -233,7 +203,6 @@ def compute_ragas_metrics(results: List[Dict]) -> Dict[str, float]:
         clean_answer = extract_first_paragraph(item["answer"])
         clean_ground_truth = extract_first_paragraph(item.get("ground_truth", ""))
 
-        # NO retrieved_contexts field for LLM-only
         single_dataset = Dataset.from_dict({
             "user_input": [item["question"]],
             "response": [clean_answer],
@@ -241,7 +210,7 @@ def compute_ragas_metrics(results: List[Dict]) -> Dict[str, float]:
         })
 
         try:
-            print(f"  → Calculating Answer Relevancy & Answer Accuracy...")
+            print(f"Calculating Answer Relevancy & Answer Accuracy...")
             
             r_metric = AnswerRelevancy(llm=ragas_llm, embeddings=ragas_emb_wrapped, strictness=1)
             r_metric.question_generation_prompt = CustomRelevancePrompt()
@@ -257,26 +226,26 @@ def compute_ragas_metrics(results: List[Dict]) -> Dict[str, float]:
             
             final_row = core_df.iloc[0].to_dict()
             
-            print(f"  → Results: Relevancy:{final_row['answer_relevancy']:.2f} | Accuracy:{final_row['nv_accuracy']:.2f}")
+            print(f"Results: Relevancy:{final_row['answer_relevancy']:.2f} | Accuracy:{final_row['nv_accuracy']:.2f}")
             
             all_individual_results.append(pd.DataFrame([final_row]))
             retry_count[i] = 0
             i += 1
             
-            print(f"✅ Success [{i}/{len(successful_results)}]")
+            print(f"Success [{i}/{len(successful_results)}]")
 
         except Exception as e:
             err_msg = str(e)
             if any(x in err_msg.lower() for x in ["rate limit", "rate_limit", "429", "tokens per day"]):
-                print(f"🚨 Rate Limit! Rotating key and sleeping...")
+                print(f"Rate Limit Rotating key and sleeping")
                 manager.rotate_key()
                 time.sleep(20)
             elif "StringIO" in err_msg and retry_count[i] < 1:
                 retry_count[i] += 1
-                print(f"⚠️ Parser glitch, retrying sample...")
+                print(f"Parser glitch, retrying sample")
                 time.sleep(5)
             else:
-                print(f"❌ Skipping sample {i+1} due to error: {err_msg[:100]}")
+                print(f"Skipping sample {i+1} due to error: {err_msg[:100]}")
                 i += 1
 
     if not all_individual_results:
@@ -285,19 +254,14 @@ def compute_ragas_metrics(results: List[Dict]) -> Dict[str, float]:
     final_df = pd.concat(all_individual_results, ignore_index=True)
     summary = final_df.mean(numeric_only=True).to_dict()
     
-    print("\n✅ Ragas evaluation complete!")
-    print(f"📊 Evaluated {len(all_individual_results)}/{len(successful_results)} samples successfully")
+    print("\n Ragas evaluation complete!")
+    print(f" Evaluated {len(all_individual_results)}/{len(successful_results)} samples successfully")
     
     return {k: float(v) for k, v in summary.items()}
 
-
-# ============================================================================
-# Compute Custom Metrics
-# ============================================================================
-
 def compute_custom_metrics(results: List[Dict]) -> Dict[str, Any]:
     """Compute custom performance metrics (no context-related metrics)"""
-    print("\nComputing custom metrics...")
+    print("\nComputing custom metrics")
     
     successful_results = [r for r in results if r.get("success", False)]
     
@@ -326,13 +290,9 @@ def compute_custom_metrics(results: List[Dict]) -> Dict[str, Any]:
         for etype, stats in entity_types.items()
     }
     
-    print("  ✓ Custom metrics computed successfully!")
+    print("Custom metrics computed successfully!")
     return metrics
 
-
-# ============================================================================
-# Generate Visualizations
-# ============================================================================
 
 def generate_visualizations(results: List[Dict], ragas_scores: Dict, custom_metrics: Dict, output_dir: Path):
     """Generate visualization charts (no context-related charts)"""
@@ -346,7 +306,6 @@ def generate_visualizations(results: List[Dict], ragas_scores: Dict, custom_metr
     fig, axes = plt.subplots(2, 2, figsize=(14, 10))
     fig.suptitle('Ancient Egypt LLM-Only - Evaluation Results', fontsize=16, fontweight='bold')
     
-    # Plot 1: Answer Relevancy + Answer Accuracy
     if ragas_scores:
         metrics_df = pd.DataFrame({
             'Metric': ['Answer\nRelevancy', 'Answer\nAccuracy'],
@@ -361,7 +320,6 @@ def generate_visualizations(results: List[Dict], ragas_scores: Dict, custom_metr
         axes[0, 0].axhline(y=0.75, color='r', linestyle='--', label='Target (0.75)')
         axes[0, 0].legend()
     
-    # Plot 2: Response Time Distribution
     successful_results = [r for r in results if r.get("success", False)]
     if successful_results:
         times = [r.get('response_time', 0) for r in successful_results]
@@ -372,7 +330,6 @@ def generate_visualizations(results: List[Dict], ragas_scores: Dict, custom_metr
         axes[0, 1].axvline(x=np.mean(times), color='r', linestyle='--', label=f'Mean: {np.mean(times):.2f}s')
         axes[0, 1].legend()
     
-    # Plot 3: Success Rate by Entity Type
     entity_perf = custom_metrics.get('entity_type_performance', {})
     if entity_perf:
         etypes = list(entity_perf.keys())
@@ -382,7 +339,6 @@ def generate_visualizations(results: List[Dict], ragas_scores: Dict, custom_metr
         axes[1, 0].set_ylabel('Success Rate')
         axes[1, 0].set_ylim(0, 1)
     
-    # Plot 4: Performance Summary Table
     axes[1, 1].axis('off')
     summary_data = [
         ['Total Queries', f"{custom_metrics['total_queries']}"],
@@ -411,10 +367,6 @@ def generate_visualizations(results: List[Dict], ragas_scores: Dict, custom_metr
     plt.close()
 
 
-# ============================================================================
-# Save JSON Report
-# ============================================================================
-
 def save_json_report(results: List[Dict], ragas_scores: Dict, custom_metrics: Dict, output_dir: Path):
     """Save detailed results as JSON"""
     print("\nSaving JSON report...")
@@ -440,10 +392,6 @@ def save_json_report(results: List[Dict], ragas_scores: Dict, custom_metrics: Di
     
     return output_path
 
-
-# ============================================================================
-# Generate Markdown Report
-# ============================================================================
 
 def generate_markdown_report(results: List[Dict], ragas_scores: Dict, custom_metrics: Dict, output_dir: Path):
     """Generate comprehensive markdown report"""
@@ -510,14 +458,9 @@ This evaluation assesses the LLM-only baseline (no retrieval) across {len(result
     with open(output_path, 'w', encoding='utf-8') as f:
         f.write(md)
     
-    print(f"  ✓ Saved Markdown report to {output_path}")
+    print(f"Saved Markdown report to {output_path}")
     
     return output_path
-
-
-# ============================================================================
-# Main Execution
-# ============================================================================
 
 def main():
     """Main execution function"""
@@ -525,17 +468,15 @@ def main():
     print(" LLM-Only Evaluation (No RAG - Baseline)")
     print("="*80 + "\n")
     
-    # Input: LLM-only responses CSV
     responses_csv = r"C:\Uni\4th Year\GP\ECHO\data\chatbot\outputs\echo_agent_evaluation\responses\qwen_3_32b_responses\full_agent_response.csv"
     
-    # Output directory
     output_dir = Path(r"C:\Uni\4th Year\GP\ECHO\data\chatbot\outputs\echo_agent_evaluation\ragas_evaluation_results\qwen_3_32b")
     output_dir.mkdir(exist_ok=True)
     
     # Step 1: Load LLM-only responses
     results = load_agent_responses(responses_csv)
     
-    # Step 2: Compute Ragas metrics (Answer Relevancy + Answer Accuracy only)
+    # Step 2: Compute Ragas metrics 
     ragas_scores = compute_ragas_metrics(results)
     
     # Step 3: Compute custom metrics
@@ -550,27 +491,24 @@ def main():
     # Step 6: Generate Markdown report
     md_path = generate_markdown_report(results, ragas_scores, custom_metrics, output_dir)
     
-    print("\n" + "="*80)
-    print(" EVALUATION COMPLETE!")
-    print("="*80 + "\n")
+    print("EVALUATION COMPLETE")
     
-    print("📊 Results Summary:")
+    print(" Results Summary:")
     print(f"  • Total test cases: {custom_metrics['total_queries']}")
     print(f"  • Success rate: {custom_metrics['success_rate']*100:.1f}%")
     print(f"  • Avg response time: {custom_metrics['avg_response_time']:.2f}s")
     
     if ragas_scores:
-        print(f"\n📈 LLM-Only Metrics:")
+        print(f"\n LLM-Only Metrics:")
         print(f"  • Answer Relevancy: {ragas_scores.get('answer_relevancy', 0):.3f}")
         print(f"  • Answer Accuracy: {ragas_scores.get('nv_accuracy', 0):.3f}")
     
-    print(f"\n📁 Generated Files:")
+    print(f"\n Generated Files:")
     print(f"  • Visualization: {output_dir}/evaluation_visualization.png")
     print(f"  • JSON Report: {json_path}")
     print(f"  • Markdown Report: {md_path}")
     
-    print("\n✅ All evaluation files saved to:", output_dir.absolute())
-    print("\n" + "="*80 + "\n")
+    print("\n All evaluation files saved to:", output_dir.absolute())
 
 
 if __name__ == "__main__":

@@ -32,11 +32,6 @@ import json
 warnings.filterwarnings("ignore")
 load_dotenv()
 
-
-# ---------------------------------------------------------------------------
-# Resources
-# ---------------------------------------------------------------------------
-
 def load_resources():
     base_path = Path(__file__).parent / "resources"
     with open(base_path / "queries.sql", "r") as f:
@@ -48,31 +43,16 @@ def load_resources():
 PROMPTS, VECTOR_SQL = load_resources()
 
 
-# ---------------------------------------------------------------------------
-# Environment
-# ---------------------------------------------------------------------------
-
 GROQ_API_KEY1          = os.getenv("GROQ_API_KEY1")
 GROQ_API_KEY2          = os.getenv("GROQ_API_KEY2")
 CF_WORKERSAI_ACCOUNTID = os.getenv("R2_ACCOUNT_ID")
 CF_AI_API              = os.getenv("CF_AI_API")
 JINA_API_KEY           = os.getenv("JINA_API_KEY")
-
-
-# ---------------------------------------------------------------------------
-# Config
-# ---------------------------------------------------------------------------
-
 GROQ_GENERATOR_MODEL_NAME      = "openai/gpt-oss-120b"
 GROQ_QUERY_REWRITER_MODEL_NAME = "qwen/qwen3-32b"
 TOP_K                          = 3
 EMBEDDING_DIM                  = 768
 ENTITY_NAME                    = "Ramesses II"
-
-
-# ---------------------------------------------------------------------------
-# State
-# ---------------------------------------------------------------------------
 
 class AgentState(TypedDict):
     query:        str
@@ -80,11 +60,6 @@ class AgentState(TypedDict):
     messages:     Annotated[list, add_messages]
     context:      List[str]
     response:     str
-
-
-# ---------------------------------------------------------------------------
-# Models & Tools
-# ---------------------------------------------------------------------------
 
 embedding_model = CloudflareWorkersAIEmbeddings(
     account_id=CF_WORKERSAI_ACCOUNTID,
@@ -119,11 +94,6 @@ generator_llm = ChatGroq(
     extra_body={"reasoning_effort": "medium", "reasoning_format": "hidden"}
 ).bind_tools(tools)
 
-
-# ---------------------------------------------------------------------------
-# Chains
-# ---------------------------------------------------------------------------
-
 rewrite_prompt_template = PromptTemplate.from_template(PROMPTS['rewrite_prompt'])
 rewrite_chain = rewrite_prompt_template | query_rewriter_llm | StrOutputParser()
 
@@ -136,11 +106,6 @@ def get_embedding(text: str):
     sliced = embeddings[:EMBEDDING_DIM]
     norm = np.linalg.norm(sliced)
     return (sliced / norm if norm > 0 else sliced).tolist()
-
-
-# ---------------------------------------------------------------------------
-# Nodes
-# ---------------------------------------------------------------------------
 
 def rewrite_node(state: AgentState) -> dict:
     clean_dialogue = [
@@ -204,7 +169,6 @@ def generate_node(state: AgentState) -> dict:
             "response": response_text
         }
     
-    #1 get the last human index
     last_human_index = -1
     for i, msg in enumerate(state['messages']):
         if isinstance(msg, HumanMessage):
@@ -213,15 +177,13 @@ def generate_node(state: AgentState) -> dict:
     current_turn_messages = state['messages'][last_human_index:] if last_human_index != -1 else []
     has_searched = any(isinstance(msg, ToolMessage) for msg in current_turn_messages)
 
-    # 2. MERGE DB CONTEXT + SEARCH RESULTS (both available after search)
     current_search_results = [
         msg.content for msg in current_turn_messages
         if isinstance(msg, ToolMessage)
     ]
 
-    combined_context = current_search_results + state['context'] if has_searched else state['context'] #if searched the context now is tool + retrieved DB
+    combined_context = current_search_results + state['context'] if has_searched else state['context']
 
-    # 3. CLEAN HISTORY
     clean_dialogue = [
         msg for msg in state['messages']
         if isinstance(msg, HumanMessage) or getattr(msg, "name", None) == "generator_response"
@@ -237,7 +199,6 @@ def generate_node(state: AgentState) -> dict:
 
     history_str = "\n".join(dialogue) if dialogue else "No previous conversation."
 
-    # 4. DYNAMIC INSTRUCTION
     extra_instruction = ""
     if has_searched:
         extra_instruction = (

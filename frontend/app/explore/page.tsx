@@ -71,7 +71,7 @@ function EntityCard({ entity, type, onNavigate }: { entity: RecognitionEntity; t
       whileHover={{ scale: 1.02 }}
       whileTap={{ scale: 0.98 }}
       onClick={onNavigate}
-      className="group cursor-pointer w-full rounded-xl border border-[#E6B23C]/8 bg-[#1A1208]/50 hover:border-[#E6B23C]/20 hover:bg-[#1A1208]/80 transition-all p-3 md:p-4 backdrop-blur-sm overflow-hidden"
+      className="group cursor-pointer shrink-0 w-full rounded-xl border border-[#E6B23C]/8 bg-[#1A1208]/50 hover:border-[#E6B23C]/20 hover:bg-[#1A1208]/80 transition-all p-3 md:p-4 backdrop-blur-sm overflow-hidden"
     >
       <div className="flex items-start justify-between gap-1.5 md:gap-3 w-full">
         <div className="flex-1 min-w-0 overflow-hidden">
@@ -370,6 +370,13 @@ function ExploreContent() {
     setSearch("");
     setSelectedCity(null);
     router.replace(`/explore?tab=${tab}`, { scroll: false });
+    
+    // Auto-scroll on mobile
+    if (window.innerWidth < 768) {
+      setTimeout(() => {
+        document.getElementById("explore-content-area")?.scrollIntoView({ behavior: "smooth", block: "start" });
+      }, 100);
+    }
   };
 
   // Navigate to result page
@@ -601,7 +608,7 @@ function ExploreContent() {
           )}
         </AnimatePresence>
       </div>
-      <div ref={containerRef} className={`relative transition-all duration-700 ${search ? 'blur-3xl pointer-events-none' : ''}`}>
+      <div id="explore-content-area" ref={containerRef} className={`relative transition-all duration-700 scroll-mt-24 ${search ? 'blur-3xl pointer-events-none' : ''}`}>
         {/* Loading */}
         {isLoading && (
           <div className="flex justify-center py-20">
@@ -734,7 +741,7 @@ function ExploreContent() {
                     animate={{ opacity: 1, y: 0 }}
                     exit={{ opacity: 0, y: 20 }}
                     transition={{ type: "spring", damping: 25, stiffness: 200 }}
-                    className="relative md:absolute top-0 right-0 md:h-full w-full md:w-[450px] bg-[#0D0A07]/95 backdrop-blur-xl border border-[#E6B23C]/20 md:border-t-0 md:border-b-0 md:border-r-0 md:border-l z-[100] md:shadow-[-20px_0_50px_rgba(0,0,0,0.5)] flex flex-col rounded-2xl md:rounded-l-none md:rounded-r-3xl overflow-hidden mt-6 md:mt-0"
+                    className="relative md:absolute top-0 right-0 max-h-[60vh] md:max-h-none md:h-full w-full md:w-[450px] bg-[#0D0A07]/95 backdrop-blur-xl border border-[#E6B23C]/20 md:border-t-0 md:border-b-0 md:border-r-0 md:border-l z-[100] md:shadow-[-20px_0_50px_rgba(0,0,0,0.5)] flex flex-col rounded-2xl md:rounded-l-none md:rounded-r-3xl overflow-hidden mt-6 md:mt-0 scroll-mt-40"
                   >
                     {/* Header */}
                     <div className="p-6 md:p-8 border-b border-[#E6B23C]/10 flex items-center justify-between bg-gradient-to-r from-[#1A1208] to-[#0D0A07]">
@@ -748,7 +755,14 @@ function ExploreContent() {
                         </h2>
                       </div>
                       <button
-                        onClick={() => setSelectedCity(null)}
+                        onClick={() => {
+                          setSelectedCity(null);
+                          if (window.innerWidth < 768) {
+                            setTimeout(() => {
+                              document.getElementById("explore-content-area")?.scrollIntoView({ behavior: "smooth", block: "start" });
+                            }, 100);
+                          }
+                        }}
                         className="p-3 rounded-full bg-[#E6B23C]/10 text-[#E6B23C] hover:bg-[#E6B23C]/20 transition-all border border-[#E6B23C]/20 shrink-0"
                       >
                         <X size={20} />
@@ -758,7 +772,7 @@ function ExploreContent() {
                     {/* Landmarks List */}
                     <div
                       ref={landmarksListRef}
-                      className="flex-1 md:overflow-y-auto p-4 md:p-6 grid grid-cols-2 md:flex md:flex-col gap-2 md:gap-4 custom-scrollbar"
+                      className="flex-1 overflow-y-auto overscroll-contain p-4 md:p-6 flex flex-col gap-3 md:gap-4 custom-scrollbar"
                     >
                       {landmarksByCity
                         .filter(([city]) => city === selectedCity)
