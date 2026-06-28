@@ -157,37 +157,37 @@ export default function LoginPage() {
             className="w-full max-w-[480px]"
           >
             <div className="relative p-1 rounded-[32px] bg-gradient-to-b from-[#E6B23C]/20 to-transparent backdrop-blur-xl shadow-2xl">
-              <div className="bg-[#0D0A07]/80 backdrop-blur-3xl rounded-[30px] p-8 md:p-10 border border-white/5">
-                <div className="text-center mb-6">
-                  <h2 className="text-3xl font-bold text-[#F5E6D0] mb-2">
+              <div className="bg-[#0D0A07]/80 backdrop-blur-3xl rounded-[30px] p-6 md:p-10 border border-white/5">
+                <div className="text-center mb-4 md:mb-6">
+                  <h2 className="text-2xl md:text-3xl font-bold text-[#F5E6D0] mb-1 md:mb-2">
                     {isForgotPassword ? "Reset Password" : (isSignUp ? "Get Started" : "Welcome!")}
                   </h2>
                   {isForgotPassword && (
-                    <p className="text-[#A08E70] text-sm">
+                    <p className="text-[#A08E70] text-xs md:text-sm">
                       Enter your email to receive a reset link
                     </p>
                   )}
                 </div>
 
-                <div className="space-y-6">
-                  <form onSubmit={handleEmailAuth} className="space-y-4">
+                <div className="space-y-4 md:space-y-6">
+                  <form onSubmit={handleEmailAuth} className="space-y-3 md:space-y-4">
                     <AnimatePresence mode="popLayout">
                       {isSignUp && (
                         <motion.div
                           initial={{ opacity: 0, height: 0 }}
                           animate={{ opacity: 1, height: "auto" }}
                           exit={{ opacity: 0, height: 0 }}
-                          className="space-y-4 overflow-hidden"
+                          className="space-y-3 md:space-y-4 overflow-hidden"
                         >
-                          <div className="grid grid-cols-2 gap-4">
+                          <div className="grid grid-cols-2 gap-3 md:gap-4">
                             <div className="space-y-1.5">
-                              <Label htmlFor="firstName" className="text-[#A08E70] text-[10px] uppercase font-bold tracking-widest pl-1">First Name</Label>
+                              <Label htmlFor="firstName" className="text-[#A08E70] text-[9px] md:text-[10px] uppercase font-bold tracking-widest pl-1">First Name</Label>
                               <div className="relative">
                                 <Input
                                   id="firstName"
                                   type="text"
                                   placeholder="Enter first name"
-                                  className="h-11 px-4 bg-white/5 border-white/10 text-white rounded-xl focus-visible:ring-[#E6B23C]/30 focus:border-[#E6B23C]/50 transition-all"
+                                  className="h-9 md:h-11 px-3 md:px-4 bg-white/5 border-white/10 text-white rounded-xl text-xs md:text-sm focus-visible:ring-[#E6B23C]/30 focus:border-[#E6B23C]/50 transition-all"
                                   value={firstName}
                                   onChange={(e) => setFirstName(e.target.value)}
                                   required
@@ -195,13 +195,13 @@ export default function LoginPage() {
                               </div>
                             </div>
                             <div className="space-y-1.5">
-                              <Label htmlFor="lastName" className="text-[#A08E70] text-[10px] uppercase font-bold tracking-widest pl-1">Last Name</Label>
+                              <Label htmlFor="lastName" className="text-[#A08E70] text-[9px] md:text-[10px] uppercase font-bold tracking-widest pl-1">Last Name</Label>
                               <div className="relative">
                                 <Input
                                   id="lastName"
                                   type="text"
                                   placeholder="Enter last name"
-                                  className="h-11 px-4 bg-white/5 border-white/10 text-white rounded-xl focus-visible:ring-[#E6B23C]/30 focus:border-[#E6B23C]/50 transition-all"
+                                  className="h-9 md:h-11 px-3 md:px-4 bg-white/5 border-white/10 text-white rounded-xl text-xs md:text-sm focus-visible:ring-[#E6B23C]/30 focus:border-[#E6B23C]/50 transition-all"
                                   value={lastName}
                                   onChange={(e) => setLastName(e.target.value)}
                                   required
@@ -210,13 +210,13 @@ export default function LoginPage() {
                             </div>
                           </div>
                           <div className="space-y-1.5">
-                            <Label htmlFor="username" className="text-[#A08E70] text-[10px] uppercase font-bold tracking-widest pl-1">Username</Label>
+                            <Label htmlFor="username" className="text-[#A08E70] text-[9px] md:text-[10px] uppercase font-bold tracking-widest pl-1">Username</Label>
                             <div className="relative">
                               <Input
                                 id="username"
                                 type="text"
                                 placeholder="Choose a username"
-                                className="h-11 px-4 bg-white/5 border-white/10 text-white rounded-xl focus-visible:ring-[#E6B23C]/30 focus:border-[#E6B23C]/50 transition-all"
+                                className="h-9 md:h-11 px-3 md:px-4 bg-white/5 border-white/10 text-white rounded-xl text-xs md:text-sm focus-visible:ring-[#E6B23C]/30 focus:border-[#E6B23C]/50 transition-all"
                                 value={username}
                                 onChange={(e) => setUsername(e.target.value)}
                                 required
@@ -228,14 +228,14 @@ export default function LoginPage() {
                     </AnimatePresence>
 
                     <div className="space-y-1.5">
-                      <Label htmlFor="email" className="text-[#A08E70] text-[10px] uppercase font-bold tracking-widest pl-1">Email Address</Label>
+                      <Label htmlFor="email" className="text-[#A08E70] text-[9px] md:text-[10px] uppercase font-bold tracking-widest pl-1">Email Address</Label>
                       <div className="relative">
-                        <Mail className="absolute left-4 top-3 h-4 w-4 text-[#E6B23C]/40" />
+                        <Mail className="absolute left-3 md:left-4 top-1/2 -translate-y-1/2 h-3.5 w-3.5 md:h-4 md:w-4 text-[#E6B23C]/40" />
                         <Input
                           id="email"
                           type="email"
                           placeholder="yourname@example.com"
-                          className="h-11 pl-12 bg-white/5 border-white/10 text-white rounded-xl focus-visible:ring-[#E6B23C]/30 focus:border-[#E6B23C]/50 transition-all"
+                          className="h-9 md:h-11 pl-9 md:pl-12 pr-4 bg-white/5 border-white/10 text-white rounded-xl text-xs md:text-sm focus-visible:ring-[#E6B23C]/30 focus:border-[#E6B23C]/50 transition-all"
                           value={email}
                           onChange={(e) => setEmail(e.target.value)}
                           required
@@ -246,15 +246,15 @@ export default function LoginPage() {
                     {!isForgotPassword && (
                       <div className="space-y-1.5">
                         <div className="flex items-center justify-between pl-1">
-                          <Label htmlFor="password" className="text-[#A08E70] text-[10px] uppercase font-bold tracking-widest">Password</Label>
+                          <Label htmlFor="password" className="text-[#A08E70] text-[9px] md:text-[10px] uppercase font-bold tracking-widest">Password</Label>
                         </div>
                         <div className="relative">
-                          <Lock className="absolute left-4 top-3 h-4 w-4 text-[#E6B23C]/40" />
+                          <Lock className="absolute left-3 md:left-4 top-1/2 -translate-y-1/2 h-3.5 w-3.5 md:h-4 md:w-4 text-[#E6B23C]/40" />
                           <Input
                             id="password"
                             type={showPassword ? "text" : "password"}
                             placeholder={isSignUp ? "Minimum 8 characters" : "••••••••"}
-                            className="h-11 pl-12 pr-12 bg-white/5 border-white/10 text-white rounded-xl focus-visible:ring-[#E6B23C]/30 focus:border-[#E6B23C]/50 transition-all"
+                            className="h-9 md:h-11 pl-9 md:pl-12 pr-10 md:pr-12 bg-white/5 border-white/10 text-white rounded-xl text-xs md:text-sm focus-visible:ring-[#E6B23C]/30 focus:border-[#E6B23C]/50 transition-all"
                             value={password}
                             onChange={(e) => setPassword(e.target.value)}
                             required={!isForgotPassword}
@@ -262,10 +262,10 @@ export default function LoginPage() {
                           <button
                             type="button"
                             onClick={() => setShowPassword(!showPassword)}
-                            className="absolute right-4 top-2.5 text-[#A08E70]/40 hover:text-[#E6B23C] transition-colors"
+                            className="absolute right-3 md:right-4 top-1/2 -translate-y-1/2 text-[#A08E70]/40 hover:text-[#E6B23C] transition-colors flex items-center justify-center"
                             title={showPassword ? "Hide" : "Reveal"}
                           >
-                            {showPassword ? <EyeOff size={18} /> : <Eye size={18} />}
+                            {showPassword ? <EyeOff className="w-4 h-4 md:w-[18px] md:h-[18px]" /> : <Eye className="w-4 h-4 md:w-[18px] md:h-[18px]" />}
                           </button>
                         </div>
                         {!isSignUp && (
@@ -286,7 +286,7 @@ export default function LoginPage() {
                       <motion.p
                         initial={{ opacity: 0, y: -10 }}
                         animate={{ opacity: 1, y: 0 }}
-                        className="text-red-400 text-[11px] font-medium text-center"
+                        className="text-red-400 text-[10px] md:text-[11px] font-medium text-center"
                       >
                         {error}
                       </motion.p>
@@ -295,13 +295,13 @@ export default function LoginPage() {
                     <Button
                       type="submit"
                       disabled={loading || (resetSent && countdown > 0)}
-                      className="w-full h-12 mt-2 rounded-xl bg-transparent border-2 border-[#E6B23C] text-[#E6B23C] font-bold uppercase tracking-widest hover:bg-[#E6B23C]/10 hover:shadow-[0_0_30px_rgba(230,178,60,0.2)] transition-all flex items-center justify-center gap-2"
+                      className="w-full h-10 md:h-12 mt-1 md:mt-2 rounded-xl bg-transparent border-2 border-[#E6B23C] text-[#E6B23C] text-xs md:text-sm font-bold uppercase tracking-widest hover:bg-[#E6B23C]/10 hover:shadow-[0_0_30px_rgba(230,178,60,0.2)] transition-all flex items-center justify-center gap-2"
                     >
                       {loading ? (
-                        <Loader2 className="h-4 w-4 animate-spin" />
+                        <Loader2 className="h-3.5 w-3.5 md:h-4 md:w-4 animate-spin" />
                       ) : (resetSent && countdown > 0) ? (
                         <div className="flex items-center gap-2">
-                          <Check className="h-4 w-4" />
+                          <Check className="h-3.5 w-3.5 md:h-4 md:w-4" />
                           <span>Resend in {countdown}<span className="text-[10px] lowercase ml-0.5">s</span></span>
                         </div>
                       ) : (
@@ -322,7 +322,7 @@ export default function LoginPage() {
                   <Button
                     onClick={handleGoogleLogin}
                     variant="outline"
-                    className="w-full h-11 rounded-xl bg-white/5 border-white/10 text-white hover:bg-white/10 hover:border-[#E6B23C]/30 transition-all flex items-center justify-center gap-3 text-sm group"
+                    className="w-full h-9 md:h-11 rounded-xl bg-white/5 border-white/10 text-white hover:bg-white/10 hover:border-[#E6B23C]/30 transition-all flex items-center justify-center gap-3 text-xs md:text-sm group"
                   >
                     <svg className="w-4 h-4 transition-transform group-hover:scale-110" viewBox="0 0 24 24">
                       <path d="M22.56 12.25c0-.78-.07-1.53-.2-2.25H12v4.26h5.92c-.26 1.37-1.04 2.53-2.21 3.31v2.77h3.57c2.08-1.92 3.28-4.74 3.28-8.09z" fill="#4285F4" />
@@ -334,7 +334,7 @@ export default function LoginPage() {
                   </Button>
 
                   <div className="text-center">
-                    <div className="text-[#A08E70] text-sm flex items-center justify-center gap-1.5 mx-auto">
+                    <div className="text-[#A08E70] text-xs md:text-sm flex items-center justify-center gap-1.5 mx-auto">
                       <span>
                         {isForgotPassword
                           ? ""
