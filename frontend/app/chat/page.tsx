@@ -1458,7 +1458,7 @@ function ChatContent() {
               </div>
 
               {/* Grouped List - Now full width for scrolling but inner content centered */}
-              <div className={`flex-1 ${groupedChats.length > 0 ? 'overflow-y-auto' : 'overflow-hidden'} trending-scrollbar-hide`}>
+              <div className={`flex-1 overflow-x-hidden ${groupedChats.length > 0 ? 'overflow-y-auto' : 'overflow-hidden'} trending-scrollbar-hide`}>
                 <div className="max-w-5xl mx-auto w-full px-8 md:px-12 pb-24">
                   {groupedChats.length > 0 ? (
                     <div className="bg-[#1A1208]/30 border border-[#E6B23C]/10 rounded-3xl p-6 md:p-10 backdrop-blur-md shadow-[0_10px_40px_rgba(0,0,0,0.4)]">
