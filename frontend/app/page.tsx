@@ -100,10 +100,18 @@ export default function HomePage() {
               WebkitMaskImage: "linear-gradient(to bottom, black 0%, black 25%, transparent 80%)"
             }}
           >
+            {/* Desktop Background */}
             <img
               src="/images/backgrounds/x.jpg"
-              alt="Background"
-              className="w-full h-full object-cover object-top opacity-60"
+              alt="Background Desktop"
+              className="hidden md:block w-full h-full object-cover object-top opacity-60"
+              onError={(e) => { e.currentTarget.style.display = 'none'; }}
+            />
+            {/* Mobile Background */}
+            <img
+              src="/images/backgrounds/X - Mobile.jpg"
+              alt="Background Mobile"
+              className="block md:hidden w-full h-full object-cover object-top opacity-60"
               onError={(e) => { e.currentTarget.style.display = 'none'; }}
             />
           </div>
