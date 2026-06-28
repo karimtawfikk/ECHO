@@ -268,12 +268,12 @@ function ResultContent() {
       <motion.div initial={{ opacity: 0 }} animate={{ opacity: 1 }} className="max-w-6xl mx-auto">
         {/* Breadcrumb */}
         <motion.div initial={{ opacity: 0, x: isRTL ? 20 : -20 }} animate={{ opacity: 1, x: 0 }} className="mb-8">
-          <Link href={isFromExplore ? `/explore?tab=${displayType}s` : isFromTrending ? "/" : "/upload"} className="group inline-flex items-center gap-2 text-xs font-semibold tracking-[0.15em] uppercase text-[#A08E70] hover:text-[#E6B23C] transition-colors">
+          <button onClick={() => router.back()} className="group inline-flex items-center gap-2 text-xs font-semibold tracking-[0.15em] uppercase text-[#A08E70] hover:text-[#E6B23C] transition-colors bg-transparent border-none p-0 outline-none">
             <span className={`transition-transform ${isRTL ? 'group-hover:translate-x-1' : 'group-hover:-translate-x-1'}`}>
               {isRTL ? '→' : '←'}
             </span>
-            {isFromExplore ? t("common.back_explore") : isFromTrending ? t("common.back_home") : t("common.return")}
-          </Link>
+            Back
+          </button>
         </motion.div>
 
         <div className={`grid ${hasImage ? 'lg:grid-cols-[0.75fr_1.25fr]' : 'lg:grid-cols-1 max-w-2xl mx-auto'} gap-12 items-start`}>
