@@ -230,15 +230,33 @@ export default function PageShell({
             })}
           </div>
 
-          {/* Mobile Dropdown Menu */}
-          <AnimatePresence>
-            {menuOpen && !minimal && (
-              <motion.div
-                initial={{ opacity: 0, y: -10 }}
-                animate={{ opacity: 1, y: 0 }}
-                exit={{ opacity: 0, y: -10 }}
-                className="md:hidden absolute top-full left-0 right-0 bg-[#0D0A07]/95 backdrop-blur-3xl border-b border-[#E6B23C]/10 flex flex-col items-center py-6 gap-6 shadow-[0_20px_50px_rgba(0,0,0,0.8)]"
-              >
+        </div>
+      </nav>
+
+      {/* Mobile Bottom Sheet Menu */}
+      <AnimatePresence>
+        {menuOpen && !minimal && (
+          <>
+            {/* Backdrop */}
+            <motion.div
+              initial={{ opacity: 0 }}
+              animate={{ opacity: 1 }}
+              exit={{ opacity: 0 }}
+              onClick={() => setMenuOpen(false)}
+              className="md:hidden fixed inset-0 bg-[#0D0A07]/60 backdrop-blur-sm z-[100]"
+            />
+            
+            {/* Sheet */}
+            <motion.div
+              initial={{ opacity: 0, y: "100%" }}
+              animate={{ opacity: 1, y: 0 }}
+              exit={{ opacity: 0, y: "100%" }}
+              transition={{ type: "spring", damping: 25, stiffness: 200 }}
+              className="md:hidden fixed bottom-0 left-0 right-0 bg-[#1A1208]/95 backdrop-blur-xl border-t border-[#E6B23C]/20 rounded-t-[2.5rem] shadow-[0_-20px_50px_rgba(0,0,0,0.8)] z-[101] flex flex-col pt-4 pb-10 px-6"
+            >
+              <div className="w-12 h-1.5 bg-[#E6B23C]/20 rounded-full mx-auto mb-8" />
+              
+              <div className="flex flex-col gap-4">
                 {navLinks.map((link) => {
                   const isActive = pathname === link.href || (link.href === "/upload" && pathname.startsWith("/result"));
                   const isHome = link.href === "/";
@@ -248,18 +266,21 @@ export default function PageShell({
                       key={link.name}
                       href={link.href}
                       onClick={() => setMenuOpen(false)}
-                      className={`text-xs font-bold tracking-[0.2em] uppercase transition-all py-2 ${isActive ? "text-[#E6B23C]" : "text-[#A08E70] hover:text-[#F5E6D0]"
-                        }`}
+                      className={`w-full flex items-center justify-center py-5 rounded-2xl text-[13px] font-bold tracking-[0.2em] uppercase transition-all ${
+                        isActive 
+                          ? "bg-[#E6B23C]/15 text-[#E6B23C] border border-[#E6B23C]/30 shadow-inner" 
+                          : "bg-[#0D0A07]/60 text-[#A08E70] border border-[#E6B23C]/10 active:bg-[#E6B23C]/10 active:scale-[0.98]"
+                      }`}
                     >
                       {link.name}
                     </Link>
                   );
                 })}
-              </motion.div>
-            )}
-          </AnimatePresence>
-        </div>
-      </nav>
+              </div>
+            </motion.div>
+          </>
+        )}
+      </AnimatePresence>
 
       {headerExtension && (
         <div className="fixed top-0 left-0 right-0 z-[45] pointer-events-none">
