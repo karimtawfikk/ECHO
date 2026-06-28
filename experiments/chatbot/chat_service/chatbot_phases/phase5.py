@@ -35,11 +35,6 @@ import numpy as np
 warnings.filterwarnings("ignore")
 load_dotenv()
 
-
-# ---------------------------------------------------------------------------
-# Resources
-# ---------------------------------------------------------------------------
-
 def load_resources():
     base_path = Path(__file__).parent.parent / "resources"
     with open(base_path / "queries.sql", "r") as f:
@@ -50,23 +45,12 @@ def load_resources():
 
 PROMPTS, VECTOR_SQL = load_resources()
 
-
-# ---------------------------------------------------------------------------
-# Env
-# ---------------------------------------------------------------------------
-
 GROQ_API_KEY1          = os.getenv("GROQ_API_KEY1")
 GROQ_API_KEY2          = os.getenv("GROQ_API_KEY2")
 CF_WORKERSAI_ACCOUNTID = os.getenv("R2_ACCOUNT_ID")
 CF_AI_API              = os.getenv("CF_AI_API")
 JINA_API_KEY           = os.getenv("JINA_API_KEY")
 INWORLD_API_KEY        = os.getenv("INWORLD_API_KEY")
-
-
-# ---------------------------------------------------------------------------
-# Config
-# ---------------------------------------------------------------------------
-
 GROQ_GENERATOR_MODEL_NAME      = "openai/gpt-oss-120b"
 GROQ_QUERY_REWRITER_MODEL_NAME = "qwen/qwen3-32b"
 INWORLD_VOICE_ID               = "default-1ocgrlw5u8sovko4eeeqnw__ancient_egyptian_pharaoh"
@@ -75,11 +59,6 @@ TOP_K                          = 3
 EMBEDDING_DIM                  = 768
 ENTITY_NAME                    = "Ramesses II"
 
-
-# ---------------------------------------------------------------------------
-# State
-# ---------------------------------------------------------------------------
-
 class AgentState(TypedDict):
     query:        str
     search_query: str
@@ -87,11 +66,6 @@ class AgentState(TypedDict):
     context:      List[str]
     response:     str
     tts_enabled:  bool
-
-
-# ---------------------------------------------------------------------------
-# Models & Tools
-# ---------------------------------------------------------------------------
 
 embedding_model = CloudflareWorkersAIEmbeddings(
     account_id=CF_WORKERSAI_ACCOUNTID,
@@ -127,18 +101,9 @@ generator_llm = ChatGroq(
 ).bind_tools(tools)
 
 
-# ---------------------------------------------------------------------------
-# Chains
-# ---------------------------------------------------------------------------
-
 rewrite_prompt_template = PromptTemplate.from_template(PROMPTS['rewrite_prompt']['pharaoh'])
 rewrite_chain           = rewrite_prompt_template | query_rewriter_llm | StrOutputParser()
 llm_prompt_template     = PromptTemplate.from_template(PROMPTS['assistant_persona']['pharaoh'])
-
-
-# ---------------------------------------------------------------------------
-# Helpers
-# ---------------------------------------------------------------------------
 
 def get_embedding(text: str):
     embeddings = np.array(embedding_model.embed_query(text))
@@ -155,10 +120,6 @@ def clean_for_tts(text: str) -> str:
     text = re.sub(r'\n+',           ' ',   text).strip()
     return text
 
-
-# ---------------------------------------------------------------------------
-# Nodes
-# ---------------------------------------------------------------------------
 
 def rewrite_node(state: AgentState) -> dict:
     clean_dialogue = [
@@ -322,11 +283,6 @@ def tts_node(state: AgentState) -> dict:
 def route_tts(state: AgentState) -> str:
     return "tts" if state.get("tts_enabled") else END
 
-
-# ---------------------------------------------------------------------------
-# Graph
-# ---------------------------------------------------------------------------
-
 workflow = StateGraph(AgentState)
 
 workflow.add_node("rewriter",  rewrite_node)
@@ -364,10 +320,6 @@ workflow.add_edge("tts", END)
 memory = MemorySaver()
 graph  = workflow.compile(checkpointer=memory)
 
-
-# ---------------------------------------------------------------------------
-# Main
-# ---------------------------------------------------------------------------
 
 def main():
     print(f"Pharaoh-RAG Phase 5 — Inworld TTS ({ENTITY_NAME}) Ready:")

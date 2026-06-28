@@ -27,7 +27,6 @@ from langchain_core.prompts import PromptTemplate
 from langchain_core.output_parsers import StrOutputParser
 from langchain_core.documents import Document
 from langchain_groq import ChatGroq
-#from langchain_cloudflare import CloudflareWorkersAIEmbeddings
 from langchain_community.document_compressors.jina_rerank import JinaRerank
 from langchain_tavily import TavilySearch
 
@@ -138,11 +137,6 @@ class AgentState(TypedDict):
 
 
 # Models & Tools
-"""embedding_model = CloudflareWorkersAIEmbeddings(
-    account_id=CF_WORKERSAI_ACCOUNTID,
-    api_token=CF_AI_API,
-    model_name="@cf/qwen/qwen3-embedding-0.6b"
-)"""
 qwen_model=None
 model_ready_event = Event()
 model_load_error = None
@@ -199,18 +193,6 @@ generator_llm = ChatGroq(
     extra_body={"reasoning_effort": "medium", "reasoning_format": "hidden"}
 ).bind_tools(tools)
 
-
-# ---------------------------------------------------------------------------
-# Helpers
-# ---------------------------------------------------------------------------
-"""
-def get_embedding(text: str):
-    embeddings = np.array(embedding_model.embed_query(text))
-    embeddings = embeddings / np.linalg.norm(embeddings)
-    sliced     = embeddings[:EMBEDDING_DIM]
-    norm       = np.linalg.norm(sliced)
-    return (sliced / norm if norm > 0 else sliced).tolist()"""
-
 def get_embedding(text: str):
     model_ready_event.wait()
 
@@ -243,7 +225,7 @@ def clean_for_tts(text: str) -> str:
 def record_audio() -> np.ndarray:
     import sounddevice as sd
 
-    print("[STT]: Recording... press Enter when done.")
+    print("[STT]: Recording press Enter when done.")
 
     frames = []
     stop   = Event()
@@ -279,10 +261,6 @@ def transcribe_audio(audio: np.ndarray) -> str:
     )
     return transcription.text.strip()
 
-# ---------------------------------------------------------------------------
-# Nodes
-# ---------------------------------------------------------------------------
-# Global variable to store user memory
 USER_MEMORY = []
 
 def rewrite_node(state: AgentState) -> dict:
@@ -313,7 +291,6 @@ def rewrite_node(state: AgentState) -> dict:
     }).strip()
     
     
-    # Check if [MEMORY] tag exists
     if "[MEMORY]:" in response:
         parts = response.split("[MEMORY]:")
         search_q = parts[0].replace("Search Query:", "").strip()
@@ -452,13 +429,12 @@ def generate_node(state: AgentState) -> dict:
     print()
     
     response = AIMessage(content=full_content, tool_calls=tool_calls_buf or [])
-
     if response.tool_calls and not has_searched:
         print(f"[DECISION]: Consulting modern scrolls via {response.tool_calls[0]['name']}...")
         print(f"[TIMING] generate_node: {perf_counter() - node_start:.2f}s", flush=True)
         return {"messages": [response]}
 
-    print(f"[TIMING] generate_node: {perf_counter() - node_start:.2f}s", flush=True)
+    print(f" TIMING generate_node: {perf_counter() - node_start:.2f}s", flush=True)
     return {
         "messages": [AIMessage(content=full_content, name="generator_response")],
         "response": full_content
@@ -498,10 +474,6 @@ def tts_node(state: AgentState) -> dict:
 def route_tts(state: AgentState) -> str:
     return "tts" if state.get("voice_mode") else END
 
-
-# ---------------------------------------------------------------------------
-# Graph
-# ---------------------------------------------------------------------------
 
 workflow = StateGraph(AgentState)
 
@@ -546,30 +518,24 @@ workflow.add_edge("tts", END)
 memory = MemorySaver()
 graph  = workflow.compile(checkpointer=memory)
 
-# ---------------------------------------------------------------------------
-# Main
-# ---------------------------------------------------------------------------
-
 def main():
     global ENTITY_TYPE, ENTITY_NAME, ENTITY_ID, VECTOR_SQL,PHARAOH_GENDER, rewrite_chain, llm_prompt_template
     Thread(target=load_model_background, daemon=True).start()
 
-    print("\n╔══════════════════════════════════╗")
-    print("║        ANCIENT EGYPT RAG         ║")
-    print("╚══════════════════════════════════╝\n")
+    print(" ANCIENT EGYPT RAG  ")
+   
 
     while True:
         ENTITY_TYPE = input("Entity type — 'pharaoh' or 'landmark': ").strip().lower()
         if ENTITY_TYPE in ENTITY_CONFIG:
             break
-        print("  → Please enter 'pharaoh' or 'landmark'.")
+        print("Please enter 'pharaoh' or 'landmark'.")
 
     ENTITY_NAME = input(f"Enter the {ENTITY_TYPE} name: ").strip()
 
     cfg = ENTITY_CONFIG[ENTITY_TYPE]
     
-    # NEW: Lookup entity ID ONCE at conversation start
-    print(f"  🔍 Looking up {ENTITY_TYPE}...")
+    print(f"Looking up {ENTITY_TYPE}...")
     
     id_col = "pharaoh_id" if ENTITY_TYPE == "pharaoh" else "landmark_id"
     table_name = "pharaohs" if ENTITY_TYPE == "pharaoh" else "landmarks"
@@ -590,13 +556,12 @@ def main():
         if result:
             ENTITY_ID = result[0]
             PHARAOH_GENDER = result[1] if table_name == "pharaohs" else "male"
-            print(f"  ✓ Found {ENTITY_TYPE} (ID: {ENTITY_ID})")
+            print(f"Found {ENTITY_TYPE} (ID: {ENTITY_ID})")
         else:
-            print(f"  ✗ Error: '{ENTITY_NAME}' not found in database!")
-            print(f"  → Check spelling or verify {ENTITY_TYPE} exists in database.")
+            print(f"Error: '{ENTITY_NAME}' not found in database!")
+            print(f"Check spelling or verify {ENTITY_TYPE} exists in database.")
             return
     
-    # Set up SQL with optimized query
     VECTOR_SQL = SQL_TEMPLATE.format(
         texts_table=cfg["texts_table"],
         entity_id_col=cfg["entity_id_col"]
@@ -614,7 +579,7 @@ def main():
 
     while True:
         if voice_mode:
-            raw = input("\n[Voice Mode ON] — press Enter to speak, or type ('v' to switch back, 'q' to quit)\n> ").strip()
+            raw = input("\n Voice Mode ON — press Enter to speak, or type ('v' to switch back, 'q' to quit)\n> ").strip()
             if raw.lower() in ['v', 'voice']:
                 voice_mode = False
                 print("[Voice Mode OFF]")
@@ -641,7 +606,7 @@ def main():
                 break
             if user_input.lower() in ['v', 'voice']:
                 voice_mode = True
-                print("[Voice Mode ON] — press Enter with empty input to start speaking")
+                print("Voice Mode ON — press Enter with empty input to start speaking")
                 continue
 
         turn_start = perf_counter()

@@ -374,7 +374,7 @@ def evaluate_model(persist_path, collection_name, model, queries, k=5, mrl_dim=N
 
     for query_text, ground_truth_file in queries:
 
-        # --- Embed (not timing this) ---
+        # Embed (not timing this)
         query_embedding = model.encode([query_text], normalize_embeddings=True)
 
         if mrl_dim is not None:

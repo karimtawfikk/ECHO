@@ -1,8 +1,3 @@
-"""
-Agent Response Collection Script
-Runs the Ancient Egypt RAG chatbot on test dataset and saves all responses for later evaluation
-"""
-
 from pathlib import Path
 import sys
 
@@ -24,11 +19,6 @@ load_dotenv()
 from langchain_core.prompts import PromptTemplate
 from langchain_core.output_parsers import StrOutputParser
 
-
-# ============================================================================
-# Helper: Initialize Entity Configuration
-# ============================================================================
-
 def initialize_entity_config(entity_type: str, entity_name: str):
     """Set the 3 global variables that change per entity"""
     evaluation_graph_baseline.ENTITY_TYPE = entity_type
@@ -48,21 +38,14 @@ def initialize_entity_config(entity_type: str, entity_name: str):
         PROMPTS["assistant_persona"][prompt_key]
     )
 
-
-# ============================================================================
-# Collect Agent Responses
-# ============================================================================
-
 def collect_agent_responses(csv_path: str) -> List[Dict[str, Any]]:
     """Run the chatbot on all test cases and collect responses"""
-    print(f"\n{'='*80}")
     print("Collecting Agent Responses")
-    print(f"{'='*80}\n")
     
     print(f"Loading test dataset from {csv_path}...")
     test_df = pd.read_csv(csv_path)
-    print(f"  ✓ Loaded {len(test_df)} test cases")
-    print(f"  • Unique entities: {test_df['entity_name'].nunique()}\n")
+    print(f"  Loaded {len(test_df)} test cases")
+    print(f"  Unique entities: {test_df['entity_name'].nunique()}\n")
     
     results = []
     current_entity = None
@@ -114,10 +97,10 @@ def collect_agent_responses(csv_path: str) -> List[Dict[str, Any]]:
                 "context_count": len(contexts)
             })
             
-            print(f"  ✓ Response time: {end_time - start_time:.2f}s | Contexts: {len(contexts)}")
+            print(f" Response time: {end_time - start_time:.2f}s | Contexts: {len(contexts)}")
             
         except Exception as e:
-            print(f"  ✗ Error: {str(e)}")
+            print(f" Error: {str(e)}")
             results.append({
                 "question": row["input"],
                 "answer": "",
@@ -135,19 +118,11 @@ def collect_agent_responses(csv_path: str) -> List[Dict[str, Any]]:
         time.sleep(1.2)
     
     successful = sum(1 for r in results if r["success"])
-    print(f"\n{'='*80}")
-    print(f"Collection complete! {successful}/{len(results)} successful")
-    print(f"{'='*80}\n")
-    
+    print(f"Collection complete! {successful}/{len(results)} successful")    
     return results
 
-
-# ============================================================================
-# Save to CSV
-# ============================================================================
-
 def save_responses_to_csv(results: List[Dict[str, Any]], output_dir: Path):
-    """Save collected responses to CSV file"""
+
     print("\nSaving responses to CSV...")
     
     output_dir.mkdir(exist_ok=True)
@@ -162,28 +137,21 @@ def save_responses_to_csv(results: List[Dict[str, Any]], output_dir: Path):
     
     df.to_csv(output_path, index=False, encoding='utf-8')
     
-    print(f"  ✓ Saved {len(df)} responses to {output_path}")
+    print(f" Saved {len(df)} responses to {output_path}")
     
-    print(f"\n📊 Summary Statistics:")
-    print(f"  • Total responses: {len(df)}")
-    print(f"  • Successful: {df['success'].sum()}")
-    print(f"  • Failed: {(~df['success']).sum()}")
-    print(f"  • Avg response time: {df[df['success']]['response_time'].mean():.2f}s")
-    print(f"  • Avg answer length: {df[df['success']]['answer_length'].mean():.0f} words")
-    print(f"  • Avg context count: {df[df['success']]['context_count'].mean():.1f} chunks")
+    print(f"\n Summary Statistics:")
+    print(f"  Total responses: {len(df)}")
+    print(f"   Successful: {df['success'].sum()}")
+    print(f"   Failed: {(~df['success']).sum()}")
+    print(f"   Avg response time: {df[df['success']]['response_time'].mean():.2f}s")
+    print(f"   Avg answer length: {df[df['success']]['answer_length'].mean():.0f} words")
+    print(f"  Avg context count: {df[df['success']]['context_count'].mean():.1f} chunks")
     
     return output_path
 
-
-# ============================================================================
-# Main Execution
-# ============================================================================
-
 def main():
     """Main execution function"""
-    print("\n" + "="*80)
     print(" Agent Response Collection for Evaluation")
-    print("="*80 + "\n")
     
     csv_path = r"C:\Uni\4th Year\GP\ECHO\data\chatbot\outputs\echo_agent_evaluation\evaluation_data\eval_part_2.csv"
 
@@ -193,13 +161,8 @@ def main():
     
     output_path = save_responses_to_csv(results, output_dir)
     
-    print("\n" + "="*80)
-    print(" COLLECTION COMPLETE!")
-    print("="*80 + "\n")
+    print("COLLECTION COMPLETE!")
+    print(f" Agent responses saved to: {output_path.absolute()}")
     
-    print(f"✅ Agent responses saved to: {output_path.absolute()}")
-    
-
-
 if __name__ == "__main__":
     main()
