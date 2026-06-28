@@ -1549,7 +1549,7 @@ function ChatContent() {
                     >
                       <div className="flex flex-col gap-3 w-full">
                         <div
-                          className="text-[#D4C4A8] text-[12px] md:text-base leading-relaxed font-normal tracking-wide"
+                          className="text-[#D4C4A8] text-[13px] md:text-base leading-relaxed font-normal tracking-wide"
                           style={{ direction: isRTL ? 'rtl' : 'ltr', textAlign: isRTL ? 'right' : 'left' }}
                         >
                           {renderMessageText(t("chat.welcome", { name: cleanDisplayName }))}
@@ -1599,7 +1599,7 @@ function ChatContent() {
                             )}
 
                             <div
-                              className="text-[#D4C4A8] text-[12px] md:text-base leading-relaxed font-normal tracking-wide"
+                              className="text-[#D4C4A8] text-[13px] md:text-base leading-relaxed font-normal tracking-wide"
                               style={{ direction: isRTL ? 'rtl' : 'ltr', textAlign: isRTL ? 'right' : 'left' }}
                             >
                               {renderMessageText(msg.text)}
@@ -1647,7 +1647,7 @@ function ChatContent() {
                           <div className="flex flex-col items-end gap-3 text-right">
                             <div className="px-6 py-3 rounded-[24px] bg-[#E6B23C]/10 border border-[#E6B23C]/20 shadow-[0_4px_20px_rgba(230,178,60,0.05)]">
                               <div
-                                className="text-[#E6B23C] text-[12px] md:text-base leading-relaxed font-normal tracking-wide"
+                                className="text-[#E6B23C] text-[13px] md:text-base leading-relaxed font-normal tracking-wide"
                                 style={{ direction: isRTL ? 'rtl' : 'ltr', textAlign: isRTL ? 'right' : 'left' }}
                               >
                                 {renderMessageText(msg.text)}
