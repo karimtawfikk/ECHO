@@ -40,11 +40,6 @@ import yaml
 warnings.filterwarnings("ignore")
 load_dotenv()
 
-
-# ---------------------------------------------------------------------------
-# Resources
-# ---------------------------------------------------------------------------
-
 def load_resources():
     base_path = Path(__file__).parent.parent / "resources"
     with open(base_path / "queries.sql", "r") as f:
@@ -55,23 +50,12 @@ def load_resources():
 
 SQL_TEMPLATE, PROMPTS = load_resources()
 
-
-# ---------------------------------------------------------------------------
-# Env
-# ---------------------------------------------------------------------------
-
 GROQ_API_KEY1          = os.getenv("GROQ_API_KEY1")
 GROQ_API_KEY2          = os.getenv("GROQ_API_KEY2")
 GROQ_API_KEY8          = os.getenv("GROQ_API_KEY8")
 CF_WORKERSAI_ACCOUNTID = os.getenv("R2_ACCOUNT_ID")
 CF_AI_API              = os.getenv("CF_AI_API")
 JINA_API_KEY           = os.getenv("JINA_API_KEY")
-
-
-# ---------------------------------------------------------------------------
-# Config
-# ---------------------------------------------------------------------------
-
 GROQ_GENERATOR_MODEL_NAME      = "openai/gpt-oss-120b"
 GROQ_QUERY_REWRITER_MODEL_NAME = "qwen/qwen3-32b"
 GROQ_STT_MODEL_NAME            = "whisper-large-v3"
@@ -79,7 +63,6 @@ EDGE_TTS_RATE                  = "+9%"
 EDGE_TTS_PITCH                 = "-10Hz"
 TOP_K                          = 3
 EMBEDDING_DIM                  = 768
-
 STT_SAMPLE_RATE                = 16000
 
 ENTITY_CONFIG = {
@@ -137,7 +120,6 @@ embedding_model = CloudflareWorkersAIEmbeddings(
 search_tool = TavilySearch(max_results=4, search_depth="advanced")
 tools       = [search_tool]
 tool_node   = ToolNode(tools=tools)
-
 groq_client = Groq(api_key=GROQ_API_KEY1)
 
 query_rewriter_llm = ChatGroq(
@@ -156,11 +138,6 @@ generator_llm = ChatGroq(
     api_key=GROQ_API_KEY8,
     extra_body={"reasoning_effort": "medium", "reasoning_format": "hidden"}
 )
-
-
-# ---------------------------------------------------------------------------
-# Helpers
-# ---------------------------------------------------------------------------
 
 def get_embedding(text: str):
     embeddings = np.array(embedding_model.embed_query(text))
@@ -218,10 +195,6 @@ def transcribe_audio(audio: np.ndarray) -> str:
     return transcription.text.strip()
 
 
-# ---------------------------------------------------------------------------
-# Nodes
-# ---------------------------------------------------------------------------
-
 def rewrite_node(state: AgentState) -> dict:
     clean_dialogue = [
         msg for msg in state['messages'][:-1]
@@ -237,9 +210,6 @@ def rewrite_node(state: AgentState) -> dict:
             dialogue.append(f"Search Query: {msg.content}")
 
     history_str = "\n".join(dialogue) if dialogue else "No history yet."
-    
-    
-
     name_key = ENTITY_CONFIG[ENTITY_TYPE]["name_key"]
     
     search_q = rewrite_chain.invoke({
@@ -311,7 +281,7 @@ def generate_node(state: AgentState) -> dict:
             print(chunk.content, end="", flush=True)
             full_content += chunk.content
 
-    print("\n🏛️ [SOURCE]: Final answer generated using RAG context ONLY.")
+    print("\n [SOURCE]: Final answer generated using RAG context ONLY.")
     
     # 7. Return Final Response
     return {
@@ -352,13 +322,7 @@ def tts_node(state: AgentState) -> dict:
 def route_tts(state: AgentState) -> str:
     return "tts" if state.get("voice_mode") else END
 
-
-# ---------------------------------------------------------------------------
-# Graph
-# ---------------------------------------------------------------------------
-
 workflow = StateGraph(AgentState)
-
 workflow.add_node("rewriter",   rewrite_node)
 workflow.add_node("retriever",  retrieve_node)
 workflow.add_node("generator",  generate_node)
@@ -391,27 +355,20 @@ workflow.add_edge("tts", END)
 memory = MemorySaver()
 graph  = workflow.compile()
 
-
-# ---------------------------------------------------------------------------
-# Main
-# ---------------------------------------------------------------------------
-
 def main():
     global ENTITY_TYPE, ENTITY_NAME, VECTOR_SQL, rewrite_chain, llm_prompt_template
 
-    print("\n╔══════════════════════════════════╗")
-    print("║        ANCIENT EGYPT RAG         ║")
-    print("╚══════════════════════════════════╝\n")
+    print("ANCIENT EGYPT RAG")
 
     while True:
         ENTITY_TYPE = input("Entity type — 'pharaoh' or 'landmark': ").strip().lower()
         if ENTITY_TYPE in ENTITY_CONFIG:
             break
-        print("  → Please enter 'pharaoh' or 'landmark'.")
+        print(" Please enter 'pharaoh' or 'landmark'.")
 
     ENTITY_NAME = input(f"Enter the {ENTITY_TYPE} name: ").strip()
 
-    cfg         = ENTITY_CONFIG[ENTITY_TYPE]
+    cfg = ENTITY_CONFIG[ENTITY_TYPE]
     VECTOR_SQL  = SQL_TEMPLATE.format(
         texts_table=cfg["texts_table"],
         entities_table=cfg["entities_table"],
@@ -422,10 +379,10 @@ def main():
     rewrite_chain       = PromptTemplate.from_template(PROMPTS["rewrite_prompt"][prompt_key]) | query_rewriter_llm | StrOutputParser()
     llm_prompt_template = PromptTemplate.from_template(PROMPTS["assistant_persona"][prompt_key])
 
-    print(f"\nNow speaking with: {ENTITY_NAME} ({ENTITY_TYPE})")
+    print(f"\n Now speaking with: {ENTITY_NAME} ({ENTITY_TYPE})")
     print("Commands: 'v' or 'voice' → toggle voice mode | 'q' → quit\n")
 
-    config     = {"configurable": {"thread_id": "1"}}
+    config = {"configurable": {"thread_id": "1"}}
     voice_mode = False
 
     while True:
@@ -467,7 +424,6 @@ def main():
              "voice_mode": voice_mode},
             config=config
         )
-
 
 if __name__ == "__main__":
     main()

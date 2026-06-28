@@ -1,8 +1,3 @@
-"""
-Enhanced LangSmith Analysis with TTFT, Generator-Only Tokens, Waterfall Chart, and Deduplication
-Uses P95 instead of P90 for percentile analysis
-"""
-
 import os
 from langsmith import Client
 import pandas as pd
@@ -13,37 +8,22 @@ from matplotlib.patches import FancyBboxPatch, ConnectionPatch
 import seaborn as sns
 from pathlib import Path
 
-# ============================================================================
-# Initialize LangSmith Client
-# ============================================================================
 
 client = Client()
 
-print("📊 Fetching data from LangSmith...\n")
-
-# ============================================================================
-# Get ROOT runs first
-# ============================================================================
-
 all_root_runs = list(client.list_runs(
     project_name="Ancient-Egypt-RAG9",
-    is_root=True  # Get ROOT runs first
+    is_root=True 
 ))
 
-print(f"✅ Fetched {len(all_root_runs)} root runs from project")
-
-# ============================================================================
-# Filter and Deduplicate Evaluation Runs
-# ============================================================================
+print(f" Fetched {len(all_root_runs)} root runs from project")
 
 filtered_root_runs = []
 
 for run in all_root_runs:
     metadata = {}
-    
     if hasattr(run, 'extra') and run.extra:
         metadata = run.extra.get('metadata', {})
-    
     # Check if this is an evaluation run
     is_eval_run = (
         metadata.get('evaluation_type') == 'efficiency_optimized' or
@@ -54,11 +34,11 @@ for run in all_root_runs:
     if is_eval_run:
         filtered_root_runs.append(run)
 
-print(f"  • Filtered to {len(filtered_root_runs)} efficiency evaluation runs")
+print(f"Filtered to {len(filtered_root_runs)} efficiency evaluation runs")
 
 # Deduplicate by query_id (keep oldest run for each query_id)
 if len(filtered_root_runs) > 132:
-    print(f"  ⚠️  Found {len(filtered_root_runs)} runs, expected 132. Deduplicating...")
+    print(f"Found {len(filtered_root_runs)} runs, expected 132. Deduplicating")
     
     query_id_to_runs = {}
     
@@ -83,17 +63,17 @@ if len(filtered_root_runs) > 132:
             deduplicated_runs.append(runs[0])
     
     filtered_root_runs = deduplicated_runs
-    print(f"  ✅ Deduplicated to {len(filtered_root_runs)} unique runs")
+    print(f" Deduplicated to {len(filtered_root_runs)} unique runs")
 
 if len(filtered_root_runs) != 132:
-    print(f"  ⚠️  Warning: Expected 132 root runs, found {len(filtered_root_runs)}")
+    print(f" Warning: Expected 132 root runs, found {len(filtered_root_runs)}")
 else:
-    print(f"  ✅ Confirmed: All 132 evaluation queries found")
+    print(f" Confirmed: All 132 evaluation queries found")
 
 print()
 
 # Now get child runs for these specific root runs
-print("📊 Fetching child runs for evaluation queries...")
+print(" Fetching child runs for evaluation queries...")
 
 all_child_runs = []
 for root_run in filtered_root_runs:
@@ -103,17 +83,13 @@ for root_run in filtered_root_runs:
     ))
     all_child_runs.extend(children)
 
-print(f"  • Found {len(all_child_runs)} child runs (components)\n")
+print(f"Found {len(all_child_runs)} child runs (components)\n")
 
 root_runs = filtered_root_runs
 child_runs = all_child_runs
 
-print(f"  • Root runs (full queries): {len(root_runs)}")
-print(f"  • Child runs (components): {len(child_runs)}\n")
-
-# ============================================================================
-# Extract Metrics with TTFT and Generator-Only Tokens
-# ============================================================================
+print(f"Root runs (full queries): {len(root_runs)}")
+print(f"Child runs (components): {len(child_runs)}\n")
 
 data = []
 
@@ -165,7 +141,7 @@ for run in root_runs:
                 row['generator_completion_tokens'] = child.completion_tokens or 0
     
     except Exception as e:
-        print(f"⚠️  Could not extract children for {run.id}: {e}")
+        print(f" Could not extract children for {run.id}: {e}")
     
     # Calculate TTFT
     row['ttft'] = row['rewrite_time'] + row['retrieve_time'] + row['rerank_time'] + 0.15
@@ -192,44 +168,37 @@ output_dir = Path("langsmith_analysis")
 output_dir.mkdir(exist_ok=True)
 
 df.to_csv(output_dir / "efficiency_metrics_enhanced.csv", index=False)
-print(f"💾 Saved metrics to: {output_dir / 'efficiency_metrics_enhanced.csv'}\n")
+print(f" Saved metrics to: {output_dir / 'efficiency_metrics_enhanced.csv'}\n")
 
-# ============================================================================
-# Calculate Statistics (P95 instead of P90)
-# ============================================================================
-
-print("=" * 80)
-print("📈 ENHANCED EFFICIENCY METRICS")
-print("=" * 80 + "\n")
+print("ENHANCED EFFICIENCY METRICS")
 
 success_df = df[df['success'] == True]
 
 if len(success_df) == 0:
-    print("❌ No successful runs found!")
+    print(" No successful runs found!")
     exit(1)
 
-# TTFT Metrics (PRIMARY - User Perceived Latency)
-print("⚡ TIME TO FIRST TOKEN (TTFT) - Primary UX Metric:")
-print(f"  • Mean:   {success_df['ttft'].mean():.2f}s")
-print(f"  • Median: {success_df['ttft'].median():.2f}s")
-print(f"  • P50:    {success_df['ttft'].quantile(0.50):.2f}s")
-print(f"  • P95:    {success_df['ttft'].quantile(0.95):.2f}s")
-print(f"  • P99:    {success_df['ttft'].quantile(0.99):.2f}s")
-print(f"  • Min:    {success_df['ttft'].min():.2f}s")
-print(f"  • Max:    {success_df['ttft'].max():.2f}s\n")
+print(" TIME TO FIRST TOKEN (TTFT) - Primary UX Metric:")
+print(f"   Mean:   {success_df['ttft'].mean():.2f}s")
+print(f"   Median: {success_df['ttft'].median():.2f}s")
+print(f"   P50:    {success_df['ttft'].quantile(0.50):.2f}s")
+print(f"   P95:    {success_df['ttft'].quantile(0.95):.2f}s")
+print(f"   P99:    {success_df['ttft'].quantile(0.99):.2f}s")
+print(f"   Min:    {success_df['ttft'].min():.2f}s")
+print(f"   Max:    {success_df['ttft'].max():.2f}s\n")
 
 # End-to-End Latency
-print("⏱️  END-TO-END LATENCY (Total Response Time):")
-print(f"  • Mean:   {success_df['total_latency'].mean():.2f}s")
-print(f"  • Median: {success_df['total_latency'].median():.2f}s")
-print(f"  • P50:    {success_df['total_latency'].quantile(0.50):.2f}s")
-print(f"  • P95:    {success_df['total_latency'].quantile(0.95):.2f}s")
-print(f"  • P99:    {success_df['total_latency'].quantile(0.99):.2f}s")
-print(f"  • Min:    {success_df['total_latency'].min():.2f}s")
-print(f"  • Max:    {success_df['total_latency'].max():.2f}s\n")
+print(" END-TO-END LATENCY (Total Response Time):")
+print(f"   Mean:   {success_df['total_latency'].mean():.2f}s")
+print(f"   Median: {success_df['total_latency'].median():.2f}s")
+print(f"   P50:    {success_df['total_latency'].quantile(0.50):.2f}s")
+print(f"   P95:    {success_df['total_latency'].quantile(0.95):.2f}s")
+print(f"   P99:    {success_df['total_latency'].quantile(0.99):.2f}s")
+print(f"   Min:    {success_df['total_latency'].min():.2f}s")
+print(f"   Max:    {success_df['total_latency'].max():.2f}s\n")
 
 # Component Breakdown
-print("🔧 COMPONENT LATENCY BREAKDOWN (Average):")
+print("COMPONENT LATENCY BREAKDOWN (Average):")
 components = ['rewrite_time', 'retrieve_time', 'rerank_time', 'generate_time']
 component_names = ['Rewriter', 'Retriever', 'Reranker', 'Generator']
 
@@ -238,39 +207,34 @@ total_component_time = sum(success_df[c].mean() for c in components)
 for comp, name in zip(components, component_names):
     avg_time = success_df[comp].mean()
     percentage = (avg_time / total_component_time * 100) if total_component_time > 0 else 0
-    print(f"  • {name:12s}: {avg_time:.3f}s ({percentage:.1f}%)")
+    print(f"  {name:12s}: {avg_time:.3f}s ({percentage:.1f}%)")
 
 print()
 
 # Token Metrics - GENERATOR ONLY
-print("🔢 TOKEN METRICS (Generator LLM Only - GPT-OSS-120B):")
-print(f"  • Total tokens:      {success_df['generator_tokens'].sum():,}")
-print(f"  • Avg per query:     {success_df['generator_tokens'].mean():.0f}")
-print(f"  • Prompt tokens:     {success_df['generator_prompt_tokens'].sum():,}")
-print(f"  • Completion tokens: {success_df['generator_completion_tokens'].sum():,}")
-print(f"  • Avg TPS:           {success_df[success_df['tps'] > 0]['tps'].mean():.1f} tokens/sec\n")
+print(" TOKEN METRICS (Generator LLM Only - GPT-OSS-120B):")
+print(f"   Total tokens:      {success_df['generator_tokens'].sum():,}")
+print(f"   Avg per query:     {success_df['generator_tokens'].mean():.0f}")
+print(f"   Prompt tokens:     {success_df['generator_prompt_tokens'].sum():,}")
+print(f"   Completion tokens: {success_df['generator_completion_tokens'].sum():,}")
+print(f"   Avg TPS:           {success_df[success_df['tps'] > 0]['tps'].mean():.1f} tokens/sec\n")
 
 # Rewriter Token Stats
-print("📝 TOKEN METRICS (Rewriter LLM - Qwen-3-32B):")
-print(f"  • Total tokens:      {success_df['rewriter_tokens'].sum():,}")
-print(f"  • Avg per query:     {success_df['rewriter_tokens'].mean():.0f}\n")
+print("TOKEN METRICS (Rewriter LLM - Qwen-3-32B):")
+print(f" Total tokens:      {success_df['rewriter_tokens'].sum():,}")
+print(f" Avg per query:     {success_df['rewriter_tokens'].mean():.0f}\n")
 
 # Combined Totals
 total_all_tokens = success_df['generator_tokens'].sum() + success_df['rewriter_tokens'].sum()
-print(f"📊 COMBINED TOKEN USAGE (Both LLMs):")
-print(f"  • Total tokens:      {total_all_tokens:,}")
-print(f"  • Generator %:       {(success_df['generator_tokens'].sum() / total_all_tokens * 100):.1f}%")
-print(f"  • Rewriter %:        {(success_df['rewriter_tokens'].sum() / total_all_tokens * 100):.1f}%\n")
+print(f" COMBINED TOKEN USAGE (Both LLMs):")
+print(f"  Total tokens:      {total_all_tokens:,}")
+print(f"  Generator %:       {(success_df['generator_tokens'].sum() / total_all_tokens * 100):.1f}%")
+print(f"  Rewriter %:        {(success_df['rewriter_tokens'].sum() / total_all_tokens * 100):.1f}%\n")
 
 # Success Rate
-print("✅ SUCCESS RATE:")
-print(f"  • Successful: {len(success_df)}/{len(df)} ({len(success_df)/len(df)*100:.1f}%)\n")
+print(" SUCCESS RATE:")
+print(f" Successful: {len(success_df)}/{len(df)} ({len(success_df)/len(df)*100:.1f}%)\n")
 
-print("=" * 80 + "\n")
-
-# ============================================================================
-# Generate Enhanced Charts (P95 instead of P90)
-# ============================================================================
 
 sns.set_style("whitegrid")
 plt.rcParams['figure.facecolor'] = 'white'
@@ -361,11 +325,7 @@ ax6.set_title('Generation Speed (TPS)', fontweight='bold')
 ax6.legend()
 
 plt.savefig(output_dir / 'efficiency_analysis_enhanced.png', dpi=300, bbox_inches='tight')
-print(f"📊 Saved enhanced charts to: {output_dir / 'efficiency_analysis_enhanced.png'}\n")
-
-# ============================================================================
-# Generate Waterfall Chart
-# ============================================================================
+print(f"Saved enhanced charts to: {output_dir / 'efficiency_analysis_enhanced.png'}\n")
 
 avg_component_times = {
     'Rewriter': success_df['rewrite_time'].mean(),
@@ -504,17 +464,14 @@ ax_wf.text(
 
 plt.tight_layout()
 plt.savefig(output_dir / 'waterfall_trace.png', dpi=300, bbox_inches='tight', facecolor='#0f172a')
-print(f"📊 Saved waterfall chart to: {output_dir / 'waterfall_trace.png'}\n")
+print(f" Saved waterfall chart to: {output_dir / 'waterfall_trace.png'}\n")
 
 plt.show()
 
-print("✅ Analysis complete!\n")
-print(f"📁 Results saved to: {output_dir.absolute()}")
-print("\n" + "="*80)
-print("📌 KEY FINDINGS:")
-print("="*80)
-print(f"⚡ TTFT P95: {ttft_p95:.2f}s (95% of users see response start within this time)")
-print(f"⏱️  E2E P95:  {e2e_p95:.2f}s (95% of full responses complete within this time)")
-print(f"🔢 Generator tokens: {success_df['generator_tokens'].sum():,} ({success_df['generator_tokens'].sum() / total_all_tokens * 100:.1f}% of total)")
-print(f"📝 Rewriter tokens:  {success_df['rewriter_tokens'].sum():,} ({success_df['rewriter_tokens'].sum() / total_all_tokens * 100:.1f}% of total)")
-print("="*80)
+print(" Analysis complete!\n")
+print(f" Results saved to: {output_dir.absolute()}")
+print(" KEY FINDINGS:")
+print(f"TTFT P95: {ttft_p95:.2f}s (95% of users see response start within this time)")
+print(f"  E2E P95:  {e2e_p95:.2f}s (95% of full responses complete within this time)")
+print(f" Generator tokens: {success_df['generator_tokens'].sum():,} ({success_df['generator_tokens'].sum() / total_all_tokens * 100:.1f}% of total)")
+print(f" Rewriter tokens:  {success_df['rewriter_tokens'].sum():,} ({success_df['rewriter_tokens'].sum() / total_all_tokens * 100:.1f}% of total)")

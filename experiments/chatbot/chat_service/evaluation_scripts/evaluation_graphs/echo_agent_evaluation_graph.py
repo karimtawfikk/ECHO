@@ -40,10 +40,6 @@ warnings.filterwarnings("ignore")
 load_dotenv()
 
 
-# ---------------------------------------------------------------------------
-# Resources
-# ---------------------------------------------------------------------------
-
 def load_resources():
     base_path = Path(__file__).parent.parent.parent / "resources"
     with open(base_path / "queries_optimized.sql", "r") as f:
@@ -55,10 +51,6 @@ def load_resources():
 SQL_TEMPLATE, PROMPTS = load_resources()
 
 
-# ---------------------------------------------------------------------------
-# Env
-# ---------------------------------------------------------------------------
-
 GROQ_API_KEY1          = os.getenv("GROQ_API_KEY1")
 GROQ_API_KEY2          = os.getenv("GROQ_API_KEY2")
 GROQ_API_KEY8          = os.getenv("GROQ_API_KEY8")
@@ -66,10 +58,6 @@ CF_WORKERSAI_ACCOUNTID = os.getenv("R2_ACCOUNT_ID")
 CF_AI_API              = os.getenv("CF_AI_API")
 JINA_API_KEY           = os.getenv("JINA_API_KEY")
 
-
-# ---------------------------------------------------------------------------
-# Config
-# ---------------------------------------------------------------------------
 
 GROQ_GENERATOR_MODEL_NAME      = "openai/gpt-oss-120b"
 GROQ_QUERY_REWRITER_MODEL_NAME = "qwen/qwen3-32b"
@@ -128,11 +116,6 @@ class AgentState(TypedDict):
 
 
 # Models & Tools
-"""embedding_model = CloudflareWorkersAIEmbeddings(
-    account_id=CF_WORKERSAI_ACCOUNTID,
-    api_token=CF_AI_API,
-    model_name="@cf/qwen/qwen3-embedding-0.6b"
-)"""
 qwen_model = SentenceTransformer(
     "Qwen/Qwen3-Embedding-0.6B",
     device='cuda',
@@ -166,10 +149,6 @@ generator_llm = ChatGroq(
 )
 
 
-# ---------------------------------------------------------------------------
-# Helpers
-# ---------------------------------------------------------------------------
-
 def get_embedding(text: str):
     embeddings = qwen_model.encode(
         text,
@@ -177,8 +156,6 @@ def get_embedding(text: str):
         show_progress_bar=False,
         convert_to_numpy=True
     )
-    
-    # Slice to 768 dims
     sliced = embeddings[:EMBEDDING_DIM]
     norm = np.linalg.norm(sliced)
     
@@ -196,7 +173,7 @@ def clean_for_tts(text: str) -> str:
 def record_audio() -> np.ndarray:
     import sounddevice as sd
 
-    print("[STT]: Recording... press Enter when done.")
+    print("[STT]: Recording press Enter when done.")
 
     frames = []
     stop   = threading.Event()
@@ -231,11 +208,6 @@ def transcribe_audio(audio: np.ndarray) -> str:
         temperature=0.2
     )
     return transcription.text.strip()
-
-
-# ---------------------------------------------------------------------------
-# Nodes
-# ---------------------------------------------------------------------------
 
 def rewrite_node(state: AgentState) -> dict:
     clean_dialogue = [
@@ -364,11 +336,6 @@ def tts_node(state: AgentState) -> dict:
 def route_tts(state: AgentState) -> str:
     return "tts" if state.get("voice_mode") else END
 
-
-# ---------------------------------------------------------------------------
-# Graph
-# ---------------------------------------------------------------------------
-
 workflow = StateGraph(AgentState)
 
 workflow.add_node("rewriter",   rewrite_node)
@@ -396,30 +363,22 @@ workflow.add_edge("tts", END)
 memory = MemorySaver()
 graph  = workflow.compile()
 
-
-# ---------------------------------------------------------------------------
-# Main
-# ---------------------------------------------------------------------------
-
 def main():
     global ENTITY_TYPE, ENTITY_NAME, ENTITY_ID, VECTOR_SQL, rewrite_chain, llm_prompt_template
 
-    print("\n╔══════════════════════════════════╗")
-    print("║        ANCIENT EGYPT RAG         ║")
-    print("╚══════════════════════════════════╝\n")
+    print(" ANCIENT EGYPT RAG ")
 
     while True:
         ENTITY_TYPE = input("Entity type — 'pharaoh' or 'landmark': ").strip().lower()
         if ENTITY_TYPE in ENTITY_CONFIG:
             break
-        print("  → Please enter 'pharaoh' or 'landmark'.")
+        print(" Please enter 'pharaoh' or 'landmark'.")
 
     ENTITY_NAME = input(f"Enter the {ENTITY_TYPE} name: ").strip()
 
     cfg = ENTITY_CONFIG[ENTITY_TYPE]
     
-    # Lookup entity ID once at conversation start
-    print(f"  🔍 Looking up {ENTITY_TYPE}...")
+    print(f"Looking up {ENTITY_TYPE}")
     
     table_name = "pharaohs" if ENTITY_TYPE == "pharaoh" else "landmarks"
     
@@ -436,7 +395,6 @@ def main():
             print(f"  ✗ Error: '{ENTITY_NAME}' not found in database!")
             return
     
-    # Set up optimized SQL
     VECTOR_SQL = SQL_TEMPLATE.format(
         texts_table=cfg["texts_table"],
         entity_id_col=cfg["entity_id_col"]
@@ -446,7 +404,7 @@ def main():
     rewrite_chain = PromptTemplate.from_template(PROMPTS["rewrite_prompt"][prompt_key]) | query_rewriter_llm | StrOutputParser()
     llm_prompt_template = PromptTemplate.from_template(PROMPTS["assistant_persona"][prompt_key])
 
-    print(f"\nNow speaking with: {ENTITY_NAME} ({ENTITY_TYPE})")
+    print(f"\n Now speaking with: {ENTITY_NAME} ({ENTITY_TYPE})")
     print("Commands: 'v' or 'voice' → toggle voice mode | 'q' → quit\n")
 
     config = {"configurable": {"thread_id": "1"}}

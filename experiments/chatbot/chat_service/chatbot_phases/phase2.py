@@ -79,7 +79,7 @@ query_rewriter_llm = ChatGroq(
     api_key= GROQ_API_KEY1,
      extra_body={
         "reasoning_effort": "default",
-        "reasoning_format": "hidden" # Use hidden for the rewriter to keep it clean
+        "reasoning_format": "hidden" 
     } 
 )
 
@@ -107,7 +107,7 @@ llm_chain = llm_prompt_template | generator_llm | StrOutputParser()
 def rewrite_node(state: AgentState) -> dict:
 
     clean_dialouge = [
-        msg for msg in state['messages'][:-1] # Exclude current user input
+        msg for msg in state['messages'][:-1] 
         if isinstance(msg, HumanMessage) or getattr(msg, "name", None) == "search_query"
     ]
     
@@ -124,18 +124,11 @@ def rewrite_node(state: AgentState) -> dict:
 
     history_str = "\n".join(dialogue) if dialogue else "No history yet."
 
-    """print("\n\n")
-    print("="*50)
-    print("Rewrite History: ",history_str)
-    print("="*50)
-    print("\n\n")"""
-
-
     search_q = rewrite_chain.invoke({"query": state['query'],
                                      "pharaoh_name": ENTITY_NAME,
                                      "chat_history":history_str}).replace("Search Query:", "").strip()
 
-    return {"messages": [AIMessage(content=search_q, name="search_query")], #add metadata
+    return {"messages": [AIMessage(content=search_q, name="search_query")],
             "search_query": search_q}
 
 def retrieve_node(state: AgentState) -> dict:
@@ -158,9 +151,9 @@ def generate_node(state: AgentState) -> dict:
     clean_dialogue = [
         msg for msg in state['messages'] 
         if isinstance(msg, HumanMessage) or getattr(msg, "name", None) == "generator_response"
-    ] #neglect search_query messages
+    ] 
 
-    history_window = clean_dialogue[-11:-1] if len(clean_dialogue) > 1 else [] #last 5 turns.(10 so 5 turns)
+    history_window = clean_dialogue[-11:-1] if len(clean_dialogue) > 1 else []
 
     dialogue = []
     for msg in history_window: 
@@ -174,15 +167,9 @@ def generate_node(state: AgentState) -> dict:
     
     history_str = "\n".join(dialogue) if dialogue else "No previous conversation."
 
-    """print("\n\n")
-    print("="*50)
-    print("Generator History",history_str)
-    print("="*50)
-    print("\n\n")"""
-
     print(ENTITY_NAME, ": ")
     response_text=""
-    for chunk in llm_chain.stream({ #Token-level LLM stream, not LG
+    for chunk in llm_chain.stream({ 
         "pharaoh_name": ENTITY_NAME,
         "context": "\n\n".join(state['context']),
         "query": state['query'],
@@ -198,7 +185,7 @@ def generate_node(state: AgentState) -> dict:
         "response": response_text
     }
 
-# --- GRAPH CONSTRUCTION ---
+# GRAPH CONSTRUCTION 
 workflow = StateGraph(AgentState)
 workflow.add_node("rewriter", rewrite_node)
 workflow.add_node("retriever", retrieve_node)
@@ -215,8 +202,6 @@ graph = workflow.compile(checkpointer=memory)
 
 def main():
     print("Agentic RAG Ready (Streaming & Persistent Memory):")
-    
-    # This ID represents "User 1's Chat Room"
     config = {"configurable": {"thread_id": "1"}}
 
     while True:
@@ -224,7 +209,7 @@ def main():
         if user_input.lower() in ['quit', 'exit', 'q']: break
         
         inital_state={
-            "messages": [("user", user_input)], #automatically converted to HumanMessage by the Annotated type
+            "messages": [("user", user_input)], 
             "query": user_input,
             "context": []}
         

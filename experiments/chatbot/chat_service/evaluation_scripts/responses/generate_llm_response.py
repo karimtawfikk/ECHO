@@ -1,8 +1,3 @@
-"""
-LLM-Only Response Collection Script (No RAG)
-Tests LLM's knowledge without retrieval - baseline evaluation
-"""
-
 from pathlib import Path
 import pandas as pd
 import time
@@ -19,10 +14,6 @@ load_dotenv()
 from langchain_groq import ChatGroq
 from langchain_core.prompts import PromptTemplate
 from langchain_core.output_parsers import StrOutputParser
-
-# ============================================================================
-# Prompts (No Context, No Chat History)
-# ============================================================================
 
 PROMPTS = {
     "pharaoh": """# THE SOVEREIGN IDENTITY
@@ -77,13 +68,8 @@ Structure every response in 2 parts:
 User Query: {query}"""
 }
 
-
-# ============================================================================
-# LLM Setup
-# ============================================================================
-
 llm = ChatGroq(
-    model="llama-3.3-70b-versatile",  # gpt-120b (actual model name on Groq)
+    model="llama-3.3-70b-versatile", 
     api_key=os.getenv("GROQ_API_KEY1"),
     temperature=0.7,
     top_p=0.95,
@@ -91,21 +77,14 @@ llm = ChatGroq(
     streaming=True
 )
 
-
-# ============================================================================
-# Collect LLM-Only Responses
-# ============================================================================
-
 def collect_llm_only_responses(csv_path: str) -> List[Dict[str, Any]]:
     """Run LLM without RAG on all test cases and collect responses"""
-    print(f"\n{'='*80}")
     print("Collecting LLM-Only Responses (No RAG)")
-    print(f"{'='*80}\n")
     
     print(f"Loading test dataset from {csv_path}...")
     test_df = pd.read_csv(csv_path)
-    print(f"  ✓ Loaded {len(test_df)} test cases")
-    print(f"  • Unique entities: {test_df['entity_name'].nunique()}\n")
+    print(f"  Loaded {len(test_df)} test cases")
+    print(f"  Unique entities: {test_df['entity_name'].nunique()}\n")
     
     results = []
     
@@ -159,10 +138,10 @@ def collect_llm_only_responses(csv_path: str) -> List[Dict[str, Any]]:
                 "answer_length": len(answer.split())
             })
             
-            print(f"  ✓ Response time: {end_time - start_time:.2f}s | Length: {len(answer.split())} words\n")
+            print(f" Response time: {end_time - start_time:.2f}s | Length: {len(answer.split())} words\n")
             
         except Exception as e:
-            print(f"  ✗ Error: {str(e)}\n")
+            print(f" Error: {str(e)}\n")
             results.append({
                 "question": query,
                 "answer": "",
@@ -178,16 +157,9 @@ def collect_llm_only_responses(csv_path: str) -> List[Dict[str, Any]]:
         time.sleep(1.2)  # Rate limiting
     
     successful = sum(1 for r in results if r["success"])
-    print(f"\n{'='*80}")
     print(f"Collection complete! {successful}/{len(results)} successful")
-    print(f"{'='*80}\n")
     
     return results
-
-
-# ============================================================================
-# Save to CSV
-# ============================================================================
 
 def save_responses_to_csv(results: List[Dict[str, Any]], output_dir: Path):
     """Save collected responses to CSV file"""
@@ -204,25 +176,19 @@ def save_responses_to_csv(results: List[Dict[str, Any]], output_dir: Path):
     
     print(f"  ✓ Saved {len(df)} responses to {output_path}")
     
-    print(f"\n📊 Summary Statistics:")
-    print(f"  • Total responses: {len(df)}")
-    print(f"  • Successful: {df['success'].sum()}")
-    print(f"  • Failed: {(~df['success']).sum()}")
-    print(f"  • Avg response time: {df[df['success']]['response_time'].mean():.2f}s")
-    print(f"  • Avg answer length: {df[df['success']]['answer_length'].mean():.0f} words")
+    print(f"\n Summary Statistics:")
+    print(f"  Total responses: {len(df)}")
+    print(f"   Successful: {df['success'].sum()}")
+    print(f"   Failed: {(~df['success']).sum()}")
+    print(f"   Avg response time: {df[df['success']]['response_time'].mean():.2f}s")
+    print(f"  Avg answer length: {df[df['success']]['answer_length'].mean():.0f} words")
     
     return output_path
 
 
-# ============================================================================
-# Main Execution
-# ============================================================================
-
 def main():
     """Main execution function"""
-    print("\n" + "="*80)
     print(" LLM-Only Response Collection (Baseline - No RAG)")
-    print("="*80 + "\n")
     
     # Input CSV
     csv_path = r"C:\Uni\4th Year\GP\ECHO\data\chatbot\outputs\echo_agent_evaluation\evaluation_data\eval_part_2.csv"
@@ -236,11 +202,8 @@ def main():
     # Save to CSV
     output_path = save_responses_to_csv(results, output_dir)
     
-    print("\n" + "="*80)
     print(" COLLECTION COMPLETE!")
-    print("="*80 + "\n")
-    
-    print(f"✅ LLM-only responses saved to: {output_path.absolute()}")
+    print(f" LLM-only responses saved to: {output_path.absolute()}")
 
 
 if __name__ == "__main__":

@@ -26,9 +26,6 @@ import yaml
 warnings.filterwarnings("ignore")
 load_dotenv()
 
-# ---------------------------------------------------------------------------
-# Resources & Config (Kept same as Phase 6)
-# ---------------------------------------------------------------------------
 def load_resources():
     base_path = Path(__file__).parent.parent / "resources"
     with open(base_path / "queries.sql", "r") as f:
@@ -69,9 +66,6 @@ ENTITY_NAME = None
 VECTOR_SQL  = None
 llm_prompt_template  = None
 
-# ---------------------------------------------------------------------------
-# State & Models
-# ---------------------------------------------------------------------------
 class AgentState(TypedDict):
     query: str
     messages: Annotated[list, add_messages]
@@ -93,9 +87,6 @@ generator_llm = ChatGroq(
     extra_body={"reasoning_effort": "medium", "reasoning_format": "hidden"}
 )
 
-# ---------------------------------------------------------------------------
-# Helpers
-# ---------------------------------------------------------------------------
 def get_embedding(text: str):
     embeddings = np.array(embedding_model.embed_query(text))
     embeddings = embeddings / np.linalg.norm(embeddings)
@@ -103,9 +94,6 @@ def get_embedding(text: str):
     norm       = np.linalg.norm(sliced)
     return (sliced / norm if norm > 0 else sliced).tolist()
 
-# ---------------------------------------------------------------------------
-# Nodes (Phase 1 Logic)
-# ---------------------------------------------------------------------------
 def retrieve_node(state: AgentState) -> dict:
     query_embedding = get_embedding(state['query'])
 
@@ -141,16 +129,13 @@ def generate_node(state: AgentState) -> dict:
             print(chunk.content, end="", flush=True)
             full_content += chunk.content
 
-    print("\n🏛️ [SOURCE]: Final answer generated using RAG context ONLY.")
+    print("\n [SOURCE]: Final answer generated using RAG context ONLY.")
     
     return {
         "messages": [AIMessage(content=full_content, name="generator_response")],
         "response": full_content
     }
 
-# ---------------------------------------------------------------------------
-# Graph Construction (Linear Phase 1)
-# ---------------------------------------------------------------------------
 workflow = StateGraph(AgentState)
 
 workflow.add_node("retriever", retrieve_node)
@@ -163,13 +148,10 @@ workflow.add_edge("generator", END)
 memory = MemorySaver()
 graph = workflow.compile()
 
-# ---------------------------------------------------------------------------
-# Main Runner
-# ---------------------------------------------------------------------------
 def main():
     global ENTITY_TYPE, ENTITY_NAME, VECTOR_SQL, llm_prompt_template
 
-    print("--- PHASE 1: NAIVE RAG BASELINE ---")
+    print("PHASE 1: NAIVE RAG BASELINE ")
     ENTITY_TYPE = input("Entity type (pharaoh/landmark): ").strip().lower()
     ENTITY_NAME = input(f"Enter {ENTITY_TYPE} name: ").strip()
 

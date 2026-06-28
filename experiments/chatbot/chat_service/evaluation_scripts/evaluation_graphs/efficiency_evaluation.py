@@ -1,8 +1,3 @@
-"""
-Efficiency Evaluation with LangSmith Tracing + Key Rotation
-Runs 132 test queries - Pure execution, no local stats
-"""
-
 import sys
 from pathlib import Path
 import pandas as pd
@@ -30,11 +25,6 @@ from sqlalchemy.orm import Session
 from sqlalchemy import text
 from src.db import engine
 
-
-# ============================================================================
-# Groq Key Manager
-# ============================================================================
-
 class GroqKeyManager:
     def __init__(self, keys):
         self.keys = keys
@@ -53,35 +43,25 @@ class GroqKeyManager:
         return self.get_current_key()
 
 
-# ============================================================================
-# Initialize Key Manager
-# ============================================================================
-
 def initialize_key_manager():
-    """Load all Groq API keys from environment"""
     keys = [os.getenv(f"GROQ_API_KEY{i}") for i in range(1, 11)]
     valid_keys = [k for k in keys if k]
     
     if not valid_keys:
         raise ValueError("No Groq API keys found in .env file!")
     
-    print(f"✅ Loaded {len(valid_keys)} Groq API keys")
+    print(f" Loaded {len(valid_keys)} Groq API keys")
     return GroqKeyManager(valid_keys)
 
 
-# ============================================================================
-# Initialize Entity Configuration + Cache Entity ID
-# ============================================================================
-
 def initialize_entity_config(entity_type: str, entity_name: str, key_manager: GroqKeyManager):
-    """Set globals + cache entity_id + rebuild LLMs with current API key"""
     
     eval_graph.ENTITY_TYPE = entity_type
     eval_graph.ENTITY_NAME = entity_name
     
     cfg = ENTITY_CONFIG[entity_type]
     
-    # Cache entity ID (one-time lookup per entity)
+    # Cache entity ID 
     table_name = "pharaohs" if entity_type == "pharaoh" else "landmarks"
     
     with Session(engine) as session:
@@ -134,37 +114,29 @@ def initialize_entity_config(entity_type: str, entity_name: str, key_manager: Gr
         PROMPTS["assistant_persona"][prompt_key]
     )
 
-
-# ============================================================================
-# Run Efficiency Evaluation
-# ============================================================================
-
 def run_efficiency_evaluation(csv_path: str):
-    """Run 132 queries with LangSmith tracing"""
     
-    print("\n" + "="*80)
-    print("🚀 EFFICIENCY EVALUATION - OPTIMIZED SQL + KEY ROTATION")
-    print("="*80 + "\n")
+    print(" EFFICIENCY EVALUATION - OPTIMIZED SQL + KEY ROTATION")
     
     # Verify LangSmith
     if not os.getenv("LANGCHAIN_TRACING_V2"):
-        print("❌ ERROR: LANGCHAIN_TRACING_V2 not set in .env")
+        print(" ERROR: LANGCHAIN_TRACING_V2 not set in .env")
         return
     
     if not os.getenv("LANGCHAIN_API_KEY"):
-        print("❌ ERROR: LANGCHAIN_API_KEY not set in .env")
+        print(" ERROR: LANGCHAIN_API_KEY not set in .env")
         return
     
-    print("✅ LangSmith tracing enabled")
-    print(f"📊 Project: {os.getenv('LANGCHAIN_PROJECT', 'default')}\n")
+    print(" LangSmith tracing enabled")
+    print(f" Project: {os.getenv('LANGCHAIN_PROJECT', 'default')}\n")
     
     # Initialize key manager
     key_manager = initialize_key_manager()
-    print(f"🔑 Key rotation: every 5 queries\n")
+    print(f" Key rotation: every 5 queries\n")
     
     # Load dataset
     df = pd.read_csv(csv_path)
-    print(f"✅ Loaded {len(df)} test queries\n")
+    print(f" Loaded {len(df)} test queries\n")
     
     current_entity = None
     
@@ -225,29 +197,19 @@ def run_efficiency_evaluation(csv_path: str):
         
         time.sleep(1.5)
     
-    print("\n" + "="*80)
-    print("✅ EVALUATION COMPLETE!")
-    print("="*80 + "\n")
-    
-    print(f"🌐 View metrics in LangSmith:")
-    print(f"   https://smith.langchain.com/")
-    print(f"   Project: {os.getenv('LANGCHAIN_PROJECT', 'default')}")
-    print(f"   Filter by: evaluation_type='efficiency_optimized'\n")
-
-
-# ============================================================================
-# Main
-# ============================================================================
+    print(" EVALUATION COMPLETE!")
+    print(f" View metrics in LangSmith:")
+    print(f" https://smith.langchain.com/")
+    print(f" Project: {os.getenv('LANGCHAIN_PROJECT', 'default')}")
+    print(f" Filter by: evaluation_type='efficiency_optimized'\n")
 
 def main():
     csv_path = r"C:\Uni\4th Year\GP\ECHO\data\chatbot\outputs\echo_agent_evaluation\evaluation_data\shrunk_dataset_132.csv"
     
     if not Path(csv_path).exists():
-        print(f"❌ ERROR: Dataset not found at {csv_path}")
+        print(f" ERROR: Dataset not found at {csv_path}")
         return
     
     run_efficiency_evaluation(csv_path)
-
-
 if __name__ == "__main__":
     main()
