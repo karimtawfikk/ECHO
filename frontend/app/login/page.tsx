@@ -140,12 +140,12 @@ export default function LoginPage() {
           <motion.div
             initial={{ opacity: 0, x: -30 }}
             animate={{ opacity: 1, x: 0 }}
-            className="flex-1 text-center md:text-left space-y-8"
+            className="flex-1 text-center md:text-left space-y-4 md:space-y-8 px-2"
           >
-            <h1 className="text-6xl md:text-8xl font-heading font-bold text-[#F5E6D0] leading-[1.1]">
+            <h1 className="text-4xl sm:text-5xl md:text-7xl lg:text-8xl font-heading font-bold text-[#F5E6D0] leading-[1.1]">
               Unveil the <span className="text-transparent bg-clip-text bg-gradient-to-r from-[#E6B23C] to-[#B48B2D]">Past.</span>
             </h1>
-            <p className="text-[#A08E70] text-xl md:text-2xl max-w-xl leading-relaxed">
+            <p className="text-[#A08E70] text-sm sm:text-base md:text-xl lg:text-2xl max-w-sm sm:max-w-md mx-auto md:mx-0 leading-relaxed">
               Step into the digital archives of Ancient Egypt. Every capture has an origin, and every discovery begins here.
             </p>
           </motion.div>
