@@ -142,7 +142,7 @@ export default function PageShell({
             </div>
 
             {/* Center Column: Logo */}
-            <div className={`flex justify-center md:col-start-2 md:row-start-1 shrink-0 transition-opacity duration-300 ${menuOpen ? 'opacity-0 pointer-events-none md:opacity-100 md:pointer-events-auto absolute left-1/2 -translate-x-1/2 md:static md:translate-x-0' : 'absolute left-1/2 -translate-x-1/2 md:static md:translate-x-0'}`}>
+            <div className="flex justify-center md:col-start-2 md:row-start-1 shrink-0 absolute left-1/2 -translate-x-1/2 md:static md:translate-x-0">
               <Link href="/" className="group">
                 <span
                   className="text-3xl font-bold tracking-[0.35em] text-[#E6B23C] gold-glow group-hover:text-[#FFD369] transition-colors"
@@ -157,26 +157,6 @@ export default function PageShell({
             <div className="flex justify-end items-center gap-2 md:gap-4 md:col-start-3 md:row-start-1 flex-1">
               {!minimal && (
                 <>
-                  <AnimatePresence>
-                    {menuOpen && (
-                      <motion.div
-                        initial={{ opacity: 0, x: 10 }}
-                        animate={{ opacity: 1, x: 0 }}
-                        exit={{ opacity: 0, x: 10 }}
-                        className="md:hidden mr-1"
-                      >
-                        <Link href="/" className="group" onClick={() => setMenuOpen(false)}>
-                          <span
-                            className="text-[16px] font-bold tracking-[0.35em] text-[#E6B23C] gold-glow transition-colors"
-                            style={{ fontFamily: 'var(--font-cormorant), serif' }}
-                          >
-                            ECHO
-                          </span>
-                        </Link>
-                      </motion.div>
-                    )}
-                  </AnimatePresence>
-
                   {/* Language Switcher */}
                   <div className="relative hidden md:block">
                     <button
