@@ -50,9 +50,6 @@ graph TD
     Groq["⚡ Groq API<br>(LLM Inference)"]:::ext
     R2[("☁️ Cloudflare R2<br>(Object Storage)")]:::db
 
-    %% Deployment Anchors
-    RunPod["🚀 RunPod (GPU Cloud)"]:::cloud
-
     %% --- Connections ---
     Actor -->|"Interacts"| FE
     
@@ -89,10 +86,6 @@ graph TD
     %% Backend DB Queries
     BE -- "Database Query" --> DB
     DB -- "Query Data" --> BE
-
-    %% Alignment rules
-    FE -.-> RunPod
-    BE -.-> RunPod
 ```
 
 ### Main Components:
