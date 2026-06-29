@@ -2,7 +2,7 @@
 
 import { useMemo, useState, useEffect, useRef } from "react";
 import Link from "next/link";
-import { useSearchParams } from "next/navigation";
+import { useSearchParams, useRouter } from "next/navigation";
 import PageShell from "../../components/layout/PageShell";
 import { Button } from "../../components/ui/button";
 import { Play, Wand2, Sparkles, Film, Crown, Hourglass, Scroll, MapPin, MessageSquare, Video } from "lucide-react";
@@ -13,6 +13,7 @@ import { Suspense } from "react";
 function VideoPageContent() {
   const { t, isRTL } = useLanguage();
   const sp = useSearchParams();
+  const router = useRouter();
   const entityType = (sp.get("type") || "landmark").toLowerCase();
   const entityName = sp.get("name") || sp.get("entity") || "Great Sphinx of Giza";
   const dynasty = sp.get("dynasty");
@@ -72,12 +73,12 @@ function VideoPageContent() {
   return (
     <>
       <motion.div initial={{ opacity: 0, x: isRTL ? 20 : -20 }} animate={{ opacity: 1, x: 0 }} className="mb-8">
-        <Link href="/result" className="group inline-flex items-center gap-2 text-xs font-semibold tracking-[0.15em] uppercase text-[#A08E70] hover:text-[#E6B23C] transition-colors">
+        <button onClick={() => router.back()} className="group inline-flex items-center gap-2 text-xs font-semibold tracking-[0.15em] uppercase text-[#A08E70] hover:text-[#E6B23C] transition-colors bg-transparent border-none p-0 cursor-pointer">
           <span className={`transition-transform ${isRTL ? 'group-hover:translate-x-1' : 'group-hover:-translate-x-1'}`}>
             {isRTL ? '→' : '←'}
           </span>
           {t("common.return")}
-        </Link>
+        </button>
       </motion.div>
 
       <div className="flex flex-col md:flex-row md:items-end justify-between mb-12 gap-6">
