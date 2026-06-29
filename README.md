@@ -37,21 +37,19 @@ flowchart LR
     subgraph Vercel [▲ Vercel]
         FE(("N")):::ui
     end
-    style Vercel fill:#e0f2fe,stroke:#bae6fd,stroke-width:2px,color:#000,rx:10,ry:10
+    style Vercel fill:#e0f2fe,stroke:#bae6fd,stroke-width:2px,color:#000
 
     BE["⚡"]:::gw
 
     subgraph Runpod [📦 runpod]
-        direction TB
         Chat["Chatbot Pipeline"]:::pipe
         Hiero["Hieroglyphics<br/>Translation<br/>Pipeline"]:::pipe
         Video["Video Generation<br/>Pipeline"]:::pipe
         Rec["Entity Recognition<br/>Pipeline"]:::pipe
     end
-    style Runpod fill:#e0f2fe,stroke:#bae6fd,stroke-width:2px,color:#000,rx:10,ry:10
+    style Runpod fill:#e0f2fe,stroke:#bae6fd,stroke-width:2px,color:#000
 
-    subgraph External [ ]
-        direction TB
+    subgraph External [External Services]
         Groq["⚡ groq"]:::ext
         R2("☁️ Cloudflare R2 Storage"):::ext
         DB[("🐘 PostgreSQL")]:::db
@@ -59,21 +57,21 @@ flowchart LR
     style External fill:none,stroke:none,color:#000
 
     %% Connections
-    Actor <--> FE
+    Actor --- FE
     
-    FE <-->|"API Request<br/>Data Result"| BE
+    FE -- "API Request<br/>Data Result" --> BE
 
-    BE <-->|"User Prompt<br/>Audio/Text Response"| Chat
-    BE <-->|"Inscription Image<br/>English Text"| Hiero
-    BE <-->|"Video Request<br/>MP4 Video"| Video
-    BE <-->|"Entity Image<br/>Entity Description"| Rec
+    BE -- "User Prompt<br/>Audio/Text Response" --> Chat
+    BE -- "Inscription Image<br/>English Text" --> Hiero
+    BE -- "Video Request<br/>MP4 Video" --> Video
+    BE -- "Entity Image<br/>Entity Description" --> Rec
 
-    Chat <-->|"Enhanced Prompt + Context<br/>LLM Response"| Groq
+    Chat -- "Enhanced Prompt + Context<br/>LLM Response" --> Groq
     
-    Chat <-->|"Query Entity Context<br/>Entity Context"| DB
-    Video <-->|"Fetch Images<br/>Image Files"| R2
-    Video <-->|"Query Images via Text Embeddings<br/>Images URL"| DB
-    Rec <-->|"Query Metadata<br/>Entity Metadata"| DB
+    Chat -- "Query Entity Context<br/>Entity Context" --> DB
+    Video -- "Fetch Images<br/>Image Files" --> R2
+    Video -- "Query Images via Text Embeddings<br/>Images URL" --> DB
+    Rec -- "Query Metadata<br/>Entity Metadata" --> DB
 ```
 
 ### Main Components:
