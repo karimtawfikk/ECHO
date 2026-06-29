@@ -128,7 +128,7 @@ export default function PageShell({
                               <Link
                                 href={link.href}
                                 onClick={() => setMenuOpen(false)}
-                                className={`text-lg font-bold tracking-[0.2em] uppercase transition-all flex items-center gap-4 py-2 ${isActive ? "text-[#E6B23C]" : "text-[#F5E6D0] hover:text-[#E6B23C]"
+                                className={`text-base font-bold tracking-[0.2em] uppercase transition-all flex items-center gap-4 py-2 ${isActive ? "text-[#E6B23C]" : "text-[#F5E6D0] hover:text-[#E6B23C]"
                                   }`}
                               >
                                 {link.name}
