@@ -23,14 +23,14 @@ The system transforms static historical content into an intelligent interactive 
 ECHO uses a modern **Microservices Architecture** to separate lightweight routing/CRUD operations from heavy AI model inferences.
 
 ```mermaid
-graph LR
+flowchart LR
     %% Aesthetics
-    classDef actor fill:none,stroke:none,color:#000
+    classDef actor fill:none,stroke:none
     classDef ui fill:#bfdbfe,stroke:#3b82f6,stroke-width:2px,color:#000
-    classDef gw fill:#000,stroke:#000,stroke-width:2px,color:#fff
+    classDef gw fill:#1e293b,stroke:#cbd5e1,stroke-width:2px,color:#fff
     classDef pipe fill:#bfdbfe,stroke:#3b82f6,stroke-width:2px,color:#000
     classDef db fill:#bfdbfe,stroke:#3b82f6,stroke-width:2px,color:#000
-    classDef ext fill:none,stroke:none,color:#000
+    classDef ext fill:none,stroke:none
 
     Actor(["👤<br/>Actor"]):::actor
 
@@ -42,6 +42,7 @@ graph LR
     BE["⚡"]:::gw
 
     subgraph Runpod [📦 runpod]
+        direction TB
         Chat["Chatbot Pipeline"]:::pipe
         Hiero["Hieroglyphics<br/>Translation<br/>Pipeline"]:::pipe
         Video["Video Generation<br/>Pipeline"]:::pipe
@@ -49,42 +50,30 @@ graph LR
     end
     style Runpod fill:#e0f2fe,stroke:#bae6fd,stroke-width:2px,color:#000,rx:10,ry:10
 
-    Groq["⚡ groq"]:::ext
-    R2("☁️ Cloudflare R2 Storage"):::ext
-    DB[("🐘")]:::db
+    subgraph External [ ]
+        direction TB
+        Groq["⚡ groq"]:::ext
+        R2("☁️ Cloudflare R2 Storage"):::ext
+        DB[("🐘 PostgreSQL")]:::db
+    end
+    style External fill:none,stroke:none,color:#000
 
     %% Connections
     Actor <--> FE
     
-    FE -->|"API<br/>Request"| BE
-    BE -->|"Data<br/>Result"| FE
+    FE <-->|"API Request<br/>Data Result"| BE
 
-    BE -->|"User Prompt"| Chat
-    Chat -->|"Audio/Text<br/>Response"| BE
+    BE <-->|"User Prompt<br/>Audio/Text Response"| Chat
+    BE <-->|"Inscription Image<br/>English Text"| Hiero
+    BE <-->|"Video Request<br/>MP4 Video"| Video
+    BE <-->|"Entity Image<br/>Entity Description"| Rec
 
-    BE -->|"Inscription Image"| Hiero
-    Hiero -->|"English Text"| BE
-
-    BE -->|"Video Request"| Video
-    Video -->|"MP4 Video"| BE
-
-    BE -->|"Entity<br/>Image"| Rec
-    Rec -->|"Entity<br/>Description"| BE
-
-    Chat -->|"Enhanced Prompt + Context"| Groq
-    Groq -->|"LLM Response"| Chat
-
-    Chat -->|"Query Entity<br/>Context"| DB
-    DB -->|"Entity<br/>Context"| Chat
-
-    Video -->|"Fetch Images"| R2
-    R2 -->|"Image Files"| Video
-
-    Video -->|"Query Images via Text Embeddings"| DB
-    DB -->|"Images URL"| Video
-
-    Rec -->|"Query<br/>Metadata"| DB
-    DB -->|"Entity<br/>Metadata"| Rec
+    Chat <-->|"Enhanced Prompt + Context<br/>LLM Response"| Groq
+    
+    Chat <-->|"Query Entity Context<br/>Entity Context"| DB
+    Video <-->|"Fetch Images<br/>Image Files"| R2
+    Video <-->|"Query Images via Text Embeddings<br/>Images URL"| DB
+    Rec <-->|"Query Metadata<br/>Entity Metadata"| DB
 ```
 
 ### Main Components:
