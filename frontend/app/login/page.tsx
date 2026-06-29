@@ -94,13 +94,23 @@ export default function LoginPage() {
     if (error) {
       setError(error.message);
       setLoading(false);
-    } else if (data.session) {
-      window.location.href = "/";
-    } else if (isSignUp) {
-      setError("Check your email for the confirmation link!");
-      setLoading(false);
     } else {
-      window.location.href = "/";
+      if (data.user) {
+        // Automatically sync the actual first name to the profiles table's user_metadata column (JSON)
+        const actualFirstName = data.user.user_metadata?.full_name?.split(" ")[0] || firstName || email.split("@")[0];
+        await supabase.from("profiles").update({
+          user_metadata: { name: actualFirstName }
+        }).eq("id", data.user.id);
+      }
+
+      if (data.session) {
+        window.location.href = "/";
+      } else if (isSignUp) {
+        setError("Check your email for the confirmation link!");
+        setLoading(false);
+      } else {
+        window.location.href = "/";
+      }
     }
     setLoading(false);
   };

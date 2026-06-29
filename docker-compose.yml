@@ -80,7 +80,6 @@ services:
       HIEROGLYPH_DBSCAN_EPS: "${HIEROGLYPH_DBSCAN_EPS:-50.0}"
       HIEROGLYPH_DBSCAN_MIN_SAMPLES: "${HIEROGLYPH_DBSCAN_MIN_SAMPLES:-1}"
       HIEROGLYPH_LLM_MODEL: "${HIEROGLYPH_LLM_MODEL:-meta-llama/llama-4-maverick-17b-128e-instruct}"
-      # Reuse the same Groq API keys as the chatbot
       GROQ_API_KEY1: "${GROQ_API_KEY1}"
       GROQ_API_KEY2: "${GROQ_API_KEY2}"
       GROQ_API_KEY3: "${GROQ_API_KEY3}"

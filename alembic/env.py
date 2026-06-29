@@ -5,14 +5,11 @@ from sqlalchemy import engine_from_config, pool
 from alembic import context
 from dotenv import load_dotenv
 
-# Add project root to sys.path so Alembic can import models
 sys.path.append(os.path.abspath(os.path.join(os.path.dirname(__file__), '..')))
 
-# Load .env
 load_dotenv()
 DATABASE_URL = os.getenv("DATABASE_URL")
 
-# Import Base and all models
 from src.db.session import Base
 from src.db_models.landmarks import Landmark
 from src.db_models.landmarks_images import LandmarkImage
@@ -23,14 +20,11 @@ from src.db_models.landmarks_text import LandmarkText
 from src.db_models.landmarks_scripts import LandmarkScript
 from src.db_models.pharaohs_scripts import PharaohScript
 
-# Alembic config
 config = context.config
 
-# Set up Python logging
 if config.config_file_name is not None:
     fileConfig(config.config_file_name)
 
-# SQLAlchemy models metadata for 'autogenerate'
 target_metadata = Base.metadata
 
 
@@ -51,7 +45,7 @@ def run_migrations_offline() -> None:
 def run_migrations_online() -> None:
     """Run migrations in 'online' mode."""
     connectable = engine_from_config(
-        {},  # empty dict, we use URL from .env
+        {},  
         url=DATABASE_URL,
         poolclass=pool.NullPool,
     )
