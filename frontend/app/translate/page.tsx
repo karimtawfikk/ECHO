@@ -50,7 +50,7 @@ export default function TranslatePage() {
           });
           setPreviewUrl(payload.imageUrl);
           sessionStorage.removeItem("echo_translation_history_result");
-          setCurrentStep(4); // Finished step
+          setCurrentStep(4);
           setFile(null);
           setFileName("");
           setIsLoading(false);
@@ -83,7 +83,6 @@ export default function TranslatePage() {
     setResult(null);
     setCurrentStep(0.1);
 
-    // Auto-scroll to results on mobile devices
     setTimeout(() => {
       if (window.innerWidth < 1024) {
         document.getElementById('result-section')?.scrollIntoView({ behavior: 'smooth', block: 'start' });
@@ -94,7 +93,6 @@ export default function TranslatePage() {
     formData.append("image", file as File);
 
     try {
-      // Use native fetch to support streaming from the backend
       const baseUrl = API_BASE_URL.replace(/\/api\/v1\/?$/, "");
       const response = await fetch(`${baseUrl}/api/v1/hieroglyphs/translate/stream`, {
         method: "POST",
@@ -126,14 +124,11 @@ export default function TranslatePage() {
             const message = JSON.parse(line.substring(6));
 
             if (message.type === "progress") {
-              // Real-time ping from backend module
               setCurrentStep(message.step);
             } else if (message.type === "result") {
               const data = message.data;
-              // Ensure we reached the final step
               setCurrentStep(4);
 
-              // Save to translation_history if user is logged in and translation was successful
               try {
                 const supabase = createClient();
                 const { data: { user } } = await supabase.auth.getUser();
@@ -169,7 +164,6 @@ export default function TranslatePage() {
                 console.error("Failed to save translation history:", dbErr);
               }
 
-              // Brief delay for the last animation phase to feel smooth
               setTimeout(() => {
                 setResult({
                   translation: data.translation_text,
@@ -199,7 +193,7 @@ export default function TranslatePage() {
   };
 
   const acceptFile = (f: File | null) => {
-    setResult(null); // Force clear result first
+    setResult(null);
     if (!f || !f.type.startsWith("image/")) return;
     setFile(f);
     setFileName(f.name);
@@ -280,7 +274,6 @@ export default function TranslatePage() {
             }`}
         >
 
-          {/* Left: Cinematic Upload Card */}
           <motion.div
             layout
             initial={{ opacity: 0, scale: 0.95, y: 30 }}
@@ -288,7 +281,6 @@ export default function TranslatePage() {
             transition={{ duration: 0.8, ease: [0.16, 1, 0.3, 1] }}
             className="w-full max-w-xl relative z-10"
           >
-            {/* External Card Glow */}
             <motion.div
               animate={{
                 opacity: [0.3, 0.6, 0.3],
@@ -301,7 +293,6 @@ export default function TranslatePage() {
             <div className={`transition-all duration-700 rounded-[2.5rem] shadow-[0_30px_100px_rgba(0,0,0,0.9)] shadow-[inset_0_1px_1px_rgba(230,178,60,0.11)] overflow-hidden relative ${previewUrl ? "bg-gradient-to-br from-[#1A140F] to-[#0D0A07] border border-[#E6B23C] shadow-[0_0_50px_rgba(230,178,60,0.2)]" : "bg-gradient-to-br from-[#120D08] to-[#0A0805]"
               }`}>
 
-              {/* Spinning Border Beam Animation */}
               {!previewUrl && !isLoading && (
                 <div className="absolute inset-0 pointer-events-none rounded-[2.5rem] overflow-hidden">
                   <div className="absolute inset-[-100%] animate-[spin_8s_linear_infinite] opacity-40"
@@ -313,11 +304,9 @@ export default function TranslatePage() {
                 </div>
               )}
 
-              {/* Subtle Texture Overlay */}
               <div className="absolute inset-0 opacity-[0.08] bg-[url('https://www.transparenttextures.com/patterns/papyros.png')] pointer-events-none" />
 
               <div className="p-6 md:p-12 relative z-10 flex-1 flex flex-col justify-center">
-                {/* Internal Header */}
                 <div className="text-center mb-6 md:mb-10">
                   <h1 className="font-display text-3xl font-bold text-[#F5E6D0] tracking-[0.1em] uppercase mb-2 md:mb-3" style={{ fontFamily: 'var(--font-cormorant), serif' }}>
                     Hieroglyphics Decoder
@@ -328,7 +317,6 @@ export default function TranslatePage() {
                   </p>
                 </div>
 
-                {/* Integrated Action Zone */}
                 <div
                   onDragOver={(e) => { e.preventDefault(); setDragActive(true); }}
                   onDragLeave={() => setDragActive(false)}
@@ -336,7 +324,6 @@ export default function TranslatePage() {
                   className={`relative min-h-[220px] md:min-h-[340px] rounded-3xl transition-all duration-500 flex flex-col items-center justify-center p-6 md:p-8 overflow-hidden group ${dragActive ? "bg-[#E6B23C]/[0.08] scale-[1.02]" : "bg-[#E6B23C]/[0.02]"
                     }`}
                 >
-                  {/* HUD Scanning Accents */}
                   <motion.div animate={{ opacity: dragActive ? 1 : 0.4 }} className="absolute top-0 left-0 w-12 h-12 border-t-2 border-l-2 border-[#E6B23C] rounded-tl-3xl" />
                   <motion.div animate={{ opacity: dragActive ? 1 : 0.4 }} className="absolute top-0 right-0 w-12 h-12 border-t-2 border-r-2 border-[#E6B23C] rounded-tr-3xl" />
                   <motion.div animate={{ opacity: dragActive ? 1 : 0.4 }} className="absolute bottom-0 left-0 w-12 h-12 border-b-2 border-l-2 border-[#E6B23C] rounded-bl-3xl" />
@@ -359,7 +346,6 @@ export default function TranslatePage() {
                               className={`max-h-[140px] md:max-h-[220px] w-auto object-contain transition-opacity duration-700 ${isLoading ? 'opacity-40' : 'opacity-100'}`}
                             />
 
-                            {/* Mystical Reveal HUD - Active only during scan */}
                             <AnimatePresence>
                               {isLoading && (
                                 <motion.div
@@ -368,7 +354,6 @@ export default function TranslatePage() {
                                   exit={{ opacity: 0 }}
                                   className="absolute inset-0 z-20 pointer-events-none overflow-hidden"
                                 >
-                                  {/* The 'Mystical Lens' Reveal Effect */}
                                   <motion.div
                                     animate={{
                                       x: ["-20%", "60%", "10%"],
@@ -381,11 +366,9 @@ export default function TranslatePage() {
                                       boxShadow: "0 0 100px rgba(230,178,60,0.1) inset"
                                     }}
                                   >
-                                    {/* Inner Lens Glow */}
                                     <div className="absolute inset-0 rounded-full border border-[#E6B23C]/20 shadow-[0_0_30px_rgba(230,178,60,0.1)]" />
                                   </motion.div>
 
-                                  {/* Constraint Corner Accents */}
                                   <div className="absolute top-2 left-2 w-4 h-4 border-t border-l border-[#E6B23C]/40" />
                                   <div className="absolute top-2 right-2 w-4 h-4 border-t border-r border-[#E6B23C]/40" />
                                   <div className="absolute bottom-2 left-2 w-4 h-4 border-b border-l border-[#E6B23C]/40" />
@@ -440,7 +423,6 @@ export default function TranslatePage() {
                       </motion.div>
                     ) : (
                       <motion.div key="idle" initial={{ opacity: 0 }} animate={{ opacity: 1 }} className="flex flex-col items-center">
-                        {/* Hieroglyph Spirit row */}
                         <motion.div animate={{ opacity: [0.1, 0.4, 0.1] }} transition={{ duration: 4, repeat: Infinity }} className="text-[#E6B23C] text-2xl md:text-3xl font-display tracking-[0.6em] mb-4 md:mb-6 select-none">
                           𓂀 𓃭 𓅃 𓆣 𓇳
                         </motion.div>
@@ -480,7 +462,6 @@ export default function TranslatePage() {
             </div>
           </motion.div>
 
-          {/* Right Column: Result Area - Only appears during processing or after result */}
           <AnimatePresence>
             {(isLoading || result) && (
               <motion.div
@@ -511,12 +492,10 @@ export default function TranslatePage() {
                         </div>
 
                         <div className="relative flex-1 mt-4 z-10">
-                          {/* Path & Animated Highlight with Mask */}
                           <svg className="absolute inset-0 w-full h-full overflow-visible pointer-events-none z-10" preserveAspectRatio="none" viewBox="0 0 100 100">
                             <defs>
                               <mask id="line-mask">
                                 <rect x="0" y="0" width="100" height="100" fill="white" />
-                                {/* Holes adjusted to match path trajectory better */}
                                 <circle cx="10" cy="10" r="9" fill="black" />
                                 <circle cx="83" cy="35" r="7.47" fill="black" />
                                 <circle cx="6" cy="58" r="9" fill="black" />
@@ -524,7 +503,6 @@ export default function TranslatePage() {
                               </mask>
                             </defs>
 
-                            {/* Base Faint Line (Dashed Trail) - Continuous (No Mask) */}
                             <path
                               d="M 10 10 C 10 32.5, 90 12.5, 90 35 C 90 57.5, 10 37.5, 10 60 C 10 82.5, 90 62.5, 95 85"
                               stroke="#F5E6D0"
@@ -535,7 +513,6 @@ export default function TranslatePage() {
                               mask="url(#line-mask)"
                             />
 
-                            {/* Animated Highlight Line (Achievement with Glow) */}
                             <motion.path
                               d="M 10 10 C 10 32.5, 90 12.5, 90 35 C 90 57.5, 10 37.5, 10 60 C 10 82.5, 90 62.5, 95 85"
                               stroke="#E6B23C"
@@ -597,7 +574,6 @@ export default function TranslatePage() {
                                       )}
                                     </motion.div>
 
-                                    {/* TEXT */}
                                     <div
                                       className={`absolute top-1/2 -translate-y-1/2 whitespace-nowrap space-y-0.5 ${step.align === "end" ? "right-[calc(100%+32px)] text-right" : "left-[calc(100%+32px)] text-left"}`}
                                     >
@@ -621,7 +597,6 @@ export default function TranslatePage() {
                         className="papyrus-paper h-fit flex flex-col transition-all duration-1000 !p-12 shadow-[0_30px_100px_rgba(0,0,0,0.9)]"
                       >
                         <div className="flex-1">
-                          {/* Ancient Title */}
                           <div className="mb-12 text-center">
                             <h1 className="font-display text-3xl font-bold text-[#1A1005] tracking-[0.1em] uppercase mb-4" style={{ fontFamily: 'var(--font-cormorant), serif' }}>
                               Translation
@@ -644,7 +619,6 @@ export default function TranslatePage() {
           </AnimatePresence>
         </div>
 
-        {/* Global Footer Navigation */}
         <motion.div
           initial={{ opacity: 0 }}
           animate={{ opacity: 1 }}

@@ -12,7 +12,6 @@ import { cleanEntityName } from "../../lib/utils";
 import type { RecognitionEntity, RecognitionResult } from "../../lib/types";
 import { Suspense } from "react";
 
-// ── Period ordering for pharaohs ──────────────────────────────────────────
 const PERIOD_ORDER = [
   "Old Kingdom",
   "Middle Kingdom",
@@ -22,7 +21,6 @@ const PERIOD_ORDER = [
   "Ptolemic Period",
 ];
 
-// ── Governorate pin coordinates on the SVG map ────────────────────────────
 const GOVERNORATE_PINS: Record<string, { x: number; y: number; label: string }> = {
   "Alexandria Governorate, Egypt": { x: 110, y: 55, label: "Alexandria" },
   "Giza Governorate, Egypt": { x: 135, y: 85, label: "Giza" },
@@ -37,12 +35,10 @@ const GOVERNORATE_PINS: Record<string, { x: number; y: number; label: string }> 
   "Aswan Governorate, Egypt": { x: 190, y: 385, label: "Aswan" },
 };
 
-// Normalize location keys (trim leading spaces)
 function normalizeLocation(loc: string): string {
   return loc.trim();
 }
 
-// ── Dynasty String to Number mapping for chronological sorting ─────────────
 const DYNASTY_NUMBERS: Record<string, number> = {
   "first": 1, "second": 2, "third": 3, "fourth": 4, "fifth": 5,
   "sixth": 6, "seventh": 7, "eighth": 8, "ninth": 9, "tenth": 10,
@@ -59,7 +55,6 @@ function getDynastyNumber(dynasty: string): number {
   return DYNASTY_NUMBERS[normalized] || 999; // Put 'Other' / 'Gods' at the end
 }
 
-// ── Entity Card ───────────────────────────────────────────────────────────
 function EntityCard({ entity, type, onNavigate }: { entity: RecognitionEntity; type: "pharaoh" | "landmark"; onNavigate: () => void }) {
   const { t } = useLanguage();
   const cleanName = cleanEntityName(entity.name);
@@ -95,7 +90,6 @@ function EntityCard({ entity, type, onNavigate }: { entity: RecognitionEntity; t
   );
 }
 
-// ── Collapsible Dynasty Group ──────────────────────────────────────────────
 function DynastyGroup({ dynasty, entities, type, onNavigate }: {
   dynasty: string;
   entities: RecognitionEntity[];
@@ -143,7 +137,6 @@ function DynastyGroup({ dynasty, entities, type, onNavigate }: {
   );
 }
 
-// ── Egypt SVG Map ──────────────────────────────────────────────────────────
 function EgyptMap({
   pins,
   selectedCity,
@@ -174,7 +167,6 @@ function EgyptMap({
             const isActive = selectedCity === pin.label;
             const shortName = pin.label.split(',')[0];
 
-            // ── PIN CALIBRATION — Research-based Geographical Coordinates ───────
             let x = pin.x;
             let y = pin.y;
 
@@ -195,7 +187,6 @@ function EgyptMap({
                 onClick={() => onSelectCity(isActive ? null : pin.label)}
                 className="cursor-pointer group"
               >
-                {/* Pulsing Base (Implier) */}
                 {!isActive && (
                   <circle cx={x} cy={y} r="6" fill="#1A1005" fillOpacity="0.2">
                     <animate attributeName="r" values="4;8;4" dur="3s" repeatCount="indefinite" />
@@ -203,7 +194,6 @@ function EgyptMap({
                   </circle>
                 )}
 
-                {/* Selection Pulse Ring */}
                 {isActive && (
                   <circle cx={x} cy={y} r="14" fill="none" stroke="#E6B23C" strokeWidth="1" strokeOpacity="0.4">
                     <animate attributeName="r" values="8;18;8" dur="2s" repeatCount="indefinite" />
@@ -211,16 +201,13 @@ function EgyptMap({
                   </circle>
                 )}
 
-                {/* Golden Map Pin */}
                 <g transform={`translate(${x}, ${y - 1}) scale(${isActive ? 1.3 : 1})`}>
-                  {/* Pin Shape */}
                   <path
                     d="M0,0 C-1,-1 -4,-4 -4,-7 A4,4 0 1,1 4,-7 C4,-4 1,-1 0,0 Z"
                     fill={isActive ? "#E6B23C" : "#D4A017"}
                     stroke="#0D0A07"
                     strokeWidth="0.5"
                   />
-                  {/* Inner Circle (Cutout) */}
                   <circle
                     cx="0"
                     cy="-7"
@@ -229,7 +216,6 @@ function EgyptMap({
                   />
                 </g>
 
-                {/* City Label */}
                 <text
                   x={x}
                   y={y - -5}
@@ -254,11 +240,9 @@ function EgyptMap({
 
 
 
-// ── Cache variables to persist dynamic data across route transitions ───────
 let cachedPharaohs: RecognitionEntity[] | null = null;
 let cachedLandmarks: RecognitionEntity[] | null = null;
 
-// ── Main Explore Content ──────────────────────────────────────────────────
 function ExploreContent() {
   const { t, isRTL } = useLanguage();
   const router = useRouter();
@@ -275,7 +259,7 @@ function ExploreContent() {
 
   useEffect(() => {
     if (cachedPharaohs && cachedLandmarks) {
-      return; // Already cached once, skip fetching
+      return;
     }
     let active = true;
     async function loadData() {
@@ -310,7 +294,6 @@ function ExploreContent() {
   const [selectedCity, setSelectedCity] = useState<string | null>(null);
   const landmarksListRef = useRef<HTMLDivElement>(null);
 
-  // Reset scroll position when selected city changes
   useEffect(() => {
     if (selectedCity && landmarksListRef.current) {
       landmarksListRef.current.scrollTop = 0;
@@ -329,19 +312,15 @@ function ExploreContent() {
     restDelta: 0.001
   });
 
-  // ── Render Helpers ──────────────────────────────────────────────────
   const ScrollLine = () => (
     <div className="absolute left-5 md:left-1/2 top-0 bottom-0 w-0.5 -translate-x-1/2 pointer-events-none z-0">
-      {/* Background track */}
       <div className="absolute inset-0 bg-white/[0.05]" />
 
-      {/* Active shining line */}
       <motion.div
         style={{ scaleY, originY: 0 }}
         className="absolute inset-0 bg-gradient-to-b from-[#E6B23C] via-[#E6B23C] to-white/50 shadow-[0_0_15px_rgba(230,178,60,0.5)]"
       />
 
-      {/* Scrolling dot */}
       <motion.div
         style={{ top: useTransform(scaleY, [0, 1], ["0%", "100%"]) }}
         className="absolute left-1/2 -translate-x-1/2 w-2.5 h-2.5 bg-[#E6B23C] rounded-full shadow-[0_0_15px_rgba(230,178,60,0.8)] z-10"
@@ -349,7 +328,6 @@ function ExploreContent() {
     </div>
   );
 
-  // Sync tab with URL on mount and param changes
   useEffect(() => {
     const tabParam = searchParams.get('tab') as "pharaohs" | "landmarks";
     if (tabParam && (tabParam === "pharaohs" || tabParam === "landmarks")) {
@@ -370,8 +348,7 @@ function ExploreContent() {
     setSearch("");
     setSelectedCity(null);
     router.replace(`/explore?tab=${tab}`, { scroll: false });
-    
-    // Auto-scroll on mobile
+
     if (window.innerWidth < 768) {
       setTimeout(() => {
         document.getElementById("explore-content-area")?.scrollIntoView({ behavior: "smooth", block: "start" });
@@ -379,7 +356,6 @@ function ExploreContent() {
     }
   };
 
-  // Navigate to result page
   function handleEntityClick(entity: RecognitionEntity, type: "pharaoh" | "landmark") {
     const result: RecognitionResult = {
       source: "explore",
@@ -395,7 +371,6 @@ function ExploreContent() {
     router.push(`/result?entity=${encodeURIComponent(entity.name)}&type=${type}`);
   }
 
-  // ── Pharaohs: group by period → dynasty ──────────────────────────
   const filteredPharaohs = useMemo(() => {
     if (!search) return pharaohs;
     const q = search.toLowerCase();
@@ -418,10 +393,8 @@ function ExploreContent() {
       groups[period][dynasty].push(p);
     }
 
-    // Sort periods by PERIOD_ORDER
     const sorted: { period: string; dynasties: { dynasty: string; entities: RecognitionEntity[] }[] }[] = [];
 
-    // Known periods first
     for (const period of PERIOD_ORDER) {
       if (groups[period]) {
         const dynasties = Object.entries(groups[period])
@@ -432,7 +405,6 @@ function ExploreContent() {
       }
     }
 
-    // Remaining periods (nulls mapped to "Other")
     for (const [period, dynastyMap] of Object.entries(groups)) {
       const dynasties = Object.entries(dynastyMap)
         .map(([dynasty, entities]) => ({ dynasty, entities: entities.sort((a, b) => a.name.localeCompare(b.name)) }))
@@ -443,7 +415,6 @@ function ExploreContent() {
     return sorted;
   }, [filteredPharaohs]);
 
-  // ── Landmarks: group by normalized location ──────────────────────
   const filteredLandmarks = useMemo(() => {
     if (!search && !selectedCity) return landmarks;
     let result = landmarks;
@@ -483,7 +454,6 @@ function ExploreContent() {
     return Object.entries(groups).sort((a, b) => b[1].length - a[1].length);
   }, [filteredLandmarks]);
 
-  // Map pins data
   const mapPins = useMemo(() => {
     const cityCount: Record<string, { x: number; y: number; count: number }> = {};
     for (const l of landmarks) {
@@ -499,7 +469,6 @@ function ExploreContent() {
 
   return (
     <PageShell>
-      {/* Header */}
       <motion.div
         initial={{ opacity: 0, y: -20 }}
         animate={{ opacity: 1, y: 0 }}
@@ -524,7 +493,6 @@ function ExploreContent() {
         </p>
       </motion.div>
 
-      {/* Tabs */}
       <motion.div
         initial={{ opacity: 0 }}
         animate={{ opacity: 1 }}
@@ -549,7 +517,6 @@ function ExploreContent() {
         ))}
       </motion.div>
 
-      {/* Search */}
       <motion.div
         initial={{ opacity: 0 }}
         animate={{ opacity: 1 }}
@@ -571,7 +538,6 @@ function ExploreContent() {
         )}
       </motion.div>
 
-      {/* Search Results Overlay */}
       <div className="relative w-full z-50">
         <AnimatePresence>
           {search && (
@@ -609,7 +575,6 @@ function ExploreContent() {
         </AnimatePresence>
       </div>
       <div id="explore-content-area" ref={containerRef} className={`relative transition-all duration-700 scroll-mt-24 ${search ? 'blur-3xl pointer-events-none' : ''}`}>
-        {/* Loading */}
         {isLoading && (
           <div className="flex justify-center py-20">
             <motion.div
@@ -621,7 +586,6 @@ function ExploreContent() {
           </div>
         )}
 
-        {/* ── PHARAOHS TAB ─────────────────────────────────────────────── */}
         {!isLoading && activeTab === "pharaohs" && (
           <motion.div
             initial={{ opacity: 0 }}
@@ -647,13 +611,10 @@ function ExploreContent() {
                     viewport={{ once: true, margin: "-10% 0px -10% 0px" }}
                     className={`relative flex md:justify-between items-center w-full mb-16 ${isLeft ? 'md:flex-row-reverse' : ''}`}
                   >
-                    {/* Spacer for desktop */}
                     <div className="hidden md:block w-5/12" />
 
-                    {/* Timeline dot */}
                     <div className="absolute left-5 md:left-1/2 w-4 h-4 rounded-full bg-[#1A1208] border-2 border-[#E6B23C] -translate-x-1/2 z-10 shadow-[0_0_15px_rgba(230,178,60,0.5)]" />
 
-                    {/* Content card */}
                     <motion.div
                       initial={{ filter: "brightness(0.5) opacity(0.6)" }}
                       whileInView={{ filter: "brightness(1) opacity(1)" }}
@@ -690,7 +651,6 @@ function ExploreContent() {
           </motion.div>
         )}
 
-        {/* ── LANDMARKS TAB ────────────────────────────────────────────── */}
         {!isLoading && activeTab === "landmarks" && (
           <motion.div
             initial={{ opacity: 0 }}
@@ -715,7 +675,6 @@ function ExploreContent() {
             </AnimatePresence>
 
             <div className="relative flex flex-col md:flex-row items-start justify-center gap-8">
-              {/* Centered Large Map */}
               <motion.div
                 initial={{ opacity: 0, scale: 0.9 }}
                 animate={{
@@ -733,7 +692,6 @@ function ExploreContent() {
                 />
               </motion.div>
 
-              {/* Landmarks Overlay (Sliding Panel) */}
               <AnimatePresence>
                 {selectedCity && (
                   <motion.div
@@ -743,7 +701,6 @@ function ExploreContent() {
                     transition={{ type: "spring", damping: 25, stiffness: 200 }}
                     className="relative md:absolute top-0 right-0 max-h-[60vh] md:max-h-none md:h-full w-full md:w-[450px] bg-[#0D0A07]/95 backdrop-blur-xl border border-[#E6B23C]/20 md:border-t-0 md:border-b-0 md:border-r-0 md:border-l z-[100] md:shadow-[-20px_0_50px_rgba(0,0,0,0.5)] flex flex-col rounded-2xl md:rounded-l-none md:rounded-r-3xl overflow-hidden mt-6 md:mt-0 scroll-mt-40"
                   >
-                    {/* Header */}
                     <div className="p-6 md:p-8 border-b border-[#E6B23C]/10 flex items-center justify-between bg-gradient-to-r from-[#1A1208] to-[#0D0A07]">
                       <div>
                         <div className="flex items-center gap-2 text-[#E6B23C] mb-1">
@@ -769,7 +726,6 @@ function ExploreContent() {
                       </button>
                     </div>
 
-                    {/* Landmarks List */}
                     <div
                       ref={landmarksListRef}
                       className="flex-1 overflow-y-auto overscroll-contain p-4 md:p-6 flex flex-col gap-3 md:gap-4 custom-scrollbar"

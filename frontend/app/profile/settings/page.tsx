@@ -2,13 +2,13 @@
 
 import PageShell from "../../../components/layout/PageShell";
 import { motion, AnimatePresence } from "framer-motion";
-import { 
-    ArrowLeft, 
-    LogOut, 
-    Trash2, 
-    User, 
-    Mail, 
-    AtSign, 
+import {
+    ArrowLeft,
+    LogOut,
+    Trash2,
+    User,
+    Mail,
+    AtSign,
     ShieldCheck,
     Camera,
     ChevronRight
@@ -22,8 +22,7 @@ export default function ProfileSettingsPage() {
     const supabase = useMemo(() => createClient(), []);
     const [user, setUser] = useState<any>(null);
     const [isLoading, setIsLoading] = useState(true);
-    
-    // Form States
+
     const [fullName, setFullName] = useState("");
     const [username, setUsername] = useState("");
     const [email, setEmail] = useState("");
@@ -78,13 +77,12 @@ export default function ProfileSettingsPage() {
 
     const confirmDeleteAccount = async () => {
         if (!user) return;
-        
+
         setShowDeleteConfirm(false);
         setIsSaving(true);
         try {
             const baseUrl = process.env.NEXT_PUBLIC_API_URL?.replace(/\/api\/v1\/?$/, "") ?? "http://localhost:8010";
-            
-            // 1. Delete Supabase avatars
+
             try {
                 const { data: existingFiles } = await supabase.storage.from('avatars').list('', { search: user.id });
                 if (existingFiles && existingFiles.length > 0) {
@@ -95,17 +93,15 @@ export default function ProfileSettingsPage() {
                 console.error("Error deleting avatars:", err);
             }
 
-            // 2. Call backend to delete R2 data AND DB rows (including profiles and auth.users)
             const res = await fetch(`${baseUrl}/api/v1/assets/delete-account/${user.id}`, {
                 method: 'DELETE',
             });
-            
+
             if (!res.ok) {
                 const errData = await res.json().catch(() => null);
                 throw new Error(errData?.detail || "Failed to delete account from backend.");
             }
 
-            // Redirect to login page
             await supabase.auth.signOut();
             window.location.href = "/login";
         } catch (err: any) {
@@ -128,9 +124,8 @@ export default function ProfileSettingsPage() {
     return (
         <PageShell>
             <div className="max-w-2xl mx-auto pt-10 pb-20 px-4">
-                
-                {/* ── SETTINGS CARD (Centered & Curved) ────────────────── */}
-                <motion.div 
+
+                <motion.div
                     initial={{ opacity: 0, y: 20 }}
                     animate={{ opacity: 1, y: 0 }}
                     className="relative rounded-[3rem] bg-[#0D0A07]/80 backdrop-blur-xl overflow-hidden shadow-[0_0_50px_rgba(0,0,0,0.5)]"
@@ -149,8 +144,7 @@ export default function ProfileSettingsPage() {
                     </div>
 
                     <div className="p-8 md:p-12 space-y-12">
-                        
-                        {/* Profile Media */}
+
                         <section>
                             <h3 className="text-xs font-bold tracking-[0.2em] text-[#E6B23C] uppercase mb-8 opacity-60">Profile Media</h3>
                             <div className="flex items-center gap-8">
@@ -175,18 +169,16 @@ export default function ProfileSettingsPage() {
                             </div>
                         </section>
 
-                        {/* Account Info */}
                         <section className="space-y-8">
                             <h3 className="text-xs font-bold tracking-[0.2em] text-[#E6B23C] uppercase mb-4 opacity-60">Account Details</h3>
-                            
+
                             <div className="grid gap-6">
-                                {/* Full Name */}
                                 <div className="space-y-2">
                                     <label className="text-[10px] font-bold text-[#A08E70] uppercase tracking-widest px-1">Full Name</label>
                                     <div className="relative">
                                         <User size={18} className="absolute left-4 top-1/2 -translate-y-1/2 text-[#E6B23C]/40" />
-                                        <input 
-                                            type="text" 
+                                        <input
+                                            type="text"
                                             value={fullName}
                                             onChange={(e) => setFullName(e.target.value)}
                                             className="w-full bg-[#0D0A07]/50 border border-[#E6B23C]/10 rounded-2xl py-4 pl-12 pr-4 text-[#F5E6D0] focus:border-[#E6B23C]/40 outline-none transition-all"
@@ -195,13 +187,12 @@ export default function ProfileSettingsPage() {
                                     </div>
                                 </div>
 
-                                {/* Username */}
                                 <div className="space-y-2">
                                     <label className="text-[10px] font-bold text-[#A08E70] uppercase tracking-widest px-1">Username</label>
                                     <div className="relative">
                                         <AtSign size={18} className="absolute left-4 top-1/2 -translate-y-1/2 text-[#E6B23C]/40" />
-                                        <input 
-                                            type="text" 
+                                        <input
+                                            type="text"
                                             value={username}
                                             onChange={(e) => setUsername(e.target.value)}
                                             className="w-full bg-[#0D0A07]/50 border border-[#E6B23C]/10 rounded-2xl py-4 pl-12 pr-4 text-[#F5E6D0] focus:border-[#E6B23C]/40 outline-none transition-all"
@@ -210,13 +201,12 @@ export default function ProfileSettingsPage() {
                                     </div>
                                 </div>
 
-                                {/* Email */}
                                 <div className="space-y-2">
                                     <label className="text-[10px] font-bold text-[#A08E70] uppercase tracking-widest px-1">Email Address</label>
                                     <div className="relative">
                                         <Mail size={18} className="absolute left-4 top-1/2 -translate-y-1/2 text-[#E6B23C]/20" />
-                                        <input 
-                                            type="email" 
+                                        <input
+                                            type="email"
                                             value={email}
                                             className="w-full bg-transparent border border-[#E6B23C]/5 rounded-2xl py-4 pl-12 pr-4 text-[#A08E70]/50 outline-none cursor-not-allowed"
                                             disabled
@@ -226,7 +216,7 @@ export default function ProfileSettingsPage() {
                                 </div>
                             </div>
 
-                            <Button 
+                            <Button
                                 onClick={handleSave}
                                 disabled={isSaving}
                                 className="w-full bg-[#E6B23C] text-[#0D0A07] hover:bg-[#F5E6D0] font-bold py-7 rounded-2xl transition-all shadow-[0_0_30px_rgba(230,178,60,0.15)] mt-4 uppercase tracking-widest text-xs"
@@ -235,20 +225,19 @@ export default function ProfileSettingsPage() {
                             </Button>
                         </section>
 
-                        {/* Danger Zone */}
                         <section className="space-y-6 pt-12 border-t border-[#E6B23C]/10">
                             <h3 className="text-xs font-bold tracking-[0.2em] text-red-500 uppercase mb-4 opacity-80">Danger Zone</h3>
-                            
+
                             <div className="grid sm:grid-cols-2 gap-4">
-                                <button 
+                                <button
                                     onClick={handleSignOut}
                                     className="flex items-center justify-center gap-3 p-4 rounded-2xl border border-red-500/10 bg-red-500/5 text-red-500 hover:bg-red-500/10 transition-all font-bold text-xs uppercase tracking-widest"
                                 >
                                     <LogOut size={18} />
                                     Logout
                                 </button>
-                                
-                                <button 
+
+                                <button
                                     onClick={handleDeleteAccount}
                                     disabled={isSaving}
                                     className="flex items-center justify-center gap-3 p-4 rounded-2xl border border-red-500/10 bg-red-500/5 text-red-500 hover:bg-red-500/10 transition-all font-bold text-xs uppercase tracking-widest disabled:opacity-50"
@@ -262,7 +251,6 @@ export default function ProfileSettingsPage() {
                     </div>
                 </motion.div>
 
-                {/* Delete Confirmation Modal */}
                 <AnimatePresence>
                     {showDeleteConfirm && (
                         <motion.div

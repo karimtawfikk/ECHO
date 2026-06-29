@@ -15,7 +15,6 @@ import { createClient } from "@/lib/supabase/client";
 import { cleanEntityName } from "@/lib/utils";
 import type { RecognitionResult, SubEntity } from "@/lib/types";
 
-/* ── Manual / Quick-link flow (from home/trending cards) ────────────────── */
 function findMockDescription(type: string | null, name: string): string {
   if (type === "pharaoh" || !type) {
     const p = PHARAOHS.find((x) => x.name.toLowerCase() === name.toLowerCase());
@@ -28,14 +27,12 @@ function findMockDescription(type: string | null, name: string): string {
   return "";
 }
 
-/* ── Main component ─────────────────────────────────────────────────────── */
 function ResultContent() {
   const { t, isRTL } = useLanguage();
   const router = useRouter();
   const searchParams = useSearchParams();
   const baseUrl = process.env.NEXT_PUBLIC_API_URL?.replace(/\/api\/v1\/?$/, "") ?? "http://localhost:8010";
 
-  // ── 1. Check for session-stored recognition result (upload flow) ──────
   const [sessionResult, setSessionResult] = useState<RecognitionResult | null>(null);
   const [uploadedImageUrl, setUploadedImageUrl] = useState<string | null>(null);
   const [mounted, setMounted] = useState(false);
@@ -84,12 +81,9 @@ function ResultContent() {
     }
   }, [searchParams, baseUrl]);
 
-  // ── 2. Check for URL params (quick-link / home card flow) ─────────────
   const entityTypeParam = searchParams.get("type");
   const entityNameParam = searchParams.get("entity") || searchParams.get("name");
 
-  // ── Derive display data source ───────────────────────────────────────
-  // If we have a dynamic or session-based API result, use it! Otherwise fallback to mock lookup.
   const isApiFlow = !!sessionResult;
   const isQuickLink = !isApiFlow && !!entityNameParam;
   const isFromExplore = sessionResult?.source === "explore";
@@ -110,12 +104,10 @@ function ResultContent() {
     return null;
   }, [isApiFlow, entityNameParam, entityTypeParam]);
 
-  // ── Display values ────────────────────────────────────────────────────
   const displayType: "pharaoh" | "landmark" = isApiFlow
     ? (sessionResult?.type === "pharaoh" ? "pharaoh" : "landmark")
     : (mockMatch?.type ?? entityTypeParam === "pharaoh" ? "pharaoh" : "landmark");
 
-  // Prefer entity.name (DB name), fall back to formatted model label
   const displayName: string = isApiFlow
     ? (sessionResult?.entity?.name ?? formatTitle(sessionResult?.name ?? ""))
     : (mockMatch?.item.name ?? formatTitle(entityNameParam ?? "Unknown"));
@@ -126,14 +118,12 @@ function ResultContent() {
     ? (sessionResult?.entity?.description ?? "No description available.")
     : (mockMatch?.item.description ?? findMockDescription(entityTypeParam, entityNameParam ?? ""));
 
-  // Metadata — only shown when non-null
   const dynasty: string | null = isApiFlow ? (sessionResult?.entity?.dynasty ?? null) : null;
   const period: string | null = isApiFlow ? (sessionResult?.entity?.period ?? null) : null;
   const location: string | null = isApiFlow ? (sessionResult?.entity?.location ?? null) : null;
   const rawType = isApiFlow ? (sessionResult?.entity?.type ?? null) : (mockMatch?.type === "pharaoh" && 'type' in mockMatch.item ? (mockMatch.item as any).type : null);
   const dbType: string = rawType || "Unknown";
 
-  // ── Composite entity data (with per-entity metadata from DB) ──────────
   const compositeEntitiesData: SubEntity[] = useMemo(() => {
     if (!isApiFlow) return [];
     return sessionResult?.entity?.composite_entities_data ?? [];
@@ -165,13 +155,13 @@ function ResultContent() {
   } else if (assumedUrl) {
     finalImageUrl = assumedUrl;
   } else if (sessionResult?.entity?.images && sessionResult.entity.images.length > 0 && sessionResult.entity.images[0].url) {
-    // Database API images
+
     finalImageUrl = sessionResult.entity.images[0].url;
   } else if ((sessionResult?.entity as any)?.image) {
-    // Support the singular 'image' field from mock-all-entities.ts
+
     const imgPath = (sessionResult?.entity as any)?.image;
     if (imgPath && typeof imgPath === 'string' && imgPath.startsWith("data/")) {
-      // Use our new R2 proxy route on the backend for Cloudflare assets
+
       finalImageUrl = `${baseUrl}/api/v1/assets/r2/${imgPath}`;
     } else {
       finalImageUrl = imgPath;
@@ -190,7 +180,6 @@ function ResultContent() {
         return;
       }
 
-      // Fetch current profile to get existing favorites
       const { data: profile } = await supabase
         .from('profiles')
         .select('favorites')
@@ -199,11 +188,9 @@ function ResultContent() {
 
       const existingFavorites = Array.isArray(profile?.favorites) ? profile.favorites : [];
 
-      // Check if already favorited
       const alreadyFavorited = existingFavorites.some((f: any) => f.name === displayName);
 
       if (alreadyFavorited) {
-        // Remove from favorites
         const updatedFavorites = existingFavorites.filter((f: any) => f.name !== displayName);
         const { error } = await supabase
           .from('profiles')
@@ -215,7 +202,6 @@ function ResultContent() {
         if (error) throw error;
         setIsSaved(false);
       } else {
-        // Add to favorites
         const newFavorite = {
           name: displayName,
           type: displayType,
@@ -239,7 +225,6 @@ function ResultContent() {
     }
   };
 
-  // Check if item is already favorited on load
   useEffect(() => {
     const checkFavorite = async () => {
       const { data: { user } } = await supabase.auth.getUser();
@@ -266,7 +251,6 @@ function ResultContent() {
   return (
     <PageShell>
       <motion.div initial={{ opacity: 0 }} animate={{ opacity: 1 }} className="max-w-6xl mx-auto">
-        {/* Breadcrumb */}
         <motion.div initial={{ opacity: 0, x: isRTL ? 20 : -20 }} animate={{ opacity: 1, x: 0 }} className="mb-8">
           <button onClick={() => router.back()} className="group inline-flex items-center gap-2 text-xs font-semibold tracking-[0.15em] uppercase text-[#A08E70] hover:text-[#E6B23C] transition-colors bg-transparent border-none p-0 outline-none">
             <span className={`transition-transform ${isRTL ? 'group-hover:translate-x-1' : 'group-hover:-translate-x-1'}`}>
@@ -278,7 +262,6 @@ function ResultContent() {
 
         <div className={`grid ${hasImage ? 'lg:grid-cols-[0.75fr_1.25fr]' : 'lg:grid-cols-1 max-w-2xl mx-auto'} gap-12 items-start`}>
 
-          {/* ── Left: Image card ──────────────────────────────────────── */}
           {hasImage && (
             <motion.div
               initial={{ opacity: 0, x: -40 }}
@@ -302,7 +285,6 @@ function ResultContent() {
                   />
                 )}
 
-                {/* Type badge — dynamic */}
                 <div className="absolute top-5 left-5 z-20 flex flex-col gap-2">
                   <div className="px-3 py-1.5 bg-gradient-to-r from-[#E6B23C] to-[#D4A030] rounded-full text-[10px] font-bold tracking-[0.2em] text-[#0D0A07] uppercase shadow-[0_4px_15px_rgba(230,178,60,0.3)] flex items-center gap-1.5">
                     {displayType === "pharaoh" ? <Crown size={10} /> : <MapPin size={10} />}
@@ -315,7 +297,6 @@ function ResultContent() {
                   )}
                 </div>
 
-                {/* Title overlay on card */}
                 <div className="absolute bottom-10 left-8 z-20 right-8">
                   <motion.h1
                     initial={{ y: 20, opacity: 0 }}
@@ -330,14 +311,12 @@ function ResultContent() {
             </motion.div>
           )}
 
-          {/* ── Right: Papyrus panel + Actions ───────────────────────── */}
           <motion.div
             initial={{ opacity: 0, x: 30 }}
             animate={{ opacity: 1, x: 0 }}
             transition={{ delay: 0.3, duration: 0.7 }}
             className="flex flex-col justify-center gap-10"
           >
-            {/* Papyrus card */}
             <motion.div
               initial={{ scale: 0.95, opacity: 0 }}
               animate={{ scale: 1, opacity: 1 }}
@@ -346,7 +325,6 @@ function ResultContent() {
             >
 
 
-              {/* Entity name heading */}
               <h2
                 className="text-2xl md:text-4xl font-bold text-[#1A1005] uppercase tracking-[0.06em] mb-4 md:mb-5 border-b border-[#1A1005]/10 pb-3 md:pb-4"
                 style={{ fontFamily: "var(--font-cormorant), serif" }}
@@ -354,7 +332,6 @@ function ResultContent() {
                 {cleanDisplayName}
               </h2>
 
-              {/* Description */}
               <p
                 className="text-[#1A1005] leading-[1.8] text-[15px] md:text-lg font-medium text-justify"
                 style={{ fontFamily: "var(--font-cormorant), serif" }}
@@ -362,7 +339,6 @@ function ResultContent() {
                 &quot;{displayDescription}&quot;
               </p>
 
-              {/* Metadata rows — Only rendered when values are non-null */}
               {(dynasty || period || location || displayType === "pharaoh") && (
                 <div className="mt-5 md:mt-6 pt-4 border-t border-[#1A1005]/10 flex flex-col gap-2.5 md:gap-3 font-cormorant">
                   {displayType === "pharaoh" && (
@@ -401,12 +377,10 @@ function ResultContent() {
               </div>
             </motion.div>
 
-            {/* Actions: Video & Chat — per sub-entity when composite */}
             <div className="flex flex-col gap-5">
               {!hideMediaButtons && (
                 <>
                   {compositeEntitiesData.length > 0 ? (
-                    /* ── Composite: one row per sub-entity ────────── */
                     <div className="flex flex-col gap-4">
                       {compositeEntitiesData.map((sub) => {
                         const cleanSubName = cleanEntityName(sub.name);
@@ -432,7 +406,6 @@ function ResultContent() {
                       })}
                     </div>
                   ) : (
-                    /* ── Normal: single row ───────────────────────── */
                     <div className="grid sm:grid-cols-2 gap-5">
                       <Button
                         onClick={() => router.push(`/video?entity=${encodeURIComponent(displayName)}&type=${displayType}&dynasty=${encodeURIComponent(dynasty || '')}&period=${encodeURIComponent(period || '')}&dbType=${encodeURIComponent(dbType || '')}&location=${encodeURIComponent(location || '')}`)}

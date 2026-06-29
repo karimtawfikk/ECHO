@@ -140,7 +140,6 @@ function VideoPageContent() {
                     transition={{ repeat: Infinity, duration: 12, ease: "linear" }}
                     className="absolute inset-2 border border-dotted border-[#E6B23C]/20 rounded-full"
                   />
-                  {/* Central Pulsing Icon */}
                   <motion.div
                     animate={{ scale: [1, 1.2, 1], opacity: [0.5, 1, 0.5] }}
                     transition={{ repeat: Infinity, duration: 2 }}

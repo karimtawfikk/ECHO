@@ -37,7 +37,6 @@ export default function ProfilePage() {
         const cleanNameStr = cleanEntityName(name);
         const normalized = cleanNameStr.toLowerCase().trim();
 
-        // Static local folder fallback for the 10 trending entities
         const trendingImages: Record<string, string> = {
             "akhenaton": "/images/pharaohs/Akhenaton.JPG",
             "cleopatra vii philopator": "/images/pharaohs/Cleopatra%20VII%20Philopator.png",
@@ -58,7 +57,6 @@ export default function ProfilePage() {
         const safeType = (type || "").toLowerCase();
         const entityType = safeType.includes("pharaoh") ? "pharaoh" : "landmark";
 
-        // Try dynamic entities first to find image from DB
         if (dbEntities) {
             const list = entityType === "pharaoh" ? dbEntities.pharaohs : dbEntities.landmarks;
             const found = list.find((e: any) => e.name.toLowerCase() === name.toLowerCase());
@@ -76,7 +74,6 @@ export default function ProfilePage() {
         const safeType = (type || "").toLowerCase();
         const entityType = safeType.includes("pharaoh") ? "pharaoh" : "landmark";
 
-        // Try searching in the dynamically fetched dbEntities first!
         if (dbEntities) {
             const list = entityType === "pharaoh" ? dbEntities.pharaohs : dbEntities.landmarks;
             const found = list.find((e: any) => e.name.toLowerCase() === name.toLowerCase());
@@ -122,7 +119,6 @@ export default function ProfilePage() {
     useEffect(() => {
         const fetchProfile = async () => {
             try {
-                // Fetch dynamic dbEntities from DB
                 try {
                     const dbRes = await fetch(`${baseUrl}/api/v1/entities/all`);
                     if (dbRes.ok) {
@@ -144,7 +140,6 @@ export default function ProfilePage() {
                     if (data) setProfileData(data);
                     setUser(user);
 
-                    // Fetch history records from dynamic tables
                     const { data: recData } = await supabase
                         .from('recognition_history')
                         .select('*')
@@ -189,7 +184,6 @@ export default function ProfilePage() {
         }
     };
 
-    // Mock Data
     const userData = {
         name: profileData?.full_name || user?.user_metadata?.full_name || user?.email?.split('@')[0] || "Explorer",
         username: profileData?.username || user?.user_metadata?.user_name || user?.email?.split('@')[0],
@@ -260,13 +254,11 @@ export default function ProfilePage() {
         <PageShell>
             <div className="max-w-2xl mx-auto pt-0 pb-20 px-4">
 
-                {/* ── MAIN PROFILE CARD ────────────────────────────────── */}
                 <motion.div
                     initial={{ opacity: 0, y: 20 }}
                     animate={{ opacity: 1, y: 0 }}
                     className="relative rounded-[3rem] bg-[#0D0A07]/80 backdrop-blur-xl overflow-hidden shadow-[0_0_50px_rgba(0,0,0,0.5)]"
                 >
-                    {/* Avatar & Action Button (Now at the very top) */}
                     <div className="px-8 flex justify-between items-end pt-8 relative z-10">
                         <div className="h-32 w-32 rounded-full border-4 border-[#0D0A07] bg-[#1A1208] overflow-hidden shadow-2xl">
                             {userData.avatar ? (
@@ -284,7 +276,6 @@ export default function ProfilePage() {
                         </Link>
                     </div>
 
-                    {/* Simple User Info */}
                     <div className="px-8 mt-6 mb-8">
                         <h1 className="text-3xl font-bold text-[#F5E6D0]">
                             {userData.name}
@@ -297,7 +288,6 @@ export default function ProfilePage() {
                         </div>
                     </div>
 
-                    {/* ── TABS ─────────────────────────────────────────────── */}
                     <div className="flex bg-[#0D0A07]/20">
                         {(["saved", "chats", "history"] as TabType[]).map((tab) => (
                             <button
@@ -318,7 +308,6 @@ export default function ProfilePage() {
                         ))}
                     </div>
 
-                    {/* ── TAB CONTENT ─────────────────────────────────────── */}
                     <div className="min-h-[400px]">
                         <AnimatePresence mode="wait">
                             <motion.div
@@ -370,7 +359,6 @@ export default function ProfilePage() {
 
                                 {activeTab === "history" && (
                                     <>
-                                        {/* Dynamic Sub-Filter Buttons */}
                                         <div className="flex justify-center gap-3 px-6 py-4 bg-[#0D0A07]/40 border-b border-[#E6B23C]/5">
                                             {([
                                                 { id: "all", label: language === "AR" ? "الكل" : language === "FR" ? "Tout" : "All" },
@@ -381,8 +369,8 @@ export default function ProfilePage() {
                                                     key={filter.id}
                                                     onClick={() => setHistoryFilter(filter.id)}
                                                     className={`px-4 py-1.5 rounded-full text-[10px] font-bold uppercase tracking-wider transition-all duration-300 ${historyFilter === filter.id
-                                                            ? "bg-[#E6B23C] text-[#0D0A07] shadow-[0_2px_10px_rgba(230,178,60,0.3)]"
-                                                            : "bg-[#E6B23C]/5 border border-[#E6B23C]/10 text-[#A08E70] hover:text-[#F5E6D0] hover:border-[#E6B23C]/20"
+                                                        ? "bg-[#E6B23C] text-[#0D0A07] shadow-[0_2px_10px_rgba(230,178,60,0.3)]"
+                                                        : "bg-[#E6B23C]/5 border border-[#E6B23C]/10 text-[#A08E70] hover:text-[#F5E6D0] hover:border-[#E6B23C]/20"
                                                         }`}
                                                 >
                                                     {filter.label}
@@ -390,7 +378,6 @@ export default function ProfilePage() {
                                             ))}
                                         </div>
 
-                                        {/* History items list */}
                                         {filteredHistory.length > 0 ? (
                                             filteredHistory.map((entry, i) => (
                                                 <div
@@ -452,7 +439,6 @@ export default function ProfilePage() {
                     </div>
                 </motion.div>
 
-                {/* ── TRANSLATION DETAIL MODAL ────────────────────────── */}
                 <AnimatePresence>
                     {selectedTranslation && (
                         <motion.div

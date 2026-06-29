@@ -65,7 +65,6 @@ export default function LoginPage() {
       return;
     }
 
-    // Email validation
     const emailRegex = /^[^\s@]+@[^\s@]+\.[^\s@]+$/;
     if (!emailRegex.test(email)) {
       setError("Please enter a valid email address with a domain (e.g., name@domain.com).");
@@ -96,7 +95,6 @@ export default function LoginPage() {
       setError(error.message);
       setLoading(false);
     } else if (data.session) {
-      // Instant login (works if 'Confirm email' is OFF in Supabase)
       window.location.href = "/";
     } else if (isSignUp) {
       setError("Check your email for the confirmation link!");
@@ -136,7 +134,6 @@ export default function LoginPage() {
 
         <div className="relative z-10 w-full max-w-6xl px-4 flex flex-col md:flex-row items-center gap-8 md:gap-16 pt-2 pb-12 md:py-12">
 
-          {/* Left Side: Branding / Story */}
           <motion.div
             initial={{ opacity: 0, x: -30 }}
             animate={{ opacity: 1, x: 0 }}
@@ -150,7 +147,6 @@ export default function LoginPage() {
             </p>
           </motion.div>
 
-          {/* Right Side: The Form */}
           <motion.div
             initial={{ opacity: 0, scale: 0.95 }}
             animate={{ opacity: 1, scale: 1 }}
@@ -318,7 +314,6 @@ export default function LoginPage() {
                     <div className="flex-1 border-t border-white/5"></div>
                   </div>
 
-                  {/* Google Login */}
                   <Button
                     onClick={handleGoogleLogin}
                     variant="outline"
