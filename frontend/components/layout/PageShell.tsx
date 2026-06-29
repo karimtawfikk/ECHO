@@ -131,7 +131,6 @@ export default function PageShell({
                                 className={`text-lg font-bold tracking-[0.2em] uppercase transition-all flex items-center gap-4 py-2 ${isActive ? "text-[#E6B23C]" : "text-[#F5E6D0] hover:text-[#E6B23C]"
                                   }`}
                               >
-                                {isActive && <div className="h-2 w-2 rounded-full bg-[#E6B23C] shadow-[0_0_8px_#E6B23C]" />}
                                 {link.name}
                               </Link>
 
