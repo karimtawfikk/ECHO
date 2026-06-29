@@ -92,11 +92,11 @@ export default function PageShell({
           {/* Mobile Top Row: Logo & Controls */}
           <div className="w-full min-h-[40px] flex justify-between items-center md:contents relative">
 
-            {/* Mobile Hamburger Menu & Dropdown Links */}
+            {/* Mobile Hamburger Menu & Sidebar Links */}
             <div className="md:hidden flex items-center flex-1 justify-start">
               {!minimal && (
-                <button onClick={() => setMenuOpen(!menuOpen)} className="p-2 -ml-2 text-[#E6B23C] hover:bg-[#E6B23C]/10 rounded-full transition-colors z-50">
-                  {menuOpen ? <X size={20} /> : <Menu size={20} />}
+                <button onClick={() => setMenuOpen(true)} className="p-2 -ml-2 text-[#E6B23C] hover:bg-[#E6B23C]/10 rounded-full transition-colors z-[40]">
+                  <Menu size={20} />
                 </button>
               )}
 
@@ -108,33 +108,51 @@ export default function PageShell({
                       animate={{ opacity: 1 }}
                       exit={{ opacity: 0 }}
                       onClick={() => setMenuOpen(false)}
-                      className="fixed inset-0 z-[40]"
+                      className="fixed inset-0 bg-black/60 backdrop-blur-sm z-[100]"
                     />
                     <motion.div
-                      initial={{ opacity: 0, y: 10, scale: 0.95 }}
-                      animate={{ opacity: 1, y: 0, scale: 1 }}
-                      exit={{ opacity: 0, y: 10, scale: 0.95 }}
-                      className={`absolute top-full left-0 mt-4 w-48 py-2 bg-[#0D0A07]/95 backdrop-blur-2xl border border-[#E6B23C]/20 rounded-2xl shadow-[0_20px_50px_rgba(0,0,0,0.5)] overflow-hidden z-[50]`}
+                      initial={{ x: "-100%" }}
+                      animate={{ x: 0 }}
+                      exit={{ x: "-100%" }}
+                      transition={{ type: "spring", damping: 25, stiffness: 200 }}
+                      className="fixed top-0 left-0 h-[100dvh] w-[80vw] max-w-sm bg-[#0D0A07] border-r border-[#E6B23C]/20 z-[101] shadow-[20px_0_50px_rgba(0,0,0,0.5)] flex flex-col pt-16 px-8"
                     >
-                      <div className="px-4 py-2 mb-1 border-b border-[#E6B23C]/10">
-                        <span className="text-[9px] font-bold tracking-[0.2em] text-[#E6B23C]/50 uppercase">Menu</span>
+                      <button
+                        onClick={() => setMenuOpen(false)}
+                        className="absolute top-6 right-6 p-2 rounded-full bg-white/5 text-[#A08E70] hover:text-[#F5E6D0] hover:bg-white/10 transition-all"
+                      >
+                        <X size={20} />
+                      </button>
+
+                      <div className="flex flex-col gap-6 mt-12">
+                        {navLinks.filter(l => l.href !== "/").map((link, index, array) => {
+                          const isActive = pathname === link.href || (link.href === "/upload" && pathname.startsWith("/result"));
+                          return (
+                            <div key={link.name} className="flex flex-col items-center">
+                              <Link
+                                href={link.href}
+                                onClick={() => setMenuOpen(false)}
+                                className={`text-xl font-bold tracking-[0.2em] uppercase transition-all flex items-center gap-4 py-2 ${
+                                  isActive ? "text-[#E6B23C]" : "text-[#F5E6D0] hover:text-[#E6B23C]"
+                                }`}
+                              >
+                                {isActive && <div className="h-2 w-2 rounded-full bg-[#E6B23C] shadow-[0_0_8px_#E6B23C]" />}
+                                {link.name}
+                              </Link>
+                              
+                              {index < array.length - 1 && (
+                                <motion.div
+                                  initial={{ scaleX: 0 }}
+                                  animate={{ scaleX: 1 }}
+                                  transition={{ delay: 0.1 * (index + 1), duration: 0.8, ease: "easeOut" }}
+                                  className="w-full h-[1px] mt-6"
+                                  style={{ background: "linear-gradient(90deg, transparent, #E6B23C, transparent)" }}
+                                />
+                              )}
+                            </div>
+                          );
+                        })}
                       </div>
-                      {navLinks.filter(l => l.href !== "/").map((link) => {
-                        const isActive = pathname === link.href || (link.href === "/upload" && pathname.startsWith("/result"));
-                        return (
-                          <Link
-                            key={link.name}
-                            href={link.href}
-                            onClick={() => setMenuOpen(false)}
-                            className={`w-full flex items-center justify-between px-4 py-3 text-[11px] font-bold tracking-widest uppercase transition-all hover:bg-[#E6B23C]/5 ${
-                              isActive ? "text-[#E6B23C]" : "text-[#A08E70]"
-                            }`}
-                          >
-                            {link.name}
-                            {isActive && <div className="h-1.5 w-1.5 rounded-full bg-[#E6B23C] shadow-[0_0_5px_#E6B23C]" />}
-                          </Link>
-                        );
-                      })}
                     </motion.div>
                   </>
                 )}
