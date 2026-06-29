@@ -1,4 +1,4 @@
-# ECHO – AI-Powered Ancient Egypt Explorer
+# ECHO – MULTIMODAL AI SYSTEM FOR THE INTERACTIVE EXPLORATION OF ANCIENT EGYPT
 
 ECHO is a multimodal AI system designed to explore Ancient Egypt through computer vision, natural language processing, and generative AI.
 

@@ -710,18 +710,6 @@ class HieroglyphDetectionRuntime:
             "detection_confidence": float(s["confidence"]),
         } for s in classified_symbols]
 
-        try:
-            os.makedirs("debug", exist_ok=True)
-            debug_img = image_bgr.copy()
-            for s in classified_symbols:
-                x1, y1, x2, y2 = [int(c) for c in s["bbox"]]
-                label = f"{s.get('gardiner_code', '???')} {s.get('classification_confidence', 0.0):.2f}"
-                cv2.rectangle(debug_img, (x1, y1), (x2, y2), (0, 0, 255), 2)
-                cv2.putText(debug_img, label, (x1, y1 - 5), cv2.FONT_HERSHEY_SIMPLEX, 0.5, (0, 0, 255), 1)
-            cv2.imwrite("debug/annotated_debug.jpg", debug_img)
-            print(f"[hieroglyph] Saved debug visualization to debug/annotated_debug.jpg", flush=True)
-        except Exception as e:
-            print(f"[hieroglyph] WARNING: Could not save debug image: {e}", flush=True)
 
         _, buf = cv2.imencode(".jpg", image_bgr)
 
