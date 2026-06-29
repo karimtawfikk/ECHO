@@ -5,7 +5,7 @@ import Link from "next/link";
 import { usePathname } from "next/navigation";
 import RouteTransition from "../animations/RouteTransition";
 import { motion, AnimatePresence } from "framer-motion";
-import { Sparkles, User, Globe, ChevronDown, MoreHorizontal, X } from "lucide-react";
+import { Sparkles, User, Globe, ChevronDown, MoreHorizontal, X, Menu } from "lucide-react";
 import { useLanguage } from "../../context/LanguageContext";
 import type { Language } from "../../lib/i18n/dictionaries";
 import { useEffect } from "react";
@@ -92,37 +92,51 @@ export default function PageShell({
           {/* Mobile Top Row: Logo & Controls */}
           <div className="w-full min-h-[40px] flex justify-between items-center md:contents relative">
 
-            {/* Mobile Hamburger Menu & Inline Links */}
+            {/* Mobile Hamburger Menu & Dropdown Links */}
             <div className="md:hidden flex items-center flex-1 justify-start">
               {!minimal && (
                 <button onClick={() => setMenuOpen(!menuOpen)} className="p-2 -ml-2 text-[#E6B23C] hover:bg-[#E6B23C]/10 rounded-full transition-colors z-50">
-                  {menuOpen ? <X size={20} /> : <MoreHorizontal size={20} />}
+                  {menuOpen ? <X size={20} /> : <Menu size={20} />}
                 </button>
               )}
 
               <AnimatePresence>
                 {menuOpen && !minimal && (
-                  <motion.div
-                    initial={{ opacity: 0, x: -10, width: 0 }}
-                    animate={{ opacity: 1, x: 0, width: "auto" }}
-                    exit={{ opacity: 0, x: -10, width: 0 }}
-                    className="flex items-center gap-2.5 overflow-hidden whitespace-nowrap ml-1"
-                  >
-                    {navLinks.filter(l => l.href !== "/").map((link) => {
-                      const isActive = pathname === link.href || (link.href === "/upload" && pathname.startsWith("/result"));
-                      return (
-                        <Link
-                          key={link.name}
-                          href={link.href}
-                          onClick={() => setMenuOpen(false)}
-                          className={`text-[8px] font-bold tracking-widest uppercase transition-colors ${isActive ? "text-[#E6B23C]" : "text-[#A08E70] hover:text-[#F5E6D0]"
+                  <>
+                    <motion.div
+                      initial={{ opacity: 0 }}
+                      animate={{ opacity: 1 }}
+                      exit={{ opacity: 0 }}
+                      onClick={() => setMenuOpen(false)}
+                      className="fixed inset-0 z-[40]"
+                    />
+                    <motion.div
+                      initial={{ opacity: 0, y: 10, scale: 0.95 }}
+                      animate={{ opacity: 1, y: 0, scale: 1 }}
+                      exit={{ opacity: 0, y: 10, scale: 0.95 }}
+                      className={`absolute top-full left-0 mt-4 w-48 py-2 bg-[#0D0A07]/95 backdrop-blur-2xl border border-[#E6B23C]/20 rounded-2xl shadow-[0_20px_50px_rgba(0,0,0,0.5)] overflow-hidden z-[50]`}
+                    >
+                      <div className="px-4 py-2 mb-1 border-b border-[#E6B23C]/10">
+                        <span className="text-[9px] font-bold tracking-[0.2em] text-[#E6B23C]/50 uppercase">Menu</span>
+                      </div>
+                      {navLinks.filter(l => l.href !== "/").map((link) => {
+                        const isActive = pathname === link.href || (link.href === "/upload" && pathname.startsWith("/result"));
+                        return (
+                          <Link
+                            key={link.name}
+                            href={link.href}
+                            onClick={() => setMenuOpen(false)}
+                            className={`w-full flex items-center justify-between px-4 py-3 text-[11px] font-bold tracking-widest uppercase transition-all hover:bg-[#E6B23C]/5 ${
+                              isActive ? "text-[#E6B23C]" : "text-[#A08E70]"
                             }`}
-                        >
-                          {link.name}
-                        </Link>
-                      );
-                    })}
-                  </motion.div>
+                          >
+                            {link.name}
+                            {isActive && <div className="h-1.5 w-1.5 rounded-full bg-[#E6B23C] shadow-[0_0_5px_#E6B23C]" />}
+                          </Link>
+                        );
+                      })}
+                    </motion.div>
+                  </>
                 )}
               </AnimatePresence>
             </div>
