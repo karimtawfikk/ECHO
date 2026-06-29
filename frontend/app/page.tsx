@@ -100,7 +100,7 @@ export default function HomePage() {
           >
 
             <img
-              src="/images/backgrounds/xxx.png"
+              src="/images/backgrounds/xxxx.png"
               alt="Background Desktop"
               className="hidden md:block w-full h-full object-cover object-top opacity-60"
               onError={(e) => { e.currentTarget.style.display = 'none'; }}
