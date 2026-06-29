@@ -12,5 +12,4 @@ class ChatMessageRewriter(Base):
     content = Column(String, nullable=False)
     created_at = Column(DateTime, nullable=True, server_default=text("now()"))
 
-    # Relationships
     conversation = relationship("Conversation", back_populates="rewritten_messages")

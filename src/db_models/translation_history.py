@@ -12,5 +12,4 @@ class TranslationHistory(Base):
     image_path = Column(String, nullable=False)
     translation = Column(String, nullable=False)
 
-    # Relationships
     user = relationship("Profile", back_populates="translation_history")

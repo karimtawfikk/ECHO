@@ -1,5 +1,3 @@
-
-
 from .schemas import ChatRequest, SpeechRequest, SpeechMetadata, InitSessionRequest
 from .runtime import chatbot_runtime
 

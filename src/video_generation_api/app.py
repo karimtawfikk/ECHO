@@ -13,7 +13,6 @@ import os
 
 app = FastAPI(title="ECHO Video Generation API", version="0.1.0")
 
-# Serve the outputs folder so the frontend can download files directly
 os.makedirs("data/generated_videos", exist_ok=True)
 app.mount("/outputs", StaticFiles(directory="data/generated_videos"), name="outputs")
 
@@ -34,16 +33,13 @@ def healthcheck() -> HealthResponse:
 def generate_video(request: VideoGenerationRequest, background_tasks: BackgroundTasks):
     filename = f"{request.entity_name.replace(' ', '_')}_final_video.mp4"
     
-    # 1. If it's already currently generating, don't start a duplicate job
     if job_status.get(request.entity_name) == "processing":
         return {"status": "started"}
         
-    # 2. If the video is already completely generated (CACHE HIT!)
     if os.path.exists(f"data/generated_videos/{filename}"):
         job_status[request.entity_name] = "ready"
         return {"status": "started"}
         
-    # 3. Otherwise, we need to generate it from scratch
     job_status[request.entity_name] = "processing"
     
     def run_generation():
@@ -63,8 +59,6 @@ def generate_video(request: VideoGenerationRequest, background_tasks: Background
 def get_status(entity_name: str):
     status = job_status.get(entity_name, "unknown")
     
-    # If it's actively processing, don't check the file yet because FFmpeg creates 
-    # the file immediately and writes to it over several minutes.
     if status not in ["processing", "failed"]:
         filename = f"{entity_name.replace(' ', '_')}_final_video.mp4"
         if os.path.exists(f"data/generated_videos/{filename}"):

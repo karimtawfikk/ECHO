@@ -43,10 +43,6 @@ def detect_hieroglyphs(request: HieroglyphTranslationRequest) -> TranslationResu
 
 @app.post("/translate/stream")
 async def detect_hieroglyphs_stream(request: HieroglyphTranslationRequest):
-    """
-    Streaming version of the translate endpoint.
-    Sends progress updates (phase 1-4) as they happen.
-    """
     queue = asyncio.Queue()
     loop = asyncio.get_event_loop()
 
@@ -60,7 +56,6 @@ async def detect_hieroglyphs_stream(request: HieroglyphTranslationRequest):
         except Exception as e:
             loop.call_soon_threadsafe(queue.put_nowait, {"type": "error", "message": str(e)})
 
-    # Start pipeline in a background thread
     loop.run_in_executor(executor, run_pipeline)
 
     async def event_generator():

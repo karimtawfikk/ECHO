@@ -7,10 +7,10 @@ class Pharaoh(Base):
     __tablename__ = "pharaohs"
 
     id = Column(Integer, primary_key=True, index=True)
-    name = Column(String, nullable=False)                # e.g., "Ramesses II"
-    dynasty = Column(String,nullable=True)                             # dynasty info
+    name = Column(String, nullable=False)       
+    dynasty = Column(String,nullable=True)                        
     type = Column(String, nullable=True)  
-    description = Column(String,nullable=True)                         # metadata
+    description = Column(String,nullable=True)                 
     period = Column(String,nullable=True)
     composite_entity = Column(String,nullable=True)
     gender = Column(String, nullable=True)   

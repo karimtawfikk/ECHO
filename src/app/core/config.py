@@ -2,8 +2,7 @@ import os
 from pathlib import Path
 from dotenv import load_dotenv
 
-# Load .env from the ECHO root (not echo-backend's local copy)
-_ECHO_ROOT = Path(__file__).resolve().parents[3]  # config.py -> core/ -> app/ -> echo-backend/ -> ECHO/
+_ECHO_ROOT = Path(__file__).resolve().parents[3]  
 load_dotenv(_ECHO_ROOT / ".env")
 
 class Settings:
@@ -14,7 +13,6 @@ class Settings:
         "http://localhost:3000",
         "http://127.0.0.1:3000"
     ]
-    # Path to models (absolute)
     MODEL_PATH: str = os.path.join(BASE_DIR, "ml_models", "recognition_models")
     
 settings = Settings()

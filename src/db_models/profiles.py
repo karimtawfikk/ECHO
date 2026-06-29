@@ -15,7 +15,6 @@ class Profile(Base):
     created_at = Column(DateTime, nullable=False, server_default=text("timezone('utc'::text, now())"))
     updated_at = Column(DateTime, nullable=True)
 
-    # Relationships
     recognition_history = relationship("RecognitionHistory", back_populates="user", cascade="all, delete-orphan")
     translation_history = relationship("TranslationHistory", back_populates="user", cascade="all, delete-orphan")
     conversations = relationship("Conversation", back_populates="user", cascade="all, delete-orphan")

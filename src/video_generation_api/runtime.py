@@ -1017,13 +1017,11 @@ class VideoGenerationRuntime:
         config = config or VideoPipelineConfig()
         safe_name = entity_name.replace(" ", "_")
         
-        # Define unique paths for this specific generation job
         output_dir = Path(config.output_dir)
         job_temp_dir = output_dir / "temp" / safe_name
         temp_frames_dir = job_temp_dir / "frames"
         temp_clips_dir = job_temp_dir / "clips"
         
-        # Ensure directories exist
         output_dir.mkdir(exist_ok=True)
         job_temp_dir.mkdir(parents=True, exist_ok=True)
         temp_frames_dir.mkdir(parents=True, exist_ok=True)

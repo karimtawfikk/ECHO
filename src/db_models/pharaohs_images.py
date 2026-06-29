@@ -8,9 +8,9 @@ class PharaohImage(Base):
 
     id = Column(Integer, primary_key=True, index=True)
     pharaoh_id = Column(Integer, ForeignKey("pharaohs.id"))
-    image_path = Column(String)            # optional: file path or URL
-    image_embedding = Column(Vector(1024)) # embedding of this image
-    image_description = Column(String)       # optional metadata about the image
+    image_path = Column(String)          
+    image_embedding = Column(Vector(1024))
+    image_description = Column(String)      
     
     pharaoh = relationship("Pharaoh", back_populates="images")
 
