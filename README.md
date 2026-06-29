@@ -170,9 +170,9 @@ Users upload an image containing hieroglyphs. The system detects symbols, classi
 The system contains structured data about Landmarks, Pharaohs, User Profiles, Conversations, Chat Messages, Recognition History, and Translation History. Relationships are modeled using SQLAlchemy ORM and version-controlled using Alembic migrations.
 
 ## AI Techniques Used
-* Convolutional Neural Networks (CNNs) (YOLOv8 & Vision Models)
+* Convolutional Neural Networks (CNNs)
 * Object Detection
-* Transformers & Large Language Models
+* Transformers & Large Language Models (LLMs)
 * Retrieval-Augmented Generation (RAG)
 * Multimodal Embeddings & Vector Similarity Search
 * Density-Based Spatial Clustering
