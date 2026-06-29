@@ -10,11 +10,9 @@ This project was developed as a Graduation Project in Artificial Intelligence.
 
 Ancient Egyptian history is rich but often difficult to explore interactively. ECHO bridges this gap by combining:
 
-* Image recognition
-* Large Language Models
-* Embedding-based retrieval
-* Video generation
-* Hieroglyph translation
+* Computer Vision
+* NLP
+* Generative AI
 
 The system transforms static historical content into an intelligent interactive experience.
 
@@ -76,26 +74,34 @@ flowchart LR
 
 ### Main Components:
 * **API Gateway (`src/app`)**: Built with FastAPI. Handles frontend authentication, database CRUD operations, and forwards AI-heavy requests to the dedicated microservices.
-* **Recognition API (`src/recognition_api`)**: Dedicated microservice for Landmark and Statue embedding extraction and recognition.
+* **Recognition API (`src/recognition_api`)**: Dedicated microservice for Landmark and Statue recognition Using CNNs.
 * **Chatbot API (`src/chatbot_api`)**: Dedicated microservice for RAG, Groq LLM streaming, and Text-To-Speech generation.
-* **Video Generation API (`src/video_generation_api`)**: Dedicated pipeline for automated historical video compilation.
-* **Hieroglyph Detection API (`src/hieroglyph_api`)**: Dedicated microservice to detect, classify, and translate Ancient Egyptian hieroglyphs.
-* **Databases**: PostgreSQL (Relational) + ChromaDB (Vector).
+* **Video Generation API (`src/video_generation_api`)**: Dedicated microservice for automated historical video compilation.
+* **Hieroglyph Detection API (`src/hieroglyph_api`)**: Dedicated microservice to detect, classify, and translate Ancient Egyptian hieroglyphs using CNNs and Transformers.
+* **Databases**: PostgreSQL.
+* **Cloud Storage**: Cloudflare R2 Storage.
+
 
 ## Project Structure
 
 ```text
 ECHO/
-|-- frontend/                  # Next.js Application
-|-- src/                       # Microservices Workspace
-|   |-- app/                   # 🚀 API Gateway & Orchestrator
-|   |-- recognition_api/       # 🔍 Landmark & Statue Recognition Microservice
-|   |-- chatbot_api/           # 🤖 Chatbot & Voice Microservice
-|   |-- video_generation_api/  # 🎥 Video Compiler Microservice
-|   |-- hieroglyph_api/        # 𓊹 Hieroglyph Translation Microservice
-|   |-- db/                    # PostgreSQL Models & Sessions
-|-- infra/                     # Code for Dockerizing services
 |-- alembic/                   # Database Migrations
+|-- data/                      # Local data sets & assets
+|-- experiments/               # Notebooks & model experiments
+|-- frontend/                  # Next.js Application
+|-- infra/                     # Dockerfiles & infrastructure config
+|-- requirements/              # Python dependencies & environments
+|-- scripts/                   # Utility & automation scripts
+|-- src/                       # Microservices Workspace
+|   |-- app/                   # API Gateway & Orchestrator
+|   |-- chatbot_api/           # Chatbot Microservice
+|   |-- db/                    # Database connection & sessions
+|   |-- db_models/             # SQLAlchemy ORM Models
+|   |-- hieroglyph_api/        # Hieroglyph Translation Microservice
+|   |-- ml_models/             # Machine Learning models & weights
+|   |-- recognition_api/       # Landmark & Statue Recognition Microservice
+|   |-- video_generation_api/  # Video Generation Microservice
 |-- docker-compose.yml         # Docker Compose configuration for AI modules
 |-- start_all.sh               # Shell script to start all services natively
 |-- README.md
@@ -146,28 +152,29 @@ npm run dev
 ## Core Modules
 
 ### 1. Landmark & Statue Recognition
-Users upload an image of a historical landmark or statue. The system exacts visual embeddings and retrieves structured metadata from PostgreSQL.
+Users upload an image of a historical landmark or statue. The system extracts visual embeddings and retrieves structured metadata from PostgreSQL.
 
 ### 2. Historical Video Generation
-After recognition, the system generates a structured historical narration and scene descriptions derived strictly from verified data, converting historical text into short educational videos.
+The system uses text embeddings from generated scripts via LLM to retrieve relevant historical images and dynamically compiles them with generated Text-to-Speech (TTS) narration to create short educational videos based on verified historical scripts.
 
 ### 3. Conversational Historical Chatbot
-Users can interact with the recognized entity through a conversational interface using RAG. The system grounds responses in stored metadata and maintains historical accuracy.
+Users can interact with the recognized entity through a conversational interface using Agentic RAG. The system grounds responses in stored metadata and maintains historical accuracy.
 
 ### 4. Hieroglyph Translation
 Users upload an image containing hieroglyphs. The system detects symbols, classifies them, and generates structured translations via LLM reasoning.
 
 ## Database Design
 
-The system contains structured entities such as Landmarks, Pharaohs, Builders, Dynasties, and Historical Events. Relationships are modeled using SQLAlchemy ORM and version-controlled using Alembic migrations.
+The system contains structured data about Landmarks, Pharaohs, User Profiles, Conversations, Chat Messages, Recognition History, and Translation History. Relationships are modeled using SQLAlchemy ORM and version-controlled using Alembic migrations.
 
 ## AI Techniques Used
-* Multimodal Embeddings
-* Similarity Search (ChromaDB)
+* Convolutional Neural Networks (CNNs) (YOLOv8 & Vision Models)
+* Object Detection
+* Transformers & Large Language Models
 * Retrieval-Augmented Generation (RAG)
-* Diffusion Models
-* Grounded Response Control
-* Object Detection & Classification
+* Multimodal Embeddings & Vector Similarity Search
+* Density-Based Spatial Clustering
+* Text-to-Speech (TTS) and Speech-to-Text (STT) Synthesis
 
 ## Academic Context
 This project was developed as part of an Artificial Intelligence graduation project to design a scalable AI system combining computer vision, NLP, and database systems.
