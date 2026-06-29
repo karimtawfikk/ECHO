@@ -10,7 +10,7 @@ export default function Footer() {
     return (
         <footer className="mt-40 border-t border-[#E6B23C]/10 bg-[#0D0A07] relative overflow-hidden">
             {/* Subtle glow background */}
-            <div className="absolute top-0 left-1/2 -translate-x-1/2 w-[800px] h-[300px] opacity-[0.03] pointer-events-none"
+            <div className="absolute top-0 left-1/2 -translate-x-1/2 w-[1000px] h-[800px] md:w-[800px] md:h-[300px] opacity-[0.03] pointer-events-none"
                 style={{ background: "radial-gradient(circle, #E6B23C 0%, transparent 70%)" }}
             />
 
