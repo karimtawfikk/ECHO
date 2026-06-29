@@ -144,7 +144,7 @@ function ResultContent() {
   const getAssumedImageUrl = (name: string, isPharaoh: boolean) => {
     if (isPharaoh) {
       if (name === "Akhenaton") return `/images/pharaohs/Akhenaton.JPG`;
-      if (name === "Cleopatra VII Philopator") return `/images/pharaohs/Cleopatra%20VII%20Philopator.jpg`;
+      if (name === "Cleopatra VII Philopator") return `/images/pharaohs/Cleopatra%20VII%20Philopator.png`;
       if (name === "Hatshepsut") return `/images/pharaohs/Hatshepsut.JPG`;
       if (name === "Ramesses II") return `/images/pharaohs/Ramesses%20II.jpg`;
       if (name === "Tutankhamun") return `/images/pharaohs/Tutankhamun.jpg`;

@@ -69,7 +69,7 @@ export default function ProfileSidebar({ isOpen, onClose }: ProfileSidebarProps)
         // Static local folder fallback for the 10 trending entities
         const trendingImages: Record<string, string> = {
             "akhenaton": "/images/pharaohs/Akhenaton.JPG",
-            "cleopatra vii philopator": "/images/pharaohs/Cleopatra%20VII%20Philopator.jpg",
+            "cleopatra vii philopator": "/images/pharaohs/Cleopatra%20VII%20Philopator.png",
             "hatshepsut": "/images/pharaohs/Hatshepsut.JPG",
             "ramesses ii": "/images/pharaohs/Ramesses%20II.jpg",
             "tutankhamun": "/images/pharaohs/Tutankhamun.jpg",
