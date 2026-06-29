@@ -93,9 +93,6 @@ graph TD
     %% Alignment rules
     FE -.-> RunPod
     BE -.-> RunPod
-
-    %% Force straight, non-curvy lines unconditionally
-    linkStyle default interpolate step
 ```
 
 ### Main Components:
