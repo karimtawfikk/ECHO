@@ -11,9 +11,7 @@ export default function AboutPage() {
 
   return (
     <PageShell>
-      {/* =========== WHAT IS E.C.H.O? (HERO) =========== */}
       <section className="relative pt-32 pb-20 overflow-hidden flex flex-col items-center justify-center min-h-[50vh]">
-        {/* Subtle background glow */}
         <div className="absolute inset-0 z-0 pointer-events-none flex items-center justify-center">
           <div className="w-[600px] h-[400px] rounded-full"
             style={{ background: "radial-gradient(circle, rgba(230,178,60,0.08) 0%, rgba(200,140,30,0.03) 40%, transparent 70%)" }}
@@ -50,7 +48,6 @@ export default function AboutPage() {
         </div>
       </section>
 
-      {/* Decorative Line */}
       <motion.div
         initial={{ opacity: 0, scaleX: 0 }}
         animate={{ opacity: 1, scaleX: 1 }}
@@ -60,7 +57,6 @@ export default function AboutPage() {
         <div className="w-64 h-[1px]" style={{ background: "linear-gradient(90deg, transparent, rgba(230,178,60,0.5), transparent)" }} />
       </motion.div>
 
-      {/* =========== HOW IT WORKS =========== */}
       <section className="max-w-6xl mx-auto px-4 sm:px-6 lg:px-8 pt-10 pb-32">
         <div className="text-center mb-16">
           <span className="text-xs font-bold tracking-[0.25em] text-[#E6B23C] uppercase">{t("home.process.badge")}</span>
@@ -69,7 +65,6 @@ export default function AboutPage() {
           </h2>
         </div>
         <div className="relative max-w-4xl mx-auto py-12">
-          {/* Vertical Connecting Line */}
           <div className="absolute left-10 md:left-1/2 top-0 bottom-0 w-[2px] -translate-x-1/2 bg-gradient-to-b from-transparent via-[#E6B23C]/30 to-transparent z-0" />
 
           <div className="space-y-24 relative z-10">
@@ -81,19 +76,16 @@ export default function AboutPage() {
             ].map((step, i) => (
               <ScrollReveal key={step.title} direction={i % 2 === 0 ? "right" : "left"} delay={0.1} className="relative flex items-center">
 
-                {/* Timeline Center Node */}
                 <div className="absolute left-10 md:left-1/2 top-1/2 -translate-y-1/2 -translate-x-1/2 w-16 h-16 rounded-full bg-[#0D0A07] border border-[#E6B23C]/50 flex items-center justify-center shadow-[0_0_30px_rgba(230,178,60,0.15)] z-10">
                   {i === 3 ? (
                     <span className="text-4xl text-[#E6B23C] leading-none -translate-y-1">𓅓</span>
                   ) : step.isText ? (
                     <span className="text-4xl text-[#E6B23C] leading-none -translate-y-[10px]">{step.icon as any}</span>
                   ) : (
-                    // @ts-ignore
                     <step.icon size={28} className="text-[#E6B23C]" />
                   )}
                 </div>
 
-                {/* Content */}
                 <div className={`w-[calc(100%-6rem)] md:w-[42%] ml-auto md:ml-0 ${i % 2 === 0 ? "md:mr-auto" : "md:ml-auto"} text-left`}>
                   <div className="inline-flex items-center px-5 py-2 rounded-full bg-[#E6B23C]/[0.08] border border-[#E6B23C]/20 mb-4 shadow-[0_0_15px_rgba(230,178,60,0.05)]">
                     <h3 className="text-base md:text-lg font-bold tracking-[0.2em] text-[#E6B23C] uppercase">{step.title}</h3>

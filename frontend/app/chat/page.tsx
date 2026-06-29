@@ -38,7 +38,6 @@ const CHAT_API = `${API_BASE}/api/v1/chat/chat`;
 const STT_API = `${API_BASE}/api/v1/chat/transcribe`;
 const TUT_AVATAR = "/tut.png";
 
-// Voice auto-stop config
 const SILENCE_THRESHOLD = 0.05;
 const SILENCE_DURATION_MS = 1200;
 const MIN_DURATION_MS = 1000;
@@ -102,7 +101,6 @@ function ChatContent() {
     const cleanName = (n: string) => cleanEntityName(n);
     const targetClean = cleanName(name).toLowerCase();
 
-    // Try dynamic entities first to find image from DB
     if (dbEntities) {
       const list = isPharaoh ? dbEntities.pharaohs : dbEntities.landmarks;
       let found = list.find((e: any) => e.name.toLowerCase() === name.toLowerCase());
@@ -115,7 +113,6 @@ function ChatContent() {
           targetClean.includes(cleanName(e.name).toLowerCase())
         );
       }
-      // Scan for composite sub-entities if not found at root level
       if (!found) {
         for (const parent of list) {
           if (parent.composite_entities_data) {
@@ -147,8 +144,6 @@ function ChatContent() {
   const isPharaoh = entityType === "pharaoh" || entityType === "king";
   const staticUrl = getAssumedImageUrl(entityName, isPharaoh);
 
-  // Fallback: if no static image, try the user's uploaded image from sessionStorage
-  // Load entity metadata (period/location) from session or dynamic lookup
   const [statusText, setStatusText] = useState("");
   useEffect(() => {
     const payload = loadResultFromSession();
@@ -164,9 +159,7 @@ function ChatContent() {
       );
     };
 
-    // Check direct match in session
     const directMatch = payload?.result?.entity && payload?.result?.entity?.name === entityName;
-    // Check composite match in session
     const compositeSubMatch = !directMatch && payload?.result?.entity?.composite_entities_data?.find(
       (sub: any) => sub.name === entityName || cleanName(sub.name) === cleanName(entityName)
     );
@@ -188,11 +181,9 @@ function ChatContent() {
       } else if (entityType === "landmark") {
         setStatusText(sub.location || parent?.location || "Ancient Landmark");
       } else {
-        // Inherit parent's period or dynasty if the sub-entity doesn't have its own
         setStatusText(sub.period || parent?.period || sub.dynasty || parent?.dynasty || "Ancient Pharaoh");
       }
     } else {
-      // Dynamic lookup from DB or mocks
       const isPharaoh = entityType === "pharaoh" || entityType === "king";
       let found: any = null;
 
@@ -200,13 +191,11 @@ function ChatContent() {
         const list = isPharaoh ? dbEntities.pharaohs : dbEntities.landmarks;
         const targetClean = cleanName(entityName).toLowerCase();
 
-        // 1. Direct search
         found = list.find((e: any) =>
           e.name.toLowerCase() === entityName.toLowerCase() ||
           cleanName(e.name).toLowerCase() === targetClean
         );
 
-        // 2. Composite sub-entity search
         if (!found) {
           for (const parent of list) {
             if (parent.composite_entities_data) {
@@ -218,7 +207,6 @@ function ChatContent() {
               if (subMatch) {
                 found = {
                   ...subMatch,
-                  // Inherit parent's period, dynasty, and location if the sub-entity doesn't have its own
                   period: subMatch.period || parent.period,
                   dynasty: subMatch.dynasty || parent.dynasty,
                   location: subMatch.location || parent.location
@@ -248,14 +236,11 @@ function ChatContent() {
 
   useEffect(() => {
     const payload = loadResultFromSession();
-    // Prioritize captured image if it matches the current entity
     if (payload?.imageDataUrl && payload?.result?.entity?.name === entityName) {
       setAvatarUrl(payload.imageDataUrl);
     } else if (staticUrl) {
-      // Fallback to professional archive image
       setAvatarUrl(staticUrl);
     } else {
-      // Look up image dynamically from mocks / R2 assets
       setAvatarUrl(getEntityImage(entityName, entityType));
     }
   }, [staticUrl, entityName, entityType, dbEntities]);
@@ -265,7 +250,6 @@ function ChatContent() {
   const [isAudioMuted, setIsAudioMuted] = useState(false);
   const [playingMsgId, setPlayingMsgId] = useState<string | null>(null);
 
-  // Lock body scrolling on mobile to prevent page scroll behind chat
   useEffect(() => {
     const isMobile = window.innerWidth < 768;
     if (isMobile) {
@@ -310,19 +294,15 @@ function ChatContent() {
 
   const [sortBy, setSortBy] = useState<'name' | 'recent'>('name');
 
-  // Group and Sort Logic
   const groupedChats: [string, any[]][] = (Object.entries(
     chatHistory
       .filter(chat => {
-        // Search Filter
         const matchesSearch = (chat.title?.toLowerCase().includes(allChatsSearch.toLowerCase())) ||
           (chat.entity_name?.toLowerCase().includes(allChatsSearch.toLowerCase()));
         if (!matchesSearch) return false;
 
-        // Type Filter
         if (filterType && chat.entity_type !== filterType) return false;
 
-        // Date Filter (Months)
         if (filterMonth !== null) {
           const chatDate = new Date(chat.created_at);
           const filterDate = new Date();
@@ -345,7 +325,6 @@ function ChatContent() {
     if (sortBy === 'name') {
       return a[0].localeCompare(b[0]);
     } else {
-      // Sort by the newest chat in each group
       const latestA = Math.max(...a[1].map((c: any) => new Date(c.created_at).getTime()));
       const latestB = Math.max(...b[1].map((c: any) => new Date(c.created_at).getTime()));
       return latestB - latestA;
@@ -356,7 +335,6 @@ function ChatContent() {
     setIsMounted(true);
   }, []);
 
-  // Close menu when clicking outside or scrolling
   useEffect(() => {
     const handleClose = (e: any) => {
       if (openMenuId && !e.target.closest('.chat-menu-container') && !e.target.closest('.portal-menu')) {
@@ -371,7 +349,6 @@ function ChatContent() {
     };
   }, [openMenuId]);
 
-  // 1. Initial Data Load
   useEffect(() => {
     const fetchData = async () => {
       const { data: { user } } = await supabase.auth.getUser();
@@ -392,7 +369,6 @@ function ChatContent() {
 
         if (history) setChatHistory(history);
 
-        // 1b & 1c. Load previous messages if conv ID exists
         if (convIdFromUrl) {
           setIsHistoryLoading(true);
           setSupabaseConvId(convIdFromUrl);
@@ -414,7 +390,6 @@ function ChatContent() {
               const welcomePattern = t("chat.welcome", { name: cleanDisplayName }).split("{name}")[0];
               const filtered = msgsRes.data
                 .filter((m: any, idx: number) => {
-                  // Skip if it's the very first message and looks like a greeting
                   if (idx === 0 && m.role === "assistant" && m.content.includes("Greetings")) return false;
                   return true;
                 })
@@ -444,16 +419,11 @@ function ChatContent() {
     fetchData();
   }, [supabase, convIdFromUrl]);
 
-  // [LOGIC] This function handles the full deletion of a chat session.
-  // It deletes the main record from 'conversations' and all related messages
-  // in 'chat_messages' and 'chat_messages_rewriter' (Foreign Key cascading).
   const handleDeleteChat = async (id: string) => {
     if (!id) return;
-    setDeleteConfirmId(null); // Close modal before starting process
+    setDeleteConfirmId(null);
 
     try {
-      // Explicitly delete from related tables first to ensure no foreign key violations
-      // and to satisfy the requirement of deleting all depending rows.
       await Promise.all([
         supabase.from('chat_messages').delete().eq('conversation_id', id),
         supabase.from('chat_messages_rewriter').delete().eq('conversation_id', id)
@@ -466,10 +436,8 @@ function ChatContent() {
 
       if (error) throw error;
 
-      // Update local history list
       setChatHistory(prev => prev.filter(c => c.id !== id));
 
-      // If we are currently viewing this chat, redirect to a fresh chat session for this entity
       if (supabaseConvId === id) {
         window.location.href = `/chat?entity=${entityName}&type=${entityType}`;
       }
@@ -489,7 +457,6 @@ function ChatContent() {
 
       if (error) throw error;
 
-      // Update local state and sort
       setChatHistory(prev => {
         const updated = prev.map(c => c.id === chat.id ? { ...c, is_pinned: newStatus } : c);
         return [...updated].sort((a, b) => {
@@ -525,14 +492,12 @@ function ChatContent() {
   };
 
 
-  // 3. Persistent Storage Helper
   const saveToSupabase = async (userText: string, aiText: string, rewrittenQuery?: string) => {
     const { data: { user } } = await supabase.auth.getUser();
     if (!user) return;
 
     let convId = supabaseConvId;
 
-    // Create conversation if it doesn't exist
     if (!convId) {
       const { data: newConv } = await supabase
         .from('conversations')
@@ -554,31 +519,26 @@ function ChatContent() {
     }
 
     if (convId) {
-      // Save User Message to main chat
       await supabase.from('chat_messages').insert({
         conversation_id: convId,
         role: 'user',
         content: userText
       });
 
-      // Save Assistant Message to main chat
       await supabase.from('chat_messages').insert({
         conversation_id: convId,
         role: 'assistant',
         content: aiText
       });
 
-      // Update conversation title to show the latest response as preview
       const latestTitle = aiText.slice(0, 100) + (aiText.length > 100 ? '...' : '');
       await supabase
         .from('conversations')
         .update({ title: latestTitle })
         .eq('id', convId);
 
-      // Sync local history state
       setChatHistory(prev => prev.map(c => c.id === convId ? { ...c, title: latestTitle } : c));
 
-      // Save to Rewriter history if we have a rewritten query
       if (rewrittenQuery) {
         await supabase.from('chat_messages_rewriter').insert({
           conversation_id: convId,
@@ -591,7 +551,6 @@ function ChatContent() {
           content: rewrittenQuery
         });
 
-        // Update local rewriter state
         setRewriterMessages(prev => [
           ...prev,
           { id: generateId(), role: 'user', text: userText, ts: Date.now() },
@@ -607,7 +566,6 @@ function ChatContent() {
     setTimeout(() => setCopiedId(null), 2000);
   };
 
-  // 4. Initialize session with backend (includes history for short-term memory)
   const [isInitialized, setIsInitialized] = useState(false);
 
   useEffect(() => {
@@ -655,7 +613,6 @@ function ChatContent() {
     }
   }, [threadId, entityName, entityType, userProfile, messages.length, rewriterMessages.length, isInitialized, convIdFromUrl, isHistoryLoading]);
 
-  // Reset initialization when chat identity changes
   useEffect(() => {
     setIsInitialized(false);
   }, [threadId, entityName]);
@@ -680,7 +637,6 @@ function ChatContent() {
     }
   }, [messages, isTyping]);
 
-  // ── Send message to real backend ──────────────────────────────────────
   const sendMessage = useCallback(async (text?: string, useVoice: boolean = false) => {
     const trimmed = (text ?? input).trim();
     if (!trimmed || isTyping) return;
@@ -732,11 +688,10 @@ function ChatContent() {
 
       let fullText = "";
       let displayedText = "";
-      let lastSearchQuery = ""; // Capture rewritten query
+      let lastSearchQuery = "";
       let firstChunk = true;
       let buffer = "";
 
-      // Typewriter drain interval - separates network speed from visual speed
       const typewriterId = setInterval(() => {
         if (displayedText.length < fullText.length) {
           const nextChunk = fullText.slice(displayedText.length, displayedText.length + 8);
@@ -744,8 +699,6 @@ function ChatContent() {
           setMessages((m) => m.map(msg => msg.id === assistantMsgId ? { ...msg, text: displayedText, isSearching: false } : msg));
         } else if (isStreamComplete) {
           clearInterval(typewriterId);
-          // ── ZERO LATENCY SAVE ──
-          // Once typewriter finishes, save to Supabase
           saveToSupabase(trimmed, fullText, lastSearchQuery);
         }
       }, 10);
@@ -775,11 +728,9 @@ function ChatContent() {
 
               if (data.error) throw new Error(data.error);
 
-              // Capture search query if present in event (memory)
               if (data.search) lastSearchQuery = data.search;
               if (data.search_query) lastSearchQuery = data.search_query;
 
-              // ── Agentic Search Indicator ──
               if (data.tool === "tavily_search" || data.event === "on_tool_start" || data.tool_calls || data.name === "tavily_search_results_json" || data.name === "search_tool") {
                 if (firstChunk) {
                   setIsTyping(false);
@@ -791,8 +742,6 @@ function ChatContent() {
                 continue;
               }
 
-              // Only create the assistant message bubble if we actually have text to show
-              // (If it's searching, the bubble was already created in the indicator block above)
               if (firstChunk && data.text !== undefined) {
                 setIsTyping(false);
                 setMessages((m) => [...m, { id: assistantMsgId, role: "assistant", text: "", ts: Date.now() }]);
@@ -800,10 +749,9 @@ function ChatContent() {
               }
 
               if (data.text !== undefined) {
-                fullText += data.text; // Just append to fullText; setInterval handles display
+                fullText += data.text;
               }
 
-              // Also capture search query if it comes in a different event type
               if (data.search_query) {
                 lastSearchQuery = data.search_query;
               }
@@ -850,7 +798,6 @@ function ChatContent() {
     }
   }, [input, isTyping, threadId, t, entityName, entityType]);
 
-  // ── Voice recording ────────────────────────────────────────────────────
   const stopVAD = useCallback(() => {
     if (rafRef.current) cancelAnimationFrame(rafRef.current);
     rafRef.current = null;
@@ -920,7 +867,6 @@ function ChatContent() {
           const r = await fetch(STT_API, { method: "POST", body: form });
           const d = await r.json();
 
-          // Clear "Transcribing..." immediately after receiving text
           setRecordingState("idle");
 
           if (d.text?.trim()) {
@@ -935,7 +881,6 @@ function ChatContent() {
       recorder.start(200);
       setRecordingState("recording");
 
-      // VAD loop — auto-stop on silence
       const dataArr = new Float32Array(analyser.fftSize);
       const vadLoop = () => {
         analyser.getFloatTimeDomainData(dataArr);
@@ -1019,15 +964,12 @@ function ChatContent() {
         onPause={() => setPlayingMsgId(null)}
       />
       <div className="flex h-full w-full bg-transparent overflow-hidden" dir="ltr">
-        {/* Sidebar - Collapsible */}
         <motion.aside
           initial={false}
           animate={{ width: sidebarOpen ? (typeof window !== 'undefined' && window.innerWidth < 768 ? '100vw' : 300) : 56 }}
           className={`h-full flex flex-row z-[60] absolute md:relative left-0 top-0 ${sidebarOpen ? 'bg-[#0D0A07] border-r border-[#E6B23C]/10' : 'bg-transparent border-none md:bg-[#0D0A07] md:border-r md:border-[#E6B23C]/10'}`}
         >
-          {/* Narrow Left Column - Always visible */}
           <div className={`w-[56px] h-full flex flex-col items-center py-4 gap-4 shrink-0 ${sidebarOpen ? 'border-r border-[#E6B23C]/5' : 'border-none md:border-r md:border-[#E6B23C]/5'}`}>
-            {/* Return Button */}
             <div className="relative group">
               <button
                 onClick={() => router.back()}
@@ -1040,7 +982,6 @@ function ChatContent() {
               </span>
             </div>
 
-            {/* Menu Toggle Button */}
             <div className="relative group">
               <button
                 onClick={() => setSidebarOpen(!sidebarOpen)}
@@ -1056,7 +997,6 @@ function ChatContent() {
               </span>
             </div>
 
-            {/* New Chat Button (Desktop) */}
             <div className="relative group hidden md:block">
               <button
                 onClick={() => window.location.href = `/chat?entity=${entityName}&type=${entityType}`}
@@ -1070,7 +1010,6 @@ function ChatContent() {
             </div>
           </div>
 
-          {/* Expanded Content */}
           <AnimatePresence>
             {sidebarOpen && (
               <motion.div
@@ -1079,7 +1018,6 @@ function ChatContent() {
                 exit={{ opacity: 0 }}
                 className="flex-1 md:w-[244px] md:flex-none h-full flex flex-col px-3 pb-4 overflow-hidden shrink-0"
               >
-                {/* All Chats Shortcut */}
                 {chatHistory.length > 0 && (
                   <button
                     onClick={() => { setShowAllChats(true); setSidebarOpen(false); }}
@@ -1098,7 +1036,6 @@ function ChatContent() {
                   </button>
                 )}
 
-                {/* Search Bar */}
                 <div className="relative mt-2 mb-6">
                   <Search className={`absolute ${isRTL ? 'right-3' : 'left-3'} top-1/2 -translate-y-1/2 text-[#A08E70]/40`} size={14} />
                   <input
@@ -1110,7 +1047,6 @@ function ChatContent() {
                   />
                 </div>
 
-                {/* Chat List */}
                 <div className="flex-1 overflow-y-auto space-y-1 trending-scrollbar-hide">
                   <div className="px-2 mb-2 text-[10px] font-bold uppercase tracking-[0.2em] text-[#A08E70]/60">Recent Chats</div>
                   {chatHistory
@@ -1156,13 +1092,11 @@ function ChatContent() {
                           </div>
                         </button>
 
-                        {/* Three dots button - visible on hover */}
                         <div className="absolute right-3 top-1/2 -translate-y-1/2 z-10">
                           <button
                             onClick={(e) => {
                               e.stopPropagation();
                               const rect = e.currentTarget.getBoundingClientRect();
-                              // Position it at the top-right of the button
                               setMenuPos({ x: rect.right + 12, y: rect.top + 8 });
                               setOpenMenuId(openMenuId === chat.id ? null : chat.id);
                             }}
@@ -1173,7 +1107,6 @@ function ChatContent() {
                           >
                             <MoreHorizontal size={16} />
 
-                            {/* Dropdown Menu - using Portal to avoid clipping */}
                             {openMenuId === chat.id && typeof document !== 'undefined' && createPortal(
                               <div className="portal-menu" style={{ position: 'fixed', zIndex: 9999 }}>
                                 <AnimatePresence mode="wait">
@@ -1229,7 +1162,6 @@ function ChatContent() {
                       </div>
                     ))}
 
-                  {/* Bottom padding */}
                   <div className="h-4" />
                 </div>
               </motion.div>
@@ -1237,9 +1169,7 @@ function ChatContent() {
           </AnimatePresence>
         </motion.aside>
 
-        {/* Main Chat Area */}
         <div className="flex-1 flex flex-col h-full relative overflow-hidden bg-transparent">
-          {/* New Chat Button (Top Right) */}
           <div className="absolute top-4 right-4 z-[55] md:hidden">
             <button
               onClick={() => window.location.href = `/chat?entity=${entityName}&type=${entityType}`}
@@ -1255,7 +1185,6 @@ function ChatContent() {
             <div className="flex-1 flex flex-col overflow-hidden bg-[#0D0A07]/30 backdrop-blur-sm">
               <div className={`max-w-5xl mx-auto w-full pt-32 px-8 md:px-12 ${showMainFilters && !filterType && filterMonth === null && sortBy === 'name' ? 'mb-14' : 'mb-2'}`}>
 
-                {/* Search & Filter Header - Centered */}
                 <div className="flex flex-col gap-6 max-w-2xl mx-auto">
                   <div className="flex items-center gap-4">
                     <div className="relative flex-1">
@@ -1278,10 +1207,8 @@ function ChatContent() {
                     </div>
                   </div>
 
-                  {/* Filter Pills Bar (As requested in image) */}
                   <div className="flex flex-wrap items-center gap-3">
 
-                    {/* Active Filter Pills */}
                     {filterType && (
                       <div className="relative group">
                         <div className="flex items-center bg-[#0D0A07] border border-[#E6B23C]/20 rounded-full h-9 overflow-hidden">
@@ -1400,7 +1327,6 @@ function ChatContent() {
                       </button>
                     )}
 
-                    {/* Inactive filters appearing after Clear All only when toggled */}
                     {showMainFilters && (
                       <>
                         {!filterType && (
@@ -1469,7 +1395,6 @@ function ChatContent() {
                 </div>
               </div>
 
-              {/* Grouped List - Now full width for scrolling but inner content centered */}
               <div className={`flex-1 overflow-x-hidden ${groupedChats.length > 0 ? 'overflow-y-auto' : 'overflow-hidden'} trending-scrollbar-hide`}>
                 <div className="max-w-5xl mx-auto w-full px-8 md:px-12 pb-24">
                   {groupedChats.length > 0 ? (
@@ -1550,11 +1475,9 @@ function ChatContent() {
             </div>
           ) : (
             <>
-              {/* Messages Area - Positioned below the fixed header area */}
               <div ref={scrollRef} className="flex-1 overflow-y-auto trending-scrollbar-hide relative mt-36 md:mt-42">
                 <div className="max-w-5xl mx-auto w-full pl-12 pr-4 pt-4 pb-32 md:p-8 space-y-8" style={{ direction: 'ltr' }}>
                   <AnimatePresence>
-                    {/* Static Welcome Message */}
                     <motion.div key="welcome-message-static" initial={{ opacity: 0, y: 10 }} animate={{ opacity: 1, y: 0 }} transition={{ duration: 0.4 }}
                       className="flex flex-col gap-3 max-w-3xl mb-12"
                     >
@@ -1709,7 +1632,6 @@ function ChatContent() {
                   </AnimatePresence>
                 </div>
 
-                {/* Recording overlay */}
                 <AnimatePresence>
                   {recordingState === "recording" && (
                     <motion.div
@@ -1720,9 +1642,7 @@ function ChatContent() {
                       style={{ background: "rgba(13,10,7,0.6)", backdropFilter: "blur(4px)" }}
                     >
                       <div className="relative flex flex-col items-center gap-8 pointer-events-auto">
-                        {/* The Liquid Blob Container */}
                         <div className="relative h-24 w-24 md:h-[152px] md:w-[152px] flex items-center justify-center">
-                          {/* Organic Glow (Behind) */}
                           <motion.div
                             animate={{
                               scale: [1, 1.4, 1],
@@ -1737,7 +1657,6 @@ function ChatContent() {
                             className="absolute inset-0 bg-[#E6B23C] blur-3xl pointer-events-none"
                           />
 
-                          {/* Rotating Liquid Shape */}
                           <motion.div
                             animate={{
                               borderRadius: [
@@ -1755,7 +1674,6 @@ function ChatContent() {
                             className="absolute inset-0 bg-gradient-to-br from-[#FFE6A9] via-[#E6B23C] to-[#B48B2D] shadow-[0_0_60px_rgba(230,178,60,0.4)]"
                           />
 
-                          {/* Static Heartbeat Pulse (Icon stays upright) */}
                           <motion.div
                             animate={{ scale: [1, 1.25, 1] }}
                             transition={{ repeat: Infinity, duration: 1.5, ease: "easeInOut" }}
@@ -1765,7 +1683,6 @@ function ChatContent() {
                           </motion.div>
                         </div>
 
-                        {/* Status & Cancel Button (Outside the rotation) */}
                         <div className="flex flex-col items-center gap-4">
                           <motion.div
                             animate={{ opacity: [1, 0.4, 1] }}
@@ -1787,7 +1704,6 @@ function ChatContent() {
                 </AnimatePresence>
               </div>
 
-              {/* Input Bar - Floating & Minimal - Centered relative to screen */}
               <div className="w-full shrink-0 z-10">
                 <div className="pl-12 pr-4 pt-4 pb-4 md:p-8 md:pb-12 bg-transparent max-w-5xl mx-auto">
                   <div className="flex gap-3 md:gap-4 items-center max-w-4xl mx-auto relative">
@@ -1829,7 +1745,6 @@ function ChatContent() {
                       </div>
                     )}
 
-                    {/* Smart send/mic button */}
                     <AnimatePresence mode="wait">
                       {input.trim() ? (
                         <motion.div key="send" initial={{ scale: 0 }} animate={{ scale: 1 }} exit={{ scale: 0 }} transition={{ type: "spring", stiffness: 400, damping: 20 }}>
@@ -1863,7 +1778,6 @@ function ChatContent() {
                               </svg>
                             )}
 
-                            {/* Premium Tooltip */}
                             <span className="absolute -top-10 left-1/2 -translate-x-1/2 px-3 py-1.5 bg-[#0D0A07] border border-[#E6B23C]/30 text-[#E6B23C] text-[10px] uppercase font-bold tracking-wider rounded-lg opacity-0 group-hover:opacity-100 transition-opacity pointer-events-none whitespace-nowrap shadow-[0_0_10px_rgba(230,178,60,0.15)]">
                               {language === "AR" ? "استخدم الصوت" : language === "FR" ? "Utiliser la voix" : "Use voice"}
                             </span>
@@ -1879,7 +1793,6 @@ function ChatContent() {
         </div>
       </div>
 
-      {/* Delete Confirmation Modal */}
       {isMounted && createPortal(
         <AnimatePresence>
           {deleteConfirmId && (

@@ -47,10 +47,10 @@ function VideoPageContent() {
         throw new Error("Failed to start video generation.");
       }
 
-      // Poll for status
+
       let ready = false;
       while (!ready) {
-        await new Promise(r => setTimeout(r, 5000)); // wait 5 seconds
+        await new Promise(r => setTimeout(r, 5000));
 
         const statusRes = await fetch(`${API_BASE_URL}/api/v1/video/status/${encodeURIComponent(entityName)}`);
         if (!statusRes.ok) continue;
@@ -116,7 +116,7 @@ function VideoPageContent() {
                   }}
                   className="absolute inset-0 w-full h-full object-contain z-20 bg-black"
                 />
-                {/* Custom Play Overlay - Matches Home Page */}
+
                 <div
                   id="video-play-overlay"
                   className="absolute inset-0 flex items-center justify-center z-30 pointer-events-none transition-opacity duration-500 opacity-0 group-hover/video:opacity-100"
@@ -129,7 +129,7 @@ function VideoPageContent() {
             ) : isGenerating ? (
               <div className="flex flex-col items-center z-20 gap-6">
                 <div className="relative w-24 h-24 flex items-center justify-center">
-                  {/* Rotating Decoder Rings */}
+
                   <motion.div
                     animate={{ rotate: 360 }}
                     transition={{ repeat: Infinity, duration: 8, ease: "linear" }}
@@ -150,7 +150,7 @@ function VideoPageContent() {
                   </motion.div>
                 </div>
 
-                {/* Synthesis Metadata HUD */}
+
                 <div className="flex flex-col items-center gap-2">
                   <div className="flex items-center gap-3">
                     <motion.div

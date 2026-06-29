@@ -48,9 +48,7 @@ export default function ResetPasswordPage() {
       setError(error.message);
     } else {
       setSuccess(true);
-      // Sign out to ensure they have to log in with the new password
       await supabase.auth.signOut();
-      // Wait a bit then redirect to login
       setTimeout(() => {
         window.location.href = "/login";
       }, 3000);
@@ -63,7 +61,6 @@ export default function ResetPasswordPage() {
   return (
     <PageShell fullScreen minimal>
       <div className="relative min-h-screen w-full flex items-center justify-center overflow-hidden">
-        {/* Background Elements */}
         <div className="absolute inset-0 z-0 overflow-hidden pointer-events-none">
           <div className="absolute inset-0 bg-[#0D0A07]" />
           <div className="egyptian-pattern" />
@@ -150,7 +147,7 @@ export default function ResetPasswordPage() {
                 </Button>
 
                 {success && (
-                  <motion.div 
+                  <motion.div
                     initial={{ opacity: 0, y: 5 }}
                     animate={{ opacity: 1, y: 0 }}
                     className="flex items-center justify-center gap-2 text-[#E6B23C] text-sm font-medium bg-[#E6B23C]/10 py-2 rounded-lg border border-[#E6B23C]/20"

@@ -12,10 +12,8 @@ import { useEffect, useState } from "react";
 import { useLanguage } from "../context/LanguageContext";
 import type { RecognitionEntity } from "../lib/types";
 
-// ── Minimal mock fallback (used only when the API is unreachable) ──────────
 import { PHARAOHS as MOCK_PHARAOHS, LANDMARKS as MOCK_LANDMARKS } from "../lib/mock/mock-trending";
 
-// Preserve the exact same 5 names in display order
 const PHARAOH_ORDER = [
   "Akhenaton",
   "Cleopatra VII Philopator",
@@ -67,28 +65,23 @@ const FALLBACK_LANDMARKS: RecognitionEntity[] = LANDMARK_ORDER
   })
   .filter((x): x is RecognitionEntity => x !== null);
 
-// ── Page ─────────────────────────────────────────────────────────────────
 export default function HomePage() {
   const { t } = useLanguage();
   const [pharaohs] = useState<RecognitionEntity[]>(FALLBACK_PHARAOHS);
   const [landmarks] = useState<RecognitionEntity[]>(FALLBACK_LANDMARKS);
   const [isLoading] = useState(false);
 
-  // Database fetch removed to eliminate latency as requested
   useEffect(() => {
-    // No-op: we now use the hardcoded mock data directly
   }, []);
 
   return (
     <PageShell fullWidth>
-      {/* =========== HERO =========== */}
       <motion.section
         initial={{ opacity: 0 }}
         animate={{ opacity: 1 }}
         transition={{ duration: 0.8 }}
         className="min-h-[100vh] pt-[25vh] pb-10 flex flex-col justify-center items-center text-center relative overflow-hidden"
       >
-        {/* Dynamic Background Image */}
         <div
           className="absolute inset-0 z-[-2]"
           style={{
@@ -96,7 +89,6 @@ export default function HomePage() {
             WebkitMaskImage: "linear-gradient(to bottom, black 80%, transparent 100%)"
           }}
         >
-          {/* Base Color Fill */}
           <div className="absolute inset-0 bg-[#0D0A07]" />
 
           <div
@@ -106,15 +98,13 @@ export default function HomePage() {
               WebkitMaskImage: "linear-gradient(to bottom, black 0%, black 25%, transparent 80%)"
             }}
           >
-            {/* Desktop Background */}
-            {/*  */}
+
             <img
               src="/images/backgrounds/x.jpg"
               alt="Background Desktop"
               className="hidden md:block w-full h-full object-cover object-top opacity-60"
               onError={(e) => { e.currentTarget.style.display = 'none'; }}
             />
-            {/* Mobile Backgrounddd */}
             <img
               src="/images/backgrounds/x-mobile.png"
               alt="Background Mobile"
@@ -122,13 +112,10 @@ export default function HomePage() {
               onError={(e) => { e.currentTarget.style.display = 'none'; }}
             />
           </div>
-          {/* Darkening layer */}
           <div className="absolute inset-0 bg-[#0D0A07]/50" />
-          {/* Bottom blend */}
           <div className="absolute inset-0 bg-gradient-to-b from-transparent via-transparent to-[#0D0A07]" />
         </div>
 
-        {/* Warm ambient light behind hero with subtle parallax */}
         <ParallaxLayer speed={0.15} className="absolute inset-0 z-[-1] pointer-events-none flex items-center justify-center">
           <div className="w-[700px] h-[500px] rounded-full"
             style={{ background: "radial-gradient(circle, rgba(230,178,60,0.08) 0%, rgba(200,140,30,0.03) 40%, transparent 70%)" }}
@@ -196,7 +183,6 @@ export default function HomePage() {
 
         </motion.div>
 
-        {/* Decorative Egyptian line */}
         <motion.div
           initial={{ scaleX: 0 }}
           animate={{ scaleX: 1 }}
@@ -207,7 +193,6 @@ export default function HomePage() {
       </motion.section>
 
 
-      {/* =========== EXPLORE GALLERY =========== */}
       <section className="mt-5 max-w-6xl mx-auto px-4 sm:px-6 lg:px-8">
         <TrendingRow
           title={t("home.experience.pharaohs")}
@@ -217,7 +202,6 @@ export default function HomePage() {
         />
       </section>
 
-      {/* =========== TRENDING: LANDMARKS =========== */}
       <section className="mt-16 max-w-6xl mx-auto px-4 sm:px-6 lg:px-8">
         <TrendingRow
           title={t("home.experience.landmarks")}
@@ -227,9 +211,7 @@ export default function HomePage() {
         />
       </section>
 
-      {/* =========== FEATURE SHOWCASES =========== */}
       <section className="mt-40 mb-20 max-w-6xl mx-auto px-4 sm:px-6 lg:px-8 relative">
-        {/* The Snaking Timeline Line (Desktop Only) */}
         <div className="absolute left-0 right-0 top-0 bottom-0 pointer-events-none hidden lg:block z-0">
           <svg width="100%" height="100%" viewBox="0 0 1000 1600" fill="none" preserveAspectRatio="none" className="opacity-20">
             <path
@@ -238,7 +220,6 @@ export default function HomePage() {
               strokeWidth="2"
               strokeDasharray="12 12"
             />
-            {/* Animated drawing path */}
             <motion.path
               d="M 250 100 C 600 100, 850 300, 850 550 C 850 800, 150 800, 150 1050 C 150 1300, 600 1500, 850 1500"
               stroke="#E6B23C"
@@ -253,7 +234,6 @@ export default function HomePage() {
         </div>
 
         <div className="space-y-32 md:space-y-64 relative z-10">
-          {/* 1. Recognition Feature */}
           <ScrollReveal direction="up" className="grid lg:grid-cols-2 gap-10 md:gap-16 items-center">
             <div className="relative order-last lg:order-none">
               <div className="aspect-[4/3] max-w-[480px] mx-auto rounded-3xl overflow-hidden border border-[#E6B23C]/20 bg-[#1A1208] shadow-[0_0_50px_rgba(230,178,60,0.15)] relative z-10">
@@ -263,16 +243,13 @@ export default function HomePage() {
                   className="w-full h-full object-cover opacity-60"
                   onError={(e) => { e.currentTarget.style.display = 'none'; }}
                 />
-                {/* Dynamic Scanning HUD Overlay */}
                 <div className="absolute inset-0 z-20 pointer-events-none">
-                  {/* The Scanning Line */}
                   <motion.div
                     animate={{ top: ["0%", "100%", "0%"] }}
                     transition={{ duration: 4, repeat: Infinity, ease: "linear" }}
                     className="absolute left-0 right-0 h-[2px] bg-gradient-to-r from-transparent via-[#E6B23C] to-transparent shadow-[0_0_15px_#E6B23C] z-30"
                   />
 
-                  {/* Floating Recognition Points */}
                   <motion.div
                     initial={{ opacity: 0 }}
                     animate={{ opacity: [0, 1, 0] }}
@@ -293,14 +270,12 @@ export default function HomePage() {
                     <div className="px-2 py-1 bg-[#0D0A07]/80 backdrop-blur-md border border-[#E6B23C]/30 rounded text-[8px] font-bold text-[#E6B23C] uppercase tracking-tighter">Pattern Detected</div>
                   </motion.div>
 
-                  {/* Lens/Compass Effect */}
                   <div className="absolute inset-0 flex items-center justify-center">
                     <div className="w-64 h-64 border border-[#E6B23C]/20 rounded-full animate-[spin_20s_linear_infinite]" />
                     <div className="absolute w-72 h-72 border border-[#E6B23C]/10 rounded-full animate-[spin_30s_linear_infinite_reverse]" />
                   </div>
                 </div>
               </div>
-              {/* Background Glow */}
               <div className="absolute top-1/2 left-1/2 -translate-x-1/2 -translate-y-1/2 w-full h-full bg-[#E6B23C]/10 blur-[120px] z-[-1]" />
             </div>
             <div className="space-y-6">
@@ -316,7 +291,6 @@ export default function HomePage() {
             </div>
           </ScrollReveal>
 
-          {/* 2. Video Feature */}
           <ScrollReveal direction="up" className="grid lg:grid-cols-2 gap-10 md:gap-16 items-center">
             <div className="lg:text-right space-y-6">
               <div className="inline-flex items-center gap-2 px-4 py-1.5 rounded-full bg-[#E6B23C]/10 border border-[#E6B23C]/20 text-[#E6B23C] text-xs font-bold tracking-widest uppercase lg:flex-row-reverse">
@@ -331,7 +305,6 @@ export default function HomePage() {
             </div>
             <div className="relative">
               <div className="aspect-[9/16] max-w-[280px] mx-auto rounded-3xl overflow-hidden border border-[#E6B23C]/20 relative shadow-[0_0_50px_rgba(230,178,60,0.15)] bg-[#1A1208] z-10">
-                {/* Mockup Screen Content */}
                 <div className="absolute top-0 left-0 right-0 p-6 bg-gradient-to-b from-[#0D0A07]/90 to-transparent z-10">
                   <div className="text-[#F5E6D0] font-bold text-lg font-heading">The Sphinx</div>
                   <div className="text-[#E6B23C] text-xs tracking-widest uppercase">Documentary</div>
@@ -343,22 +316,18 @@ export default function HomePage() {
                   </div>
                 </div>
               </div>
-              {/* Background Glow */}
               <div className="absolute top-1/2 left-1/2 -translate-x-1/2 -translate-y-1/2 w-full h-full bg-[#E6B23C]/10 blur-[100px] z-[-1]" />
             </div>
           </ScrollReveal>
 
-          {/* 3. Chat Feature */}
           <ScrollReveal direction="up" className="grid lg:grid-cols-2 gap-10 md:gap-16 items-center">
             <div className="relative order-last lg:order-none">
               <div className="aspect-[4/5] max-w-[320px] mx-auto rounded-3xl overflow-hidden border border-[#E6B23C]/20 bg-[#0D0A07] shadow-[0_0_50px_rgba(230,178,60,0.15)] flex flex-col relative z-10">
-                {/* Chat Atmosphere Background */}
                 <div className="absolute inset-0 opacity-40 pointer-events-none">
                   <div className="absolute inset-0 bg-[url('/images/patterns/egyptian-pattern.png')] opacity-20" />
                   <div className="absolute inset-0 bg-gradient-to-b from-[#E6B23C]/5 via-transparent to-transparent" />
                 </div>
 
-                {/* Chat Header (Simplified Identity Bar) */}
                 <div className="pt-8 pb-4 border-b border-[#E6B23C]/10 bg-[#0D0A07]/50 backdrop-blur-md flex flex-col items-center gap-2 relative z-10">
                   <div className="h-12 w-12 rounded-full bg-gradient-to-br from-[#E6B23C] to-[#D4A030] p-[1.5px]">
                     <div className="h-full w-full rounded-full bg-[#0D0A07] overflow-hidden flex items-center justify-center">
@@ -371,18 +340,14 @@ export default function HomePage() {
                   </div>
                 </div>
 
-                {/* Chat Body Mockup */}
                 <div className="flex-1 p-5 space-y-6 flex flex-col justify-start relative z-10">
-                  {/* User Message Bubble */}
                   <div className="ml-auto px-4 py-2 rounded-[18px] bg-[#E6B23C]/10 border border-[#E6B23C]/20 text-[#E6B23C] text-[11px] shadow-[0_4px_15px_rgba(230,178,60,0.05)]">
                     Tell me about your greatest victory.
                   </div>
-                  {/* Assistant Message (Clean Text) */}
                   <div className="w-full text-[#F5E6D0] text-[12px] leading-relaxed font-light tracking-wide">
                     The Battle of Kadesh was a triumph of the gods. Though the Hittites sought to ambush us, Amun gave me the strength of Montu.
                   </div>
 
-                  {/* Input Bar Mockup - Updated with Voice Icon */}
                   <div className="mt-auto flex gap-2 items-center">
                     <div className="flex-1 px-4 py-2.5 rounded-full bg-[#1A1208]/80 border border-[#E6B23C]/10 flex items-center shadow-inner">
                       <span className="text-[#A08E70]/40 text-[10px] font-medium">Ask Ramesses II...</span>
@@ -395,7 +360,6 @@ export default function HomePage() {
                   </div>
                 </div>
               </div>
-              {/* Background Glow */}
               <div className="absolute top-1/2 left-1/2 -translate-x-1/2 -translate-y-1/2 w-3/4 h-3/4 bg-[#E6B23C]/10 blur-[100px] z-[-1]" />
             </div>
             <div className="space-y-6">
@@ -411,7 +375,6 @@ export default function HomePage() {
             </div>
           </ScrollReveal>
 
-          {/* 4. Translation Feature */}
           <ScrollReveal direction="up" className="grid lg:grid-cols-2 gap-10 md:gap-16 items-center">
             <div className="lg:text-right space-y-6">
               <div className="inline-flex items-center gap-2 px-4 py-1.5 rounded-full bg-[#E6B23C]/10 border border-[#E6B23C]/20 text-[#E6B23C] text-xs font-bold tracking-widest uppercase lg:flex-row-reverse">
@@ -433,11 +396,8 @@ export default function HomePage() {
                   onError={(e) => { e.currentTarget.src = "/images/cards/Tutankhamun(1).jpg"; }}
                 />
                 <div className="absolute inset-0 opacity-10 bg-[url('https://www.transparenttextures.com/patterns/papyros.png')]" />
-                {/* Placeholder for Hieroglyph Image */}
                 <div className="text-[#E6B23C]/20 text-6xl font-display uppercase tracking-[0.5em] select-none relative z-10">𓁹 𓅓 𓊵</div>
-                {/* Mystical Reveal HUD - Elegant & Magical */}
                 <div className="absolute inset-0 z-20 pointer-events-none overflow-hidden">
-                  {/* The 'Mystical Lens' Reveal Effect */}
                   <motion.div
                     animate={{
                       x: ["-20%", "60%", "10%"],
@@ -450,11 +410,9 @@ export default function HomePage() {
                       boxShadow: "0 0 100px rgba(230,178,60,0.1) inset"
                     }}
                   >
-                    {/* Inner Lens Glow */}
                     <div className="absolute inset-0 rounded-full border border-[#E6B23C]/20 shadow-[0_0_30px_rgba(230,178,60,0.1)]" />
                   </motion.div>
 
-                  {/* Ambient Particles */}
                   <div className="absolute inset-0 opacity-40">
                     {[...Array(6)].map((_, i) => (
                       <motion.div
@@ -471,7 +429,6 @@ export default function HomePage() {
                     ))}
                   </div>
 
-                  {/* Final Deciphered Result - Floating Spirit-like Text */}
                   <div className="absolute inset-0 flex flex-col items-center justify-center">
                     <motion.div
                       initial={{ opacity: 0 }}
@@ -479,7 +436,6 @@ export default function HomePage() {
                       transition={{ duration: 1.5 }}
                       className="text-center px-12 relative"
                     >
-                      {/* Decorative Ancient Accents */}
                       <div className="absolute -top-8 left-1/2 -translate-x-1/2 flex items-center gap-4 opacity-40">
                         <div className="h-[1px] w-12 bg-gradient-to-r from-transparent to-[#E6B23C]" />
                         <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="#E6B23C" strokeWidth="1.5">
@@ -497,7 +453,6 @@ export default function HomePage() {
                   </div>
                 </div>
               </div>
-              {/* Background Glow */}
               <div className="absolute top-1/2 left-1/2 -translate-x-1/2 -translate-y-1/2 w-full h-full bg-[#E6B23C]/10 blur-[120px] z-[-1]" />
             </div>
           </ScrollReveal>

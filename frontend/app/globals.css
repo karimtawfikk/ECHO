@@ -47,7 +47,6 @@
   --radius-4xl: calc(var(--radius) + 16px);
 }
 
-/* ========== WARM EGYPTIAN PALETTE ========== */
 :root {
   --radius: 1rem;
   --background: #0D0A07;
@@ -70,7 +69,6 @@
   --ring: rgba(230, 178, 60, 0.4);
 }
 
-/* ========== BASE ========== */
 @layer base {
   * {
     @apply border-border outline-ring/50;
@@ -91,13 +89,11 @@
   }
 }
 
-/* ========== RICH ANIMATED BACKGROUND ========== */
 .cinematic-bg {
   position: fixed;
   inset: 0;
   z-index: 0;
   overflow: hidden;
-  /* Warm deep gradient instead of flat black */
   background:
     radial-gradient(ellipse 80% 60% at 50% 0%, rgba(139, 90, 30, 0.12) 0%, transparent 60%),
     radial-gradient(ellipse 60% 80% at 80% 100%, rgba(100, 60, 15, 0.08) 0%, transparent 50%),
@@ -105,7 +101,6 @@
     linear-gradient(180deg, #0D0A07 0%, #12100B 40%, #0F0C08 100%);
 }
 
-/* Egyptian temple wall pattern — warm and visible */
 .egyptian-pattern {
   position: absolute;
   inset: 0;
@@ -125,7 +120,6 @@
   }
 }
 
-/* Warm golden atmospheric light */
 .golden-atmosphere {
   position: absolute;
   inset: 0;
@@ -149,7 +143,6 @@
   }
 }
 
-/* Warm vignette */
 .warm-vignette {
   position: absolute;
   inset: 0;
@@ -157,7 +150,6 @@
   pointer-events: none;
 }
 
-/* Film grain */
 .film-grain {
   position: fixed;
   inset: 0;
@@ -167,7 +159,6 @@
   background-image: url("data:image/svg+xml,%3Csvg viewBox='0 0 256 256' xmlns='http://www.w3.org/2000/svg'%3E%3Cfilter id='n'%3E%3CfeTurbulence type='fractalNoise' baseFrequency='0.8' numOctaves='4' stitchTiles='stitch'/%3E%3C/filter%3E%3Crect width='100%25' height='100%25' filter='url(%23n)'/%3E%3C/svg%3E");
 }
 
-/* ========== GLASS SURFACE (warm) ========== */
 .glass-surface {
   background: linear-gradient(135deg, rgba(30, 22, 14, 0.9) 0%, rgba(20, 15, 8, 0.85) 100%);
   backdrop-filter: blur(24px);
@@ -188,7 +179,6 @@
     inset 0 1px 0 rgba(230, 178, 60, 0.05);
 }
 
-/* ========== GOLD EFFECTS ========== */
 .gold-glow {
   text-shadow: 0 0 20px rgba(230, 178, 60, 0.5), 0 0 60px rgba(230, 178, 60, 0.15);
 }
@@ -197,7 +187,6 @@
   box-shadow: 0 0 25px rgba(230, 178, 60, 0.15), 0 0 60px rgba(230, 178, 60, 0.05);
 }
 
-/* Egyptian decorative border */
 .egyptian-border {
   position: relative;
 }
@@ -213,7 +202,6 @@
   background: linear-gradient(90deg, transparent, rgba(230, 178, 60, 0.4), #E6B23C, rgba(230, 178, 60, 0.4), transparent);
 }
 
-/* Nav link active */
 .nav-link-active {
   color: #E6B23C;
   font-weight: 700;
@@ -232,7 +220,6 @@
   border-radius: 2px;
 }
 
-/* ========== PAPYRUS MATERIAL ========== */
 .papyrus-paper {
   position: relative;
   padding: 3.5rem;
@@ -276,7 +263,6 @@
   color: #1A1005;
 }
 
-/* ========== NETFLIX PAGE TRANSITION ========== */
 @keyframes fadeSlideUp {
   from {
     opacity: 0;
@@ -319,14 +305,12 @@
   animation: scaleIn 0.5s cubic-bezier(0.16, 1, 0.3, 1) forwards;
 }
 
-/* Gold shimmer loading */
 .shimmer-gold {
   background: linear-gradient(90deg, rgba(230, 178, 60, 0.03) 25%, rgba(230, 178, 60, 0.08) 50%, rgba(230, 178, 60, 0.03) 75%);
   background-size: 200% 100%;
   animation: shimmerGold 2s ease-in-out infinite;
 }
 
-/* ========== TRENDING CARD EFFECTS ========== */
 @keyframes shineSweep {
   0% {
     transform: translateX(-100%) skewX(-15deg);
@@ -365,7 +349,6 @@
   display: none;
 }
 
-/* ========== SNAPCHAT CHAT BUBBLES ========== */
 .bubble-assistant {
   background: linear-gradient(135deg, #1E160E 0%, #251C10 100%);
   border: 1px solid rgba(230, 178, 60, 0.1);
@@ -379,7 +362,6 @@
   color: #0D0A07;
 }
 
-/* ========== TYPOGRAPHY ========== */
 .font-display {
   font-family: var(--font-cormorant), serif;
 }
@@ -388,14 +370,12 @@
   font-family: var(--font-cormorant), serif;
 }
 
-/* ========== DESIGN TOKENS — Transitions (ui-ux-pro-max) ========== */
 :root {
   --transition-fast: 150ms cubic-bezier(0.4, 0, 0.2, 1);
   --transition-normal: 200ms cubic-bezier(0.4, 0, 0.2, 1);
   --transition-slow: 350ms cubic-bezier(0.4, 0, 0.2, 1);
 }
 
-/* ========== ACCESSIBILITY — Reduced Motion ========== */
 @media (prefers-reduced-motion: reduce) {
 
   *,
@@ -416,14 +396,12 @@
   }
 }
 
-/* ========== INTERACTIVE POLISH ========== */
 button:not(:disabled),
 a,
 [role="button"] {
   cursor: pointer;
 }
 
-/* Skeleton loading shimmer */
 @keyframes echo-shimmer {
   0% {
     background-position: 200% 0;
@@ -443,7 +421,6 @@ a,
   animation: echo-shimmer 1.8s ease-in-out infinite;
 }
 
-/* ========== CUSTOM SCROLLBAR FOR LANDMARKS LIST ========== */
 .custom-scrollbar::-webkit-scrollbar {
   width: 6px;
   height: 6px;
@@ -465,7 +442,6 @@ a,
   background: rgba(230, 178, 60, 0.35);
 }
 
-/* Firefox Support */
 .custom-scrollbar {
   scrollbar-width: thin;
   scrollbar-color: rgba(230, 178, 60, 0.15) rgba(230, 178, 60, 0.02);
