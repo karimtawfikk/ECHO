@@ -72,7 +72,6 @@ export default function PageShell({
 
   return (
     <main className={fullScreen ? "fixed inset-0 md:relative md:min-h-screen overflow-hidden md:overflow-visible" : "min-h-screen relative"}>
-      {/* Rich Animated Background */}
       <div className="cinematic-bg">
         <div className="egyptian-pattern" />
         <div className="golden-atmosphere" />
@@ -80,7 +79,6 @@ export default function PageShell({
       </div>
       <div className="film-grain" />
 
-      {/* Navbar */}
       <nav className="fixed top-0 left-0 right-0 z-50 border-b border-[#E6B23C]/[0.06]"
         style={{
           background: "linear-gradient(180deg, rgba(13,10,7,0.92) 0%, rgba(13,10,7,0.75) 100%)",
@@ -89,10 +87,8 @@ export default function PageShell({
       >
         <div className="w-full px-4 md:px-8 py-3 md:py-0 md:h-20 flex flex-col md:grid md:grid-cols-3 items-center relative gap-3 md:gap-0">
 
-          {/* Mobile Top Row: Logo & Controls */}
           <div className="w-full min-h-[40px] flex justify-between items-center md:contents relative">
 
-            {/* Mobile Hamburger Menu & Sidebar Links */}
             <div className="md:hidden flex items-center flex-1 justify-start">
               {!minimal && (
                 <button onClick={() => setMenuOpen(true)} className="p-2 -ml-2 text-[#E6B23C] hover:bg-[#E6B23C]/10 rounded-full transition-colors z-[40]">
@@ -132,14 +128,13 @@ export default function PageShell({
                               <Link
                                 href={link.href}
                                 onClick={() => setMenuOpen(false)}
-                                className={`text-xl font-bold tracking-[0.2em] uppercase transition-all flex items-center gap-4 py-2 ${
-                                  isActive ? "text-[#E6B23C]" : "text-[#F5E6D0] hover:text-[#E6B23C]"
-                                }`}
+                                className={`text-xl font-bold tracking-[0.2em] uppercase transition-all flex items-center gap-4 py-2 ${isActive ? "text-[#E6B23C]" : "text-[#F5E6D0] hover:text-[#E6B23C]"
+                                  }`}
                               >
                                 {isActive && <div className="h-2 w-2 rounded-full bg-[#E6B23C] shadow-[0_0_8px_#E6B23C]" />}
                                 {link.name}
                               </Link>
-                              
+
                               {index < array.length - 1 && (
                                 <motion.div
                                   initial={{ scaleX: 0 }}
@@ -159,7 +154,6 @@ export default function PageShell({
               </AnimatePresence>
             </div>
 
-            {/* Center Column: Logo */}
             <div className="flex justify-center md:col-start-2 md:row-start-1 shrink-0 absolute left-1/2 -translate-x-1/2 md:static md:translate-x-0">
               <Link href="/" className="group">
                 <span
@@ -171,11 +165,9 @@ export default function PageShell({
               </Link>
             </div>
 
-            {/* Right Column: Language & User */}
             <div className="flex justify-end items-center gap-2 md:gap-4 md:col-start-3 md:row-start-1 flex-1">
               {!minimal && (
                 <>
-                  {/* Language Switcher */}
                   <div className="relative hidden md:block">
                     <button
                       onClick={() => setLangOpen(!langOpen)}
@@ -224,7 +216,6 @@ export default function PageShell({
                     </AnimatePresence>
                   </div>
 
-                  {/* User Profile */}
                   <div className="relative">
                     {!user ? (
                       <Link
@@ -253,7 +244,6 @@ export default function PageShell({
             </div>
           </div>
 
-          {/* Left Column: Desktop Navigation */}
           <div className="hidden md:flex justify-start items-center gap-8 w-full md:w-auto md:col-start-1 md:row-start-1">
             {!minimal && navLinks.map((link) => {
               const isActive = pathname === link.href || (link.href === "/upload" && pathname.startsWith("/result"));
@@ -265,7 +255,6 @@ export default function PageShell({
                     }`}
                 >
                   {link.name}
-                  {/* Glowing Tapered Underline */}
                   <div className="absolute -bottom-1 left-0 right-0 flex justify-center pointer-events-none">
                     <motion.div
                       initial={false}
@@ -277,7 +266,6 @@ export default function PageShell({
                     />
                   </div>
 
-                  {/* Hover State: Subtle Glow Reveal */}
                   {!isActive && (
                     <div className="absolute -bottom-1 left-0 right-0 flex justify-center opacity-0 group-hover:opacity-100 transition-opacity duration-300">
                       <div className="w-full h-[1px] bg-gradient-to-r from-transparent via-[#F5E6D0]/50 to-transparent" />
@@ -288,7 +276,6 @@ export default function PageShell({
             })}
           </div>
 
-          {/* Removed Mobile Dropdown Menu, now handled inline above */}
         </div>
       </nav>
 
@@ -298,14 +285,12 @@ export default function PageShell({
         </div>
       )}
 
-      {/* Content */}
       <div className={fullScreen ? "relative z-10 pt-16 md:pt-20 h-[100dvh] w-full flex flex-col overflow-hidden md:overflow-y-auto md:overflow-x-hidden" : (fullWidth ? "relative z-10 w-full" : "relative z-10 pt-24 md:pt-32 pb-12 md:pb-20 px-6 lg:px-12 max-w-7xl mx-auto")}>
         <RouteTransition fullScreen={fullScreen}>{children}</RouteTransition>
       </div>
 
       {!fullScreen && <Footer />}
 
-      {/* SVG Filter for Papyrus */}
       <svg className="hidden" aria-hidden="true">
         <filter id="rough-edge">
           <feTurbulence type="fractalNoise" baseFrequency="0.04" numOctaves="5" seed="5" result="noise" />
@@ -313,7 +298,6 @@ export default function PageShell({
         </filter>
       </svg>
 
-      {/* Profile Sidebar */}
       <ProfileSidebar isOpen={profileOpen} onClose={() => setProfileOpen(false)} />
     </main>
   );

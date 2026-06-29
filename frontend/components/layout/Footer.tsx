@@ -9,7 +9,6 @@ export default function Footer() {
 
     return (
         <footer className="mt-40 border-t border-[#E6B23C]/10 bg-[#0D0A07] relative overflow-hidden">
-            {/* Subtle glow background */}
             <div className="absolute top-0 left-1/2 -translate-x-1/2 w-[1000px] h-[800px] md:w-[800px] md:h-[300px] opacity-[0.03] pointer-events-none"
                 style={{ background: "radial-gradient(circle, #E6B23C 0%, transparent 70%)" }}
             />
@@ -17,7 +16,6 @@ export default function Footer() {
             <div className="max-w-7xl mx-auto px-6 py-16 lg:py-24">
                 <div className="grid grid-cols-1 md:grid-cols-6 gap-12 lg:gap-8">
 
-                    {/* Brand Column */}
                     <div className="md:col-span-2 space-y-6">
                         <span
                             className="text-2xl font-bold tracking-[0.25em] text-[#E6B23C] gold-glow select-none"
@@ -30,7 +28,6 @@ export default function Footer() {
                         </p>
                     </div>
 
-                    {/* Services Column */}
                     <div className="md:col-span-2 space-y-6 md:ps-20 lg:ps-32">
                         <div className="relative inline-block pb-2">
                             <h3 className="text-[#F5E6D0] font-bold tracking-[0.1em] uppercase text-sm">Navigation</h3>
@@ -60,7 +57,6 @@ export default function Footer() {
                         </ul>
                     </div>
 
-                    {/* Contact Column */}
                     <div className="md:col-span-2 space-y-6">
                         <div className="relative inline-block pb-2">
                             <h3 className="text-[#F5E6D0] font-bold tracking-[0.1em] uppercase text-sm">Contact</h3>
@@ -80,7 +76,6 @@ export default function Footer() {
 
                 </div>
 
-                {/* Bottom Bar */}
                 <div className="mt-16 pt-8 border-t border-[#E6B23C]/5 flex flex-col sm:flex-row justify-between items-center gap-4">
                     <p className="text-[#A08E70]/50 text-[11px] font-bold tracking-[0.1em] uppercase">
                         {t("footer.copyright")}

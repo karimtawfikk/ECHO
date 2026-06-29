@@ -16,7 +16,7 @@ export default function RouteTransition({ children, fullScreen = false }: { chil
         exit={{ opacity: 0, y: -10, filter: "blur(10px)" }}
         transition={{
           duration: 0.4,
-          ease: [0.22, 1, 0.36, 1], // Custom cubic-bezier for premium feel
+          ease: [0.22, 1, 0.36, 1],
         }}
         className={`w-full ${fullScreen ? 'h-full flex flex-col' : ''}`}
       >

@@ -5,19 +5,12 @@ import { motion, useInView } from "framer-motion";
 
 interface ScrollRevealProps {
   children: React.ReactNode;
-  /** Animation direction: "up" | "down" | "left" | "right" */
   direction?: "up" | "down" | "left" | "right";
-  /** Delay in seconds (default 0) */
   delay?: number;
-  /** Duration in seconds (default 0.5) */
   duration?: number;
-  /** Distance to travel in px (default 30) */
   distance?: number;
-  /** Only animate once (default true) */
   once?: boolean;
-  /** Viewport trigger margin (default "-50px") */
   margin?: string;
-  /** Additional className */
   className?: string;
 }
 
@@ -28,13 +21,6 @@ const directionMap = {
   right: { x: -1, y: 0 },
 };
 
-/**
- * A reusable scroll-activated reveal component.
- * Wraps children in a Framer Motion element that fades in
- * and slides from the specified direction when scrolled into view.
- *
- * Respects `prefers-reduced-motion` via Framer Motion's built-in support.
- */
 export default function ScrollReveal({
   children,
   direction = "up",
@@ -58,7 +44,7 @@ export default function ScrollReveal({
       transition={{
         duration,
         delay,
-        ease: [0.25, 0.1, 0.25, 1], // subtle ease-out
+        ease: [0.25, 0.1, 0.25, 1],
       }}
       className={className}
     >

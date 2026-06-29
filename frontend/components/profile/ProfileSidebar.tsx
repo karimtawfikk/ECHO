@@ -34,7 +34,6 @@ export default function ProfileSidebar({ isOpen, onClose }: ProfileSidebarProps)
     const router = useRouter();
     const supabase = createClient();
 
-    // Form States
     const [firstName, setFirstName] = useState("");
     const [lastName, setLastName] = useState("");
     const [username, setUsername] = useState("");
@@ -48,7 +47,6 @@ export default function ProfileSidebar({ isOpen, onClose }: ProfileSidebarProps)
     const [settingsError, setSettingsError] = useState<string | null>(null);
     const fileInputRef = useRef<HTMLInputElement>(null);
 
-    // Password States
     const [currentPassword, setCurrentPassword] = useState("");
     const [newPassword, setNewPassword] = useState("");
     const [showCurrentPassword, setShowCurrentPassword] = useState(false);
@@ -66,7 +64,6 @@ export default function ProfileSidebar({ isOpen, onClose }: ProfileSidebarProps)
         const cleanNameStr = cleanEntityName(name);
         const normalized = cleanNameStr.toLowerCase().trim();
 
-        // Static local folder fallback for the 10 trending entities
         const trendingImages: Record<string, string> = {
             "akhenaton": "/images/pharaohs/Akhenaton.JPG",
             "cleopatra vii philopator": "/images/pharaohs/Cleopatra%20VII%20Philopator.png",
@@ -87,7 +84,6 @@ export default function ProfileSidebar({ isOpen, onClose }: ProfileSidebarProps)
         const safeType = (type || "").toLowerCase();
         const entityType = safeType.includes("pharaoh") ? "pharaoh" : "landmark";
 
-        // Try dynamic entities first to find image from DB
         if (dbEntities) {
             const list = entityType === "pharaoh" ? dbEntities.pharaohs : dbEntities.landmarks;
             const found = list.find((e: any) => e.name.toLowerCase() === name.toLowerCase());
@@ -105,7 +101,6 @@ export default function ProfileSidebar({ isOpen, onClose }: ProfileSidebarProps)
         const safeType = (type || "").toLowerCase();
         const entityType = safeType.includes("pharaoh") ? "pharaoh" : "landmark";
 
-        // Try searching in the dynamically fetched dbEntities first!
         if (dbEntities) {
             const list = entityType === "pharaoh" ? dbEntities.pharaohs : dbEntities.landmarks;
             const found = list.find((e: any) => e.name.toLowerCase() === name.toLowerCase());
@@ -141,7 +136,6 @@ export default function ProfileSidebar({ isOpen, onClose }: ProfileSidebarProps)
     const fetchProfile = async (showSpinner = true) => {
         if (showSpinner) setIsLoading(true);
         try {
-            // Fetch dynamic dbEntities from DB
             try {
                 const dbRes = await fetch(`${baseUrl}/api/v1/entities/all`);
                 if (dbRes.ok) {
@@ -170,7 +164,6 @@ export default function ProfileSidebar({ isOpen, onClose }: ProfileSidebarProps)
                     setEmail(user.email || "");
                 }
 
-                // Fetch real conversations
                 const { data: convs } = await supabase
                     .from('conversations')
                     .select('*')
@@ -179,7 +172,6 @@ export default function ProfileSidebar({ isOpen, onClose }: ProfileSidebarProps)
 
                 if (convs) setChatHistory(convs);
 
-                // Fetch history records from dynamic tables
                 const { data: recData } = await supabase
                     .from('recognition_history')
                     .select('*')
@@ -211,13 +203,12 @@ export default function ProfileSidebar({ isOpen, onClose }: ProfileSidebarProps)
         }
     };
 
-    // 1. Initial mount fetch + auth state change listener
     useEffect(() => {
         fetchProfile(true);
 
         const { data: { subscription } } = supabase.auth.onAuthStateChange((event, session) => {
             if (session?.user) {
-                fetchProfile(false); // silent refresh on login event
+                fetchProfile(false);
             } else {
                 setUser(null);
                 setProfileData(null);
@@ -231,10 +222,9 @@ export default function ProfileSidebar({ isOpen, onClose }: ProfileSidebarProps)
         };
     }, []);
 
-    // 2. Silent refresh when sidebar is opened
     useEffect(() => {
         if (isOpen) {
-            fetchProfile(false); // load silently in the background
+            fetchProfile(false);
         }
     }, [isOpen]);
 
@@ -250,8 +240,7 @@ export default function ProfileSidebar({ isOpen, onClose }: ProfileSidebarProps)
 
         setSettingsError(null);
 
-        // 1. Validations
-        const MAX_SIZE = 2 * 1024 * 1024; // 2MB
+        const MAX_SIZE = 2 * 1024 * 1024;
         if (file.size > MAX_SIZE) {
             setSettingsError("File is too large. Maximum size is 2MB.");
             return;
@@ -262,7 +251,6 @@ export default function ProfileSidebar({ isOpen, onClose }: ProfileSidebarProps)
             return;
         }
 
-        // Generate local preview URL
         const previewUrl = URL.createObjectURL(file);
         setAvatarPreviewUrl(previewUrl);
         setSelectedAvatarFile(file);
@@ -293,12 +281,9 @@ export default function ProfileSidebar({ isOpen, onClose }: ProfileSidebarProps)
 
             let newAvatarUrl = profileData?.avatar_url || user.user_metadata?.avatar_url || null;
 
-            // Upload selected avatar file if changed
             if (selectedAvatarFile) {
                 setIsUploading(true);
                 const filePath = `${user.id}`;
-
-                // 1. Clean up any existing files for this user (handles old extensions and avoids UPDATE permission issues)
                 try {
                     const { data: existingFiles } = await supabase.storage.from('avatars').list('', { search: user.id });
                     if (existingFiles && existingFiles.length > 0) {
@@ -317,7 +302,6 @@ export default function ProfileSidebar({ isOpen, onClose }: ProfileSidebarProps)
                     console.warn("Could not list/remove existing files. Proceeding with upload.", e);
                 }
 
-                // 2. Upload new file (using upsert: true)
                 const { error: uploadError } = await supabase.storage
                     .from('avatars')
                     .upload(filePath, selectedAvatarFile, {
@@ -326,7 +310,6 @@ export default function ProfileSidebar({ isOpen, onClose }: ProfileSidebarProps)
                     });
 
                 if (uploadError) {
-                    // Fallback to update if upload fails (some Supabase setups require this for overwriting)
                     const { error: updateError } = await supabase.storage
                         .from('avatars')
                         .update(filePath, selectedAvatarFile, {
@@ -340,7 +323,6 @@ export default function ProfileSidebar({ isOpen, onClose }: ProfileSidebarProps)
                     .from('avatars')
                     .getPublicUrl(filePath);
 
-                // Add cache-buster to force-reload browser cache of the same static URL path
                 newAvatarUrl = `${publicUrl}?t=${Date.now()}`;
                 setIsUploading(false);
             }
@@ -367,7 +349,6 @@ export default function ProfileSidebar({ isOpen, onClose }: ProfileSidebarProps)
 
             if (dbError) throw dbError;
 
-            // Update local state
             setProfileData({
                 ...profileData,
                 full_name: fullName,
@@ -385,7 +366,6 @@ export default function ProfileSidebar({ isOpen, onClose }: ProfileSidebarProps)
                 }
             });
 
-            // Clear temp states
             setSelectedAvatarFile(null);
             setAvatarPreviewUrl(null);
 
@@ -418,7 +398,6 @@ export default function ProfileSidebar({ isOpen, onClose }: ProfileSidebarProps)
                 return;
             }
 
-            // 1. Verify current password by signing in
             const { error: verifyError } = await supabase.auth.signInWithPassword({
                 email: user.email,
                 password: currentPassword
@@ -429,7 +408,6 @@ export default function ProfileSidebar({ isOpen, onClose }: ProfileSidebarProps)
                 return;
             }
 
-            // 2. Update to new password
             const { error: updateError } = await supabase.auth.updateUser({
                 password: newPassword
             });
@@ -464,7 +442,6 @@ export default function ProfileSidebar({ isOpen, onClose }: ProfileSidebarProps)
         setShowDeleteConfirm(false);
         setIsSaving(true);
         try {
-            // 1. Delete Supabase avatars
             try {
                 const { data: existingFiles } = await supabase.storage.from('avatars').list('', { search: user.id });
                 if (existingFiles && existingFiles.length > 0) {
@@ -475,7 +452,6 @@ export default function ProfileSidebar({ isOpen, onClose }: ProfileSidebarProps)
                 console.error("Error deleting avatars:", err);
             }
 
-            // 2. Call backend to delete R2 data AND DB rows (including profiles and auth.users)
             const res = await fetch(`${baseUrl}/api/v1/assets/delete-account/${user.id}`, {
                 method: 'DELETE',
             });
@@ -485,7 +461,6 @@ export default function ProfileSidebar({ isOpen, onClose }: ProfileSidebarProps)
                 throw new Error(errData?.detail || "Failed to delete account from backend.");
             }
 
-            // Redirect to login page
             await supabase.auth.signOut();
             window.location.href = "/login";
         } catch (err: any) {
@@ -507,7 +482,6 @@ export default function ProfileSidebar({ isOpen, onClose }: ProfileSidebarProps)
         }
     };
 
-    // Scroll lock and reset view when closing
     useEffect(() => {
         if (isOpen) {
             document.body.style.overflow = "hidden";
@@ -521,7 +495,6 @@ export default function ProfileSidebar({ isOpen, onClose }: ProfileSidebarProps)
         };
     }, [isOpen]);
 
-    // Mock Data
     const userData = {
         name: (firstName || lastName) ? `${firstName} ${lastName}`.trim() : profileData?.full_name || user?.user_metadata?.full_name || user?.email?.split('@')[0] || "Explorer",
         username: username || profileData?.username || user?.user_metadata?.user_name || user?.email?.split('@')[0],
@@ -575,7 +548,6 @@ export default function ProfileSidebar({ isOpen, onClose }: ProfileSidebarProps)
         (entry) => historyFilter === "all" || entry.history_type === historyFilter
     );
 
-    // Group chats by entity for the records view
     const groupedChats = userData.chats.reduce((acc, chat) => {
         const key = chat.entity_name || "Unknown";
         if (!acc[key]) acc[key] = [];
@@ -592,7 +564,6 @@ export default function ProfileSidebar({ isOpen, onClose }: ProfileSidebarProps)
         <AnimatePresence>
             {isOpen && (
                 <>
-                    {/* Backdrop */}
                     <motion.div
                         initial={{ opacity: 0 }}
                         animate={{ opacity: 1 }}
@@ -601,7 +572,6 @@ export default function ProfileSidebar({ isOpen, onClose }: ProfileSidebarProps)
                         className="fixed inset-0 bg-black/60 backdrop-blur-sm z-[100]"
                     />
 
-                    {/* Sidebar */}
                     <motion.div
                         initial={{ x: "100%" }}
                         animate={{ x: 0 }}
@@ -618,7 +588,6 @@ export default function ProfileSidebar({ isOpen, onClose }: ProfileSidebarProps)
                                     exit={{ opacity: 0, x: -20 }}
                                     className="flex flex-col h-full"
                                 >
-                                    {/* Header Area */}
                                     <div className="pt-14 px-8 pb-6 flex justify-between items-start">
                                         <div className="flex items-center gap-6">
                                             <div className="h-20 w-20 rounded-full border-2 border-[#E6B23C]/20 bg-[#1A1208] overflow-hidden shadow-2xl">
@@ -650,7 +619,6 @@ export default function ProfileSidebar({ isOpen, onClose }: ProfileSidebarProps)
                                         </button>
                                     </div>
 
-                                    {/* Top Actions */}
                                     <div className="px-8 pb-5 flex gap-4">
                                         <button
                                             onClick={() => setView("settings")}
@@ -669,7 +637,6 @@ export default function ProfileSidebar({ isOpen, onClose }: ProfileSidebarProps)
                                         </button>
                                     </div>
 
-                                    {/* Tabs */}
                                     <div className="flex px-4 bg-[#0D0A07]/40 border-b border-[#E6B23C]/10">
                                         {(["saved", "chats", "history"] as TabType[]).map((tab) => (
                                             <button
@@ -694,7 +661,6 @@ export default function ProfileSidebar({ isOpen, onClose }: ProfileSidebarProps)
                                         ))}
                                     </div>
 
-                                    {/* Tab Content - Scrollable */}
                                     <div className="flex-1 overflow-y-auto trending-scrollbar-hide pb-24">
                                         <motion.div
                                             key={activeTab}
@@ -806,7 +772,6 @@ export default function ProfileSidebar({ isOpen, onClose }: ProfileSidebarProps)
 
                                                     {activeTab === "history" && (
                                                         <>
-                                                            {/* Dynamic Sub-Filter Buttons */}
                                                             <div className="flex justify-center gap-3 px-6 py-4 bg-[#0D0A07]/40 border-b border-[#E6B23C]/5">
                                                                 {([
                                                                     { id: "all", label: language === "AR" ? "الكل" : language === "FR" ? "Tout" : "All" },
@@ -817,8 +782,8 @@ export default function ProfileSidebar({ isOpen, onClose }: ProfileSidebarProps)
                                                                         key={filter.id}
                                                                         onClick={() => setHistoryFilter(filter.id)}
                                                                         className={`px-4 py-1.5 rounded-full text-[10px] font-bold uppercase tracking-wider transition-all duration-300 ${historyFilter === filter.id
-                                                                                ? "bg-[#E6B23C] text-[#0D0A07] shadow-[0_2px_10px_rgba(230,178,60,0.3)]"
-                                                                                : "bg-[#E6B23C]/5 border border-[#E6B23C]/10 text-[#A08E70] hover:text-[#F5E6D0] hover:border-[#E6B23C]/20"
+                                                                            ? "bg-[#E6B23C] text-[#0D0A07] shadow-[0_2px_10px_rgba(230,178,60,0.3)]"
+                                                                            : "bg-[#E6B23C]/5 border border-[#E6B23C]/10 text-[#A08E70] hover:text-[#F5E6D0] hover:border-[#E6B23C]/20"
                                                                             }`}
                                                                     >
                                                                         {filter.label}
@@ -897,7 +862,6 @@ export default function ProfileSidebar({ isOpen, onClose }: ProfileSidebarProps)
                                     exit={{ opacity: 0, x: 20 }}
                                     className="flex flex-col h-full"
                                 >
-                                    {/* Header */}
                                     <div className="p-8 flex items-center justify-between border-b border-[#E6B23C]/10">
                                         <div className="flex items-center gap-4">
                                             <button
@@ -921,9 +885,7 @@ export default function ProfileSidebar({ isOpen, onClose }: ProfileSidebarProps)
                                         </button>
                                     </div>
 
-                                    {/* Form Content */}
                                     <div className="flex-1 overflow-y-auto p-8 pb-24 space-y-10 trending-scrollbar-hide">
-                                        {/* Profile Picture*/}
                                         <section>
                                             <div className="flex flex-col items-center justify-center gap-3">
                                                 <div className="relative group">
@@ -971,7 +933,6 @@ export default function ProfileSidebar({ isOpen, onClose }: ProfileSidebarProps)
                                             </div>
                                         </section>
 
-                                        {/* Account Info */}
                                         <section className="space-y-6">
                                             <h3 className="text-[10px] font-bold tracking-[0.2em] text-[#E6B23C] uppercase mb-4 opacity-60">Account Details</h3>
 
@@ -1187,7 +1148,6 @@ export default function ProfileSidebar({ isOpen, onClose }: ProfileSidebarProps)
                         </AnimatePresence>
                     </motion.div>
 
-                    {/* Delete Confirmation Modal */}
                     <AnimatePresence>
                         {showDeleteConfirm && (
                             <motion.div
