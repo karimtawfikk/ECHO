@@ -1,4 +1,3 @@
-// ─── API Types for E.C.H.O Recognition Flow ───────────────────────────────
 
 export interface EntityImage {
     id: number;
@@ -30,7 +29,7 @@ export interface RecognitionEntity {
 export interface RecognitionResult {
     source: string;
     type: "pharaoh" | "landmark" | "error" | string;
-    name: string;          // raw model label e.g. "Ramesses_II"
+    name: string;
     raw_name?: string;
     category: string | null;
     confidence: number;
@@ -39,8 +38,7 @@ export interface RecognitionResult {
     debug_info: Record<string, unknown> | null;
 }
 
-// Session storage payload — stored between Upload → Result
 export interface PendingResult {
     result: RecognitionResult;
-    imageDataUrl: string | null; // base64 DataURL of the uploaded image (kept small for preview only)
+    imageDataUrl: string | null;
 }

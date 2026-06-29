@@ -27,9 +27,6 @@ export async function updateSession(request: NextRequest) {
     }
   )
 
-  // IMPORTANT: Avoid writing any logic between createServerClient and
-  // supabase.auth.getUser(). A simple mistake can make it very hard to debug
-  // issues with users being logged out unnecessarily.
 
   await supabase.auth.getUser()
 

@@ -1,4 +1,3 @@
-// ─── Types ───────────────────────────────────────────────────────
 export interface Pharaoh {
     name: string;
     dynasty: string;
@@ -17,7 +16,6 @@ export interface Landmark {
     icon: "pyramid" | "compass" | "map-pin" | "landmark" | "columns";
 }
 
-// ─── Mock Pharaohs ───────────────────────────────────────────────
 export const PHARAOHS: Pharaoh[] = [
     {
         name: "Akhenaton",
@@ -71,7 +69,6 @@ export const PHARAOHS: Pharaoh[] = [
     },
 ];
 
-// ─── Mock Landmarks ──────────────────────────────────────────────
 export const LANDMARKS: Landmark[] = [
     {
         name: "Pyramids of Giza",

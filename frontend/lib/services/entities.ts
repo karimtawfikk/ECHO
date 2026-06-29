@@ -1,4 +1,3 @@
-// ─── Frontend API for fetching trending entities from the DB ─────────────────
 
 import type { RecognitionEntity } from "../types";
 
@@ -14,7 +13,6 @@ export interface TrendingEntitiesResponse {
 
 export async function fetchTrendingEntities(): Promise<TrendingEntitiesResponse> {
     const res = await fetch(`${API_BASE}/api/v1/entities/trending?limit=5`, {
-        // no-store so we always get fresh data on each client-side visit
         cache: "no-store",
     });
     if (!res.ok) throw new Error(`Entities API error ${res.status}`);

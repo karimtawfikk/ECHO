@@ -19,12 +19,10 @@ import { saveResultToSession } from "@/lib/services/recognition";
 import { cleanEntityName } from "@/lib/utils";
 import type { RecognitionResult } from "@/lib/types";
 
-/* ── Consistent icon pools (cycled by index) ──────────────────────────── */
 const PHARAOH_ICONS = [Crown, Star, Sparkles, Shield, Scroll];
 const LANDMARK_ICONS = [Mountain, Navigation, Landmark, Columns3, MapPin];
 
 
-/* ── Props ────────────────────────────────────────────────────────────── */
 interface TrendingCardProps {
     variant: "pharaoh" | "landmark";
     entity: RecognitionEntity;
@@ -59,11 +57,9 @@ export default function TrendingCard({ variant, entity, index }: TrendingCardPro
     } else if (entity.images && entity.images.length > 0 && entity.images[0].url) {
         finalImageUrl = entity.images[0].url;
     } else if ((entity as any).image) {
-        // Support the singular 'image' field from mock-all-entities.ts
         const imgPath = (entity as any).image;
         if (imgPath.startsWith("data/")) {
             const baseUrl = process.env.NEXT_PUBLIC_API_URL?.replace(/\/api\/v1\/?$/, "") ?? "http://localhost:8010";
-            // Correct logic: Use the R2 Proxy for Cloudflare assets
             finalImageUrl = `${baseUrl}/api/v1/assets/r2/${imgPath}`;
         } else {
             finalImageUrl = imgPath;
@@ -72,7 +68,6 @@ export default function TrendingCard({ variant, entity, index }: TrendingCardPro
 
 
     function handleClick() {
-        // Build a RecognitionResult-shaped payload so the Result page renders identically to the recognition flow
         const fakeResult: RecognitionResult = {
             source: "quick-link",
             type: variant,
@@ -83,7 +78,6 @@ export default function TrendingCard({ variant, entity, index }: TrendingCardPro
             entity: entity,
             debug_info: null,
         };
-        // No uploaded image for quick-link cards
         saveResultToSession({ result: fakeResult, imageDataUrl: null });
         router.push("/result");
     }
@@ -123,9 +117,7 @@ export default function TrendingCard({ variant, entity, index }: TrendingCardPro
                 tabIndex={0}
                 onKeyDown={(e) => e.key === "Enter" && handleClick()}
             >
-                {/* ── Background ─────────────────────────────────────── */}
                 <div className="absolute inset-0 bg-[#0D0A07]">
-                    {/* Always render gradient behind the image as fallback */}
                     {isPharaoh ? (
                         <div
                             className="absolute inset-0"
@@ -144,7 +136,6 @@ export default function TrendingCard({ variant, entity, index }: TrendingCardPro
                         />
                     )}
 
-                    {/* Hero Image */}
                     {finalImageUrl && (
                         <motion.img
                             src={finalImageUrl}
@@ -158,7 +149,6 @@ export default function TrendingCard({ variant, entity, index }: TrendingCardPro
                         />
                     )}
 
-                    {/* SVG pattern overlay */}
                     <div
                         className="absolute inset-0 opacity-[0.035]"
                         style={{
@@ -169,7 +159,6 @@ export default function TrendingCard({ variant, entity, index }: TrendingCardPro
                         }}
                     />
 
-                    {/* Warm radial highlight at top */}
                     <div
                         className="absolute inset-0 pointer-events-none"
                         style={{
@@ -180,11 +169,9 @@ export default function TrendingCard({ variant, entity, index }: TrendingCardPro
                     />
                 </div>
 
-                {/* ── Shine sweep on hover ────────────────────────────── */}
                 <div className="trending-card-shine absolute inset-0 pointer-events-none z-10" />
 
 
-                {/* ── Rank number ─────────────────────────────────────── */}
                 <div
                     className="absolute bottom-20 left-4 z-20 text-[60px] font-black leading-none pointer-events-none select-none"
                     style={{
@@ -197,9 +184,7 @@ export default function TrendingCard({ variant, entity, index }: TrendingCardPro
                     {index + 1}
                 </div>
 
-                {/* ── Content area ────────────────────────────────────── */}
                 <div className="absolute bottom-0 left-0 right-0 z-20 p-4">
-                    {/* gradient fade above content */}
                     <div
                         className="absolute inset-x-0 bottom-0 h-40 -z-10"
                         style={{
@@ -208,12 +193,10 @@ export default function TrendingCard({ variant, entity, index }: TrendingCardPro
                         }}
                     />
 
-                    {/* Entity name (from DB) */}
                     <h3 className="font-heading text-base font-bold text-[#F5E6D0] mb-1 leading-tight tracking-wide hover:text-white transition-colors line-clamp-2">
                         {cleanEntityName(entity.name)}
                     </h3>
 
-                    {/* Teaser description */}
                     {entity.description && (
                         <p className="text-[10px] text-[#A08E70]/80 leading-relaxed line-clamp-2">
                             {entity.description}

@@ -15,7 +15,6 @@ function SkeletonCard({ isPharaoh }: { isPharaoh: boolean }) {
     return (
         <div className={`relative h-[320px] rounded-2xl overflow-hidden border animate-pulse
             ${isPharaoh ? "border-[#E6B23C]/10 bg-[#1E160E]" : "border-[#A08E70]/10 bg-[#12150E]"}`}>
-            {/* shimmer overlay */}
             <div
                 className="absolute inset-0 opacity-[0.04]"
                 style={{
@@ -24,9 +23,7 @@ function SkeletonCard({ isPharaoh }: { isPharaoh: boolean }) {
                         : "radial-gradient(ellipse 80% 50% at 50% 0%, rgba(160,142,112,0.5) 0%, transparent 60%)",
                 }}
             />
-            {/* Badge placeholder */}
             <div className={`absolute top-4 left-4 h-5 w-20 rounded-full ${isPharaoh ? "bg-[#E6B23C]/10" : "bg-[#A08E70]/10"}`} />
-            {/* Content placeholders */}
             <div className="absolute bottom-4 left-4 right-4 space-y-2">
                 <div className={`h-4 w-4/5 rounded ${isPharaoh ? "bg-[#E6B23C]/8" : "bg-[#A08E70]/8"}`} />
                 <div className={`h-3 w-2/5 rounded ${isPharaoh ? "bg-[#E6B23C]/5" : "bg-[#A08E70]/5"}`} />
@@ -40,7 +37,6 @@ function SkeletonCard({ isPharaoh }: { isPharaoh: boolean }) {
 export default function TrendingRow({ title, items, type, isLoading = false }: TrendingRowProps) {
     const isPharaoh = type === "pharaoh";
 
-    // Variants for staggered container
     const containerVariants = {
         hidden: { opacity: 0 },
         visible: {
@@ -60,8 +56,7 @@ export default function TrendingRow({ title, items, type, isLoading = false }: T
             variants={containerVariants}
             className="relative"
         >
-            {/* ── Header ──────────────────────────────────────────── */}
-            <motion.div 
+            <motion.div
                 variants={{
                     hidden: { opacity: 0, x: -20 },
                     visible: { opacity: 1, x: 0, transition: { duration: 0.5 } }
@@ -83,8 +78,7 @@ export default function TrendingRow({ title, items, type, isLoading = false }: T
                 </div>
             </motion.div>
 
-            {/* ── 5-Column Grid ───────────────────────────────────── */}
-            <motion.div 
+            <motion.div
                 variants={containerVariants}
                 className="flex flex-wrap justify-center gap-4 [&>*]:w-[calc(50%-0.5rem)] md:[&>*]:w-[calc(33.33%-0.67rem)] lg:[&>*]:w-[calc(20%-0.8rem)]"
             >

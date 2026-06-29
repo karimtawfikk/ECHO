@@ -15,7 +15,6 @@ const LanguageContext = createContext<LanguageContextType | undefined>(undefined
 export function LanguageProvider({ children }: { children: ReactNode }) {
   const [language, setLanguage] = useState<Language>("EN");
 
-  // Load language from localStorage if available
   useEffect(() => {
     const savedLang = localStorage.getItem("echo-language") as Language;
     if (savedLang && ["EN", "AR", "FR"].includes(savedLang)) {
@@ -37,13 +36,13 @@ export function LanguageProvider({ children }: { children: ReactNode }) {
 
   const t = (key: DictionaryKey, variables?: Record<string, string>): string => {
     let text = dictionaries[language][key] || dictionaries["EN"][key] || key;
-    
+
     if (variables) {
       Object.entries(variables).forEach(([vKey, vVal]) => {
         text = text.replace(`{${vKey}}`, vVal);
       });
     }
-    
+
     return text;
   };
 
