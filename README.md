@@ -26,76 +26,65 @@ ECHO uses a modern **Microservices Architecture** to separate lightweight routin
 graph LR
     %% Aesthetics
     classDef actor fill:none,stroke:none,color:#000
-    classDef ui fill:#0f172a,stroke:#3b82f6,stroke-width:2px,color:#fff
-    classDef gw fill:#0f172a,stroke:#10b981,stroke-width:2px,color:#fff
-    classDef pipe fill:#1e293b,stroke:#8b5cf6,stroke-width:2px,color:#fff
-    classDef db fill:#0f172a,stroke:#0ea5e9,stroke-width:2px,color:#fff
-    classDef ext fill:#000,stroke:#f59e0b,stroke-width:2px,color:#fff
-    classDef cloud fill:none,stroke:none,color:#333
+    classDef ui fill:#bfdbfe,stroke:#3b82f6,stroke-width:2px,color:#000
+    classDef gw fill:#000,stroke:#000,stroke-width:2px,color:#fff
+    classDef pipe fill:#bfdbfe,stroke:#3b82f6,stroke-width:2px,color:#000
+    classDef db fill:#bfdbfe,stroke:#3b82f6,stroke-width:2px,color:#000
+    classDef ext fill:none,stroke:none,color:#000
 
-    Actor(["👤 Actor"]):::actor
+    Actor(["👤<br/>Actor"]):::actor
 
-    %% Compact Core Nodes
-    FE["⚛️ Next.js<br>(Frontend)"]:::ui
-    BE["🚀 FastAPI<br>(Gateway)"]:::gw
+    subgraph Vercel [▲ Vercel]
+        FE(("N")):::ui
+    end
+    style Vercel fill:#e0f2fe,stroke:#bae6fd,stroke-width:2px,color:#000,rx:10,ry:10
 
-    %% The 4 parallel AI pipelines
-    Rec["Recognition Pipeline<br>(Binary & Identity Models)"]:::pipe
-    Hiero["Hieroglyph Pipeline<br>(YOLOv8 & M2M-100)"]:::pipe
-    Chat["Chatbot Pipeline<br>(RAG & TTS Embeddings)"]:::pipe
-    Media["Media Adaptor<br>(Video Compilation)"]:::pipe
+    BE["⚡"]:::gw
 
-    %% Destinations
-    DB[("🐘 PostgreSQL<br>+ pgvector")]:::db
-    Groq["⚡ Groq API<br>(LLM Inference)"]:::ext
-    R2[("☁️ Cloudflare R2<br>(Object Storage)")]:::db
+    subgraph Runpod [📦 runpod]
+        Chat["Chatbot Pipeline"]:::pipe
+        Hiero["Hieroglyphics<br/>Translation<br/>Pipeline"]:::pipe
+        Video["Video Generation<br/>Pipeline"]:::pipe
+        Rec["Entity Recognition<br/>Pipeline"]:::pipe
+    end
+    style Runpod fill:#e0f2fe,stroke:#bae6fd,stroke-width:2px,color:#000,rx:10,ry:10
 
-    %% Deployment Anchors
-    RunPod["🚀 RunPod (GPU Cloud)"]:::cloud
+    Groq["⚡ groq"]:::ext
+    R2("☁️ Cloudflare R2 Storage"):::ext
+    DB[("🐘")]:::db
 
-    %% --- Connections ---
-    Actor -->|"Interacts"| FE
+    %% Connections
+    Actor <--> FE
     
-    %% Frontend / Backend Communication
-    FE -- "API Request" --> BE
-    BE -- "Data Result" --> FE
+    FE -->|"API<br/>Request"| BE
+    BE -->|"Data<br/>Result"| FE
 
-    %% Backend routing to Microservices
-    BE -- "Image Data" --> Rec
-    BE -- "Artifact Image" --> Hiero
-    BE -- "User Query" --> Chat
-    BE -- "Video Request" --> Media
+    BE -->|"User Prompt"| Chat
+    Chat -->|"Audio/Text<br/>Response"| BE
 
-    %% Microservices returning requested data to Backend
-    Rec -- "Detected Classes" --> BE
-    Hiero -- "English Text" --> BE
-    Chat -- "Audio Stream" --> BE
-    Media -- "MP4 URL" --> BE
+    BE -->|"Inscription Image"| Hiero
+    Hiero -->|"English Text"| BE
 
-    %% AI Models to Databases & External APIs
-    Rec -- "Metadata" --> DB
-    Chat -- "Conversations" --> DB
-    Media -- "Image URLs" --> DB
-    
-    %% Groq Communication
-    Chat -- "Enhanced Prompt" --> Groq
-    Groq -- "LLM Response" --> Chat
-    
-    %% Storage
-    Media -- "Fetch Source Images" --> R2
-    R2 -- "Image Files" --> Media
-    Media -- "Video Output" --> R2
+    BE -->|"Video Request"| Video
+    Video -->|"MP4 Video"| BE
 
-    %% Backend DB Queries
-    BE -- "Database Query" --> DB
-    DB -- "Query Data" --> BE
+    BE -->|"Entity<br/>Image"| Rec
+    Rec -->|"Entity<br/>Description"| BE
 
-    %% Alignment rules
-    FE -.-> RunPod
-    BE -.-> RunPod
+    Chat -->|"Enhanced Prompt + Context"| Groq
+    Groq -->|"LLM Response"| Chat
 
-    %% Force straight, non-curvy lines unconditionally
-    linkStyle default interpolate step
+    Chat -->|"Query Entity<br/>Context"| DB
+    DB -->|"Entity<br/>Context"| Chat
+
+    Video -->|"Fetch Images"| R2
+    R2 -->|"Image Files"| Video
+
+    Video -->|"Query Images via Text Embeddings"| DB
+    DB -->|"Images URL"| Video
+
+    Rec -->|"Query<br/>Metadata"| DB
+    DB -->|"Entity<br/>Metadata"| Rec
 ```
 
 ### Main Components:
