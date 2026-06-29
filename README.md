@@ -72,12 +72,14 @@ flowchart LR
     Rec -- "Query Metadata<br/>Entity Metadata" --> DB
 ```
 
-### Main Components:
-* **API Gateway (`src/app`)**: Built with FastAPI. Handles frontend authentication, database CRUD operations, and forwards AI-heavy requests to the dedicated microservices.
-* **Recognition API (`src/recognition_api`)**: Dedicated microservice for Landmark and Statue recognition Using CNNs.
-* **Chatbot API (`src/chatbot_api`)**: Dedicated microservice for RAG, Groq LLM streaming, and Text-To-Speech generation.
-* **Video Generation API (`src/video_generation_api`)**: Dedicated microservice for automated historical video compilation.
-* **Hieroglyph Detection API (`src/hieroglyph_api`)**: Dedicated microservice to detect, classify, and translate Ancient Egyptian hieroglyphs using CNNs and Transformers.
+### Main Components & Deployment:
+* **Frontend (`frontend`)**: Next.js application hosted on **Vercel** for edge delivery.
+* **Backend Microservices (Hosted on RunPod)**:
+  * **API Gateway (`src/app`)**: Built with FastAPI. Handles frontend authentication, database CRUD operations, and forwards AI-heavy requests to the dedicated microservices.
+  * **Recognition API (`src/recognition_api`)**: Dedicated microservice for Landmark and Statue recognition Using CNNs.
+  * **Chatbot API (`src/chatbot_api`)**: Dedicated microservice for RAG, Groq LLM streaming, and Text-To-Speech generation.
+  * **Video Generation API (`src/video_generation_api`)**: Dedicated microservice for automated historical video compilation.
+  * **Hieroglyph Detection API (`src/hieroglyph_api`)**: Dedicated microservice to detect, classify, and translate Ancient Egyptian hieroglyphs using CNNs and Transformers.
 * **Databases**: PostgreSQL.
 * **Cloud Storage**: Cloudflare R2 Storage.
 
@@ -176,5 +178,4 @@ The system contains structured data about Landmarks, Pharaohs, User Profiles, Co
 * Density-Based Spatial Clustering
 * Text-to-Speech (TTS) and Speech-to-Text (STT) Synthesis
 
-## Academic Context
-This project was developed as part of an Artificial Intelligence graduation project to design a scalable AI system combining computer vision, NLP, and database systems.
+
