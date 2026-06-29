@@ -42,7 +42,13 @@ function mockToEntity(item: { name: string; description: string; dynasty?: strin
     location: (item as { location?: string }).location ?? null,
     composite_entity: null,
     composite_entities_data: null,
-    images: [],
+    images: [
+      {
+        id: 1,
+        url: `/images/${item.location ? "landmarks" : "pharaohs"}/${encodeURIComponent(item.name)}.jpg`,
+        caption: null,
+      },
+    ],
     scripts: null,
   };
 }
