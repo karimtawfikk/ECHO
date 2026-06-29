@@ -149,12 +149,7 @@ python -m venv venv
 # Windows: venv\Scripts\activate
 # Mac/Linux: source venv/bin/activate
 
-pip install -r requirements/main.txt
-# (Optional) Install other service requirements if running natively:
-# pip install -r requirements/chatbot.txt
-# pip install -r requirements/video.txt
-# pip install -r requirements/hieroglyph.txt
-# pip install -r requirements/recognition.txt
+pip install -r requirements/main.txt -r requirements/chatbot.txt -r requirements/video.txt -r requirements/hieroglyph.txt -r requirements/recognition.txt
 
 uvicorn src.app.main:app --reload --host 0.0.0.0 --port 8010
 ```
