@@ -45,7 +45,7 @@ function mockToEntity(item: { name: string; description: string; dynasty?: strin
     images: [
       {
         id: 1,
-        url: `/images/${item.location ? "landmarks" : "pharaohs"}/${encodeURIComponent(item.name)}.jpg`,
+        url: `/images/${item.location ? "landmarks" : "pharaohs"}/${item.name}.jpg`,
         caption: null,
       },
     ],
