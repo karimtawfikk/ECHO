@@ -115,7 +115,7 @@ export default function PageShell({
                       animate={{ x: 0 }}
                       exit={{ x: "-100%" }}
                       transition={{ type: "spring", damping: 25, stiffness: 200 }}
-                      className="fixed top-0 left-0 h-[100dvh] w-full bg-[#0D0A07]/95 backdrop-blur-2xl z-[101] flex flex-col pt-16 px-8"
+                      className="fixed top-0 left-0 h-[100dvh] w-1/2 bg-[#0D0A07]/95 backdrop-blur-2xl border-r border-[#E6B23C]/20 shadow-[20px_0_50px_rgba(0,0,0,0.5)] z-[101] flex flex-col pt-16 px-4 sm:px-6"
                     >
                       <button
                         onClick={() => setMenuOpen(false)}
