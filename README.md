@@ -175,7 +175,7 @@ The system contains structured data about Landmarks, Pharaohs, User Profiles, Co
 * Transformers & Large Language Models (LLMs)
 * Retrieval-Augmented Generation (RAG)
 * Multimodal Embeddings & Vector Similarity Search
-* Density-Based Spatial Clustering
+* Density-Based Spatial Clustering (DBSCAN)
 * Text-to-Speech (TTS) and Speech-to-Text (STT) Synthesis
 
 
