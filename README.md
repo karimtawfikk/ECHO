@@ -23,7 +23,7 @@ The system transforms static historical content into an intelligent interactive 
 ECHO uses a modern **Microservices Architecture** to separate lightweight routing/CRUD operations from heavy AI model inferences.
 
 ```mermaid
-graph TD
+graph LR
     %% Aesthetics
     classDef actor fill:none,stroke:none,color:#000
     classDef ui fill:#0f172a,stroke:#3b82f6,stroke-width:2px,color:#fff
@@ -49,6 +49,9 @@ graph TD
     DB[("🐘 PostgreSQL<br>+ pgvector")]:::db
     Groq["⚡ Groq API<br>(LLM Inference)"]:::ext
     R2[("☁️ Cloudflare R2<br>(Object Storage)")]:::db
+
+    %% Deployment Anchors
+    RunPod["🚀 RunPod (GPU Cloud)"]:::cloud
 
     %% --- Connections ---
     Actor -->|"Interacts"| FE
@@ -86,6 +89,13 @@ graph TD
     %% Backend DB Queries
     BE -- "Database Query" --> DB
     DB -- "Query Data" --> BE
+
+    %% Alignment rules
+    FE -.-> RunPod
+    BE -.-> RunPod
+
+    %% Force straight, non-curvy lines unconditionally
+    linkStyle default interpolate step
 ```
 
 ### Main Components:
@@ -143,7 +153,6 @@ python -m venv venv
 # Mac/Linux: source venv/bin/activate
 
 pip install -r requirements/main.txt -r requirements/chatbot.txt -r requirements/video.txt -r requirements/hieroglyph.txt -r requirements/recognition.txt
-
 uvicorn src.app.main:app --reload --host 0.0.0.0 --port 8010
 ```
 *(Alternatively, you can start all services natively by running `./start_all.sh` on Linux/Mac)*
