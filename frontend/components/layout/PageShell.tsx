@@ -155,12 +155,11 @@ export default function PageShell({
 
             <div className="flex justify-center md:col-start-2 md:row-start-1 shrink-0 absolute left-1/2 -translate-x-1/2 md:static md:translate-x-0">
               <Link href="/" className="group">
-                <span
-                  className="text-3xl font-bold tracking-[0.35em] text-[#E6B23C] gold-glow group-hover:text-[#FFD369] transition-colors"
-                  style={{ fontFamily: 'var(--font-cormorant), serif' }}
-                >
-                  ECHO
-                </span>
+                <img 
+                  src="/logo.png" 
+                  alt="ECHO Logo" 
+                  className="h-10 md:h-12 w-auto object-contain transition-transform group-hover:scale-105" 
+                />
               </Link>
             </div>
 
