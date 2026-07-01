@@ -172,24 +172,22 @@ ECHO provides a unified API Gateway which exposes the following core endpoints (
 | Feature / Category | Endpoint (prefixed with `/api/v1`) | Method | Purpose |
 |--------------------|---------------------------------------|--------|---------|
 | **Recognition**    | `/recognize/`                         | `POST` | Submits an image for entity (landmark/statue) recognition. |
-| **Health**         | `/health/`                            | `GET`  | Basic API health check. |
-| **Health**         | `/health/{db, app, models}`           | `GET`  | Component-specific health status. |
-| **Entities**       | `/entities/trending`                  | `GET`  | Retrieves trending historical entities. |
-| **Entities**       | `/entities/all`                       | `GET`  | Retrieves all entities. |
-| **Entities**       | `/entities/details`                   | `GET`  | Retrieves specific entity details. |
 | **Chatbot**        | `/chat/init`                          | `POST` | Initializes a new chat session. |
 | **Chatbot**        | `/chat/chat`                          | `POST` | Sends a message to the AI and receives a response. |
 | **Chatbot**        | `/chat/info`                          | `GET`  | Retrieves session information. |
 | **Chatbot**        | `/chat/transcribe`                    | `POST` | Handles voice-to-text transcription. |
+| **Entities**       | `/entities/trending`                  | `GET`  | Retrieves trending historical entities. |
+| **Entities**       | `/entities/all`                       | `GET`  | Retrieves all entities. |
+| **Entities**       | `/entities/details`                   | `GET`  | Retrieves specific entity details. |
 | **Video Generation**| `/video/generate`                    | `POST` | Triggers the generation of an educational video. |
 | **Video Generation**| `/video/status/{entity_name}`        | `GET`  | Checks video generation status. |
 | **Video Generation**| `/video/stream/{entity_name}`        | `GET`  | Streams the generated video. |
+| **Hieroglyphs**    | `/hieroglyphs/translate`              | `POST` | Translates an image containing hieroglyphs. |
+| **Hieroglyphs**    | `/hieroglyphs/translate/stream`       | `POST` | Streams the translation process. |
 | **Assets & Users** | `/assets/r2/{key:path}`               | `GET`  | Fetch assets from Cloudflare R2 storage. |
 | **Assets & Users** | `/assets/r2-history/{key:path}`       | `GET`  | Fetch asset history from Cloudflare R2 storage. |
 | **Assets & Users** | `/assets/upload/history`              | `POST` | Stores asset history. |
 | **Assets & Users** | `/assets/delete-account/{user_id}`    | `DELETE`| Deletes user account and data. |
-| **Hieroglyphs**    | `/hieroglyphs/translate`              | `POST` | Translates an image containing hieroglyphs. |
-| **Hieroglyphs**    | `/hieroglyphs/translate/stream`       | `POST` | Streams the translation process. |
 
 ## Database Design
 
