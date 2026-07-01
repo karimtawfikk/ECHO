@@ -176,14 +176,14 @@ ECHO provides a unified API Gateway which exposes the following core endpoints (
 | **Chatbot**        | `/chat/chat`                          | `POST` | Sends a message to the AI and receives a response. |
 | **Chatbot**        | `/chat/info`                          | `GET`  | Retrieves session information. |
 | **Chatbot**        | `/chat/transcribe`                    | `POST` | Handles voice-to-text transcription. |
-| **Entities**       | `/entities/trending`                  | `GET`  | Retrieves trending historical entities. |
-| **Entities**       | `/entities/all`                       | `GET`  | Retrieves all entities. |
-| **Entities**       | `/entities/details`                   | `GET`  | Retrieves specific entity details. |
 | **Video Generation**| `/video/generate`                    | `POST` | Triggers the generation of an educational video. |
 | **Video Generation**| `/video/status/{entity_name}`        | `GET`  | Checks video generation status. |
 | **Video Generation**| `/video/stream/{entity_name}`        | `GET`  | Streams the generated video. |
-| **Hieroglyphs**    | `/hieroglyphs/translate`              | `POST` | Translates an image containing hieroglyphs. |
-| **Hieroglyphs**    | `/hieroglyphs/translate/stream`       | `POST` | Streams the translation process. |
+| **Hieroglyphs Translation**| `/hieroglyphs/translate`      | `POST` | Translates an image containing hieroglyphs. |
+| **Hieroglyphs Translation**| `/hieroglyphs/translate/stream`| `POST` | Streams the translation process. |
+| **Entities**       | `/entities/trending`                  | `GET`  | Retrieves trending historical entities. |
+| **Entities**       | `/entities/all`                       | `GET`  | Retrieves all entities. |
+| **Entities**       | `/entities/details`                   | `GET`  | Retrieves specific entity details. |
 | **Assets & Users** | `/assets/r2/{key:path}`               | `GET`  | Fetch assets from Cloudflare R2 storage. |
 | **Assets & Users** | `/assets/r2-history/{key:path}`       | `GET`  | Fetch asset history from Cloudflare R2 storage. |
 | **Assets & Users** | `/assets/upload/history`              | `POST` | Stores asset history. |
@@ -191,7 +191,7 @@ ECHO provides a unified API Gateway which exposes the following core endpoints (
 
 ## Database Design
 
-The system contains structured data about Landmarks, Pharaohs, User Profiles, Conversations, Chat Messages, Recognition History, and Translation History. Relationships are modeled using SQLAlchemy ORM and version-controlled using Alembic migrations.
+The system contains structured data about Landmarks, Pharaohs, User Profiles, Conversations, Chat Messages, Recognition History, and Translation History. Relationships are modeled using SQLAlchemy ORM and version-controlled using Alembic migrations, hosted on Supabase.
 
 ## AI Techniques Used
 * Convolutional Neural Networks (CNNs)
