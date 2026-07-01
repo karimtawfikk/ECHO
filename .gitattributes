@@ -2,3 +2,6 @@ src/ml_models/recognition_models/** filter=lfs diff=lfs merge=lfs -text
 src/ml_models/recognition_models/*.keras filter=lfs diff=lfs merge=lfs -text
 *.pt filter=lfs diff=lfs merge=lfs -text
 *.h5 filter=lfs diff=lfs merge=lfs -text
+
+# Ignore Jupyter Notebooks in language statistics (like GitHub)
+*.ipynb linguist-detectable=false
